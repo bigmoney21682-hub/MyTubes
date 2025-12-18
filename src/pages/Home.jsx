@@ -4,6 +4,14 @@ import VideoCard from "../components/VideoCard";
 import Spinner from "../components/Spinner";
 import { API_BASE } from "../config";
 
+function extractId(url) {
+  if (!url) return null;
+
+  // /watch?v=BiJGV6Jvle0
+  const match = url.match(/v=([^&]+)/);
+  return match ? match[1] : null;
+}
+
 export default function Home() {
   const [videos, setVideos] = useState([]);
   const [trending, setTrending] = useState([]);
@@ -49,9 +57,7 @@ export default function Home() {
   return (
     <div>
       {(loadingSearch || loadingTrending) && (
-        <Spinner
-          message={loadingSearch ? "Searching…" : "Loading trending…"}
-        />
+        <Spinner message={loadingSearch ? "Searching…" : "Loading trending…"} />
       )}
 
       <Header onSearch={search} />
@@ -61,34 +67,32 @@ export default function Home() {
       )}
 
       <div className="grid">
-        {list
-          .filter(v => v && v.id && v.title)
-          .map(v => (
+        {list.map((v, i) => {
+          const id = extractId(v.url);
+
+          if (!id) {
+            console.warn("Skipping video with no ID:", v);
+            return null;
+          }
+
+          return (
             <VideoCard
-              key={v.id}
+              key={id + i}
               video={{
-                id: v.id,
-                title: v.title,
-                thumbnail:
-                  v.thumbnail ||
-                  v.thumbnails?.[v.thumbnails.length - 1]?.url ||
-                  null,
-                author: v.uploaderName || v.uploader,
+                id,
+                title: v.title || "Untitled",
+                thumbnail: v.thumbnail || "/fallback.jpg",
+                author: v.uploaderName || "Unknown",
                 views: v.views,
                 duration: v.duration > 0 ? v.duration : null,
               }}
             />
-          ))}
+          );
+        })}
       </div>
 
       {!loadingTrending && !loadingSearch && list.length === 0 && (
-        <p
-          style={{
-            textAlign: "center",
-            padding: "4rem",
-            opacity: 0.7,
-          }}
-        >
+        <p style={{ textAlign: "center", padding: "4rem", opacity: 0.7 }}>
           No videos found.
         </p>
       )}
