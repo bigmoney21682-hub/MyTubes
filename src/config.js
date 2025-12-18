@@ -1,1 +1,1 @@
-export const API_BASE = "https://mytube-nffp.onrender.com";
+export const API_BASE = 'https://mytube-piped-backend.onrender.com';
