@@ -4,12 +4,27 @@ import VideoCard from "../components/VideoCard";
 import Spinner from "../components/Spinner";
 import { API_BASE } from "../config";
 
-function extractId(url) {
-  if (!url) return null;
+/**
+ * Normalize Piped thumbnails so they ALWAYS work on GitHub Pages
+ */
+function resolveThumbnail(video, id) {
+  if (video.thumbnail) {
+    // protocol-relative → force https
+    if (video.thumbnail.startsWith("//")) {
+      return "https:" + video.thumbnail;
+    }
 
-  // /watch?v=BiJGV6Jvle0
-  const match = url.match(/v=([^&]+)/);
-  return match ? match[1] : null;
+    // relative path → use YouTube CDN
+    if (video.thumbnail.startsWith("/")) {
+      return `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
+    }
+
+    // already valid
+    return video.thumbnail;
+  }
+
+  // absolute fallback
+  return `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
 }
 
 export default function Home() {
@@ -29,7 +44,7 @@ export default function Home() {
         `${API_BASE}/search?q=${encodeURIComponent(q.trim())}&filter=videos`
       );
       const data = await res.json();
-      setVideos(data.items || []);
+      setVideos(Array.isArray(data.items) ? data.items : []);
     } catch {
       setVideos([]);
     } finally {
@@ -43,7 +58,7 @@ export default function Home() {
       try {
         const res = await fetch(`${API_BASE}/trending?region=US`);
         const data = await res.json();
-        setTrending(data || []);
+        setTrending(Array.isArray(data) ? data : []);
       } catch {
         setTrending([]);
       } finally {
@@ -57,7 +72,9 @@ export default function Home() {
   return (
     <div>
       {(loadingSearch || loadingTrending) && (
-        <Spinner message={loadingSearch ? "Searching…" : "Loading trending…"} />
+        <Spinner
+          message={loadingSearch ? "Searching…" : "Loading trending…"}
+        />
       )}
 
       <Header onSearch={search} />
@@ -68,12 +85,13 @@ export default function Home() {
 
       <div className="grid">
         {list.map((v, i) => {
-          const id = extractId(v.url);
+          const id =
+            v.videoId ||
+            v.id ||
+            v.url?.split("v=")[1] ||
+            v.url?.split("/").pop();
 
-          if (!id) {
-            console.warn("Skipping video with no ID:", v);
-            return null;
-          }
+          if (!id) return null;
 
           return (
             <VideoCard
@@ -81,7 +99,7 @@ export default function Home() {
               video={{
                 id,
                 title: v.title || "Untitled",
-                thumbnail: v.thumbnail || "/fallback.jpg",
+                thumbnail: resolveThumbnail(v, id),
                 author: v.uploaderName || "Unknown",
                 views: v.views,
                 duration: v.duration > 0 ? v.duration : null,
