@@ -62,17 +62,16 @@ export default function VideoCard({ video, onClick }) {
       onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
     >
       <img
-        src={video.thumbnail || "https://via.placeholder.com/480x360?text=No+Thumbnail"}
+        src={video.thumbnail}
         alt={video.title}
         style={{
           width: "100%",
           height: "auto",
           display: "block",
           borderRadius: "12px 12px 0 0",
-          background: "#222", // Prevents white flash on load
         }}
         onError={(e) => {
-          e.currentTarget.src = "https://via.placeholder.com/480x360?text=No+Thumbnail";
+          e.currentTarget.src = "/fallback.jpg"; // Local fallback in public/
         }}
       />
 
