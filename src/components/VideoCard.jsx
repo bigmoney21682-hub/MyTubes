@@ -60,15 +60,18 @@ export default function VideoCard({ video, onClick }) {
       onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
     >
       <img
-        src={video.thumbnail || "/fallback.jpg"}
+        src={video.thumbnail}
         alt={video.title}
+        loading="lazy"
         style={{
           width: "100%",
-          height: "auto",
           display: "block",
-          borderRadius: "12px 12px 0 0",
+          aspectRatio: "16 / 9",
+          objectFit: "cover",
+          backgroundColor: "#000",
         }}
         onError={(e) => {
+          e.currentTarget.onerror = null;
           e.currentTarget.src = "/fallback.jpg";
         }}
       />
@@ -99,7 +102,7 @@ export default function VideoCard({ video, onClick }) {
               fontSize: "0.85rem",
             }}
           >
-            {video.author} • {video.views || "Views"}
+            {video.author} • {video.views ?? "Views"}
           </p>
 
           <button
@@ -115,7 +118,7 @@ export default function VideoCard({ video, onClick }) {
               cursor: "pointer",
             }}
           >
-            ➕ Add to Playlist
+            ➕ Add
           </button>
         </div>
       </div>
