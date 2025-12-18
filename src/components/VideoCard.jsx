@@ -29,7 +29,6 @@ export default function VideoCard({ video, onClick }) {
       return;
     }
 
-    // Prompt user to choose playlist
     const playlistList = playlists
       .map((p, i) => `${i + 1}. ${p.name} (${p.videos.length} videos)`)
       .join("\n");
@@ -63,13 +62,16 @@ export default function VideoCard({ video, onClick }) {
       onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
     >
       <img
-        src={video.thumbnail}
+        src={video.thumbnail} // Direct from Piped (proxied, loads fast)
         alt={video.title}
         style={{
           width: "100%",
           height: "auto",
           display: "block",
           borderRadius: "12px 12px 0 0",
+        }}
+        onError={(e) => { // Fallback if any proxy issue
+          e.currentTarget.src = "https://via.placeholder.com/480x360?text=No+Thumbnail";
         }}
       />
 
