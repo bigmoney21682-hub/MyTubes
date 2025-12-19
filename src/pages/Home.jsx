@@ -20,8 +20,9 @@ export default function Home() {
 
     try {
       const res = await fetch(
-        `${API_BASE}/search?q=${encodeURIComponent(q)}&filter=videos`
+        `${API_BASE}/search?q=${encodeURIComponent(q.trim())}&filter=videos`
       );
+      if (!res.ok) throw new Error("Search failed");
       const data = await res.json();
       setVideos(data.items || []);
     } catch (err) {
@@ -34,10 +35,13 @@ export default function Home() {
 
   useEffect(() => {
     (async () => {
+      setLoadingTrending(true);
       try {
         const res = await fetch(`${API_BASE}/trending?region=US`);
+        if (!res.ok) throw new Error("Trending failed");
         const data = await res.json();
-        setTrending(data || []);
+        // Piped trending returns array directly, not .items
+        setTrending(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error("Trending failed", err);
         setTrending([]);
@@ -63,21 +67,18 @@ export default function Home() {
 
       <div className="grid">
         {list.map((v) => {
-          const id =
-            v.id ||
-            v.url?.split("v=")[1] ||
-            v.url?.split("/").pop();
+          const id = v.url?.split("v=")[1] || v.id || "unknown";
 
           return (
             <VideoCard
               key={id}
               video={{
                 id,
-                title: v.title,
-                thumbnail: v.thumbnail,
-                author: v.uploaderName,
+                title: v.title || "Untitled",
+                thumbnail: v.thumbnail || "/fallback.jpg",
+                author: v.uploaderName || "Unknown",
                 views: v.views,
-                duration: v.duration || null,
+                duration: v.duration > 0 ? v.duration : null,
               }}
             />
           );
