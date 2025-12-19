@@ -6,15 +6,34 @@ import VideoCard from "../components/VideoCard";
 import Spinner from "../components/Spinner";
 import { API_BASE } from "../config";
 
+/**
+ * SAFELY extract a YouTube ID from Piped data
+ * NEVER throws
+ */
+function extractVideoId(v) {
+  if (!v) return null;
+
+  // Most reliable
+  if (typeof v.id === "string" && v.id.length > 5) {
+    return v.id;
+  }
+
+  // Handle /watch?v=XXXX
+  if (typeof v.url === "string") {
+    const match = v.url.match(/[?&]v=([^&]+)/);
+    if (match) return match[1];
+  }
+
+  return null;
+}
+
 export default function Home() {
   const [videos, setVideos] = useState([]);
   const [trending, setTrending] = useState([]);
   const [loadingSearch, setLoadingSearch] = useState(false);
   const [loadingTrending, setLoadingTrending] = useState(true);
 
-  // -----------------------------
-  // SEARCH
-  // -----------------------------
+  // ---------------- SEARCH ----------------
   async function search(q) {
     if (!q.trim()) return;
 
@@ -26,8 +45,6 @@ export default function Home() {
         `${API_BASE}/search?q=${encodeURIComponent(q.trim())}&filter=videos`
       );
       const data = await res.json();
-
-      // Piped returns { items: [...] }
       setVideos(Array.isArray(data.items) ? data.items : []);
     } catch (err) {
       console.error("Search failed:", err);
@@ -37,17 +54,13 @@ export default function Home() {
     }
   }
 
-  // -----------------------------
-  // TRENDING
-  // -----------------------------
+  // ---------------- TRENDING ----------------
   useEffect(() => {
     (async () => {
       setLoadingTrending(true);
       try {
         const res = await fetch(`${API_BASE}/trending?region=US`);
         const data = await res.json();
-
-        // Piped trending is already an array
         setTrending(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error("Trending failed:", err);
@@ -58,15 +71,12 @@ export default function Home() {
     })();
   }, []);
 
-  // Prefer search results, fallback to trending
   const list = videos.length > 0 ? videos : trending;
 
   return (
     <div>
       {(loadingSearch || loadingTrending) && (
-        <Spinner
-          message={loadingSearch ? "Searching…" : "Loading trending…"}
-        />
+        <Spinner message={loadingSearch ? "Searching…" : "Loading trending…"} />
       )}
 
       <Header onSearch={search} />
@@ -76,30 +86,17 @@ export default function Home() {
       )}
 
       <div className="grid">
-        {list.map((v) => {
-          /**
-           * -----------------------------
-           * VIDEO ID NORMALIZATION
-           * -----------------------------
-           * Piped may return:
-           *  - v.id
-           *  - v.url = https://youtube.com/watch?v=XXXX
-           */
-          const id =
-            v.id ||
-            (typeof v.url === "string"
-              ? new URL(v.url).searchParams.get("v")
-              : null);
-
-          if (!id) return null; // Hard guard, prevents crashes
+        {list.map((v, index) => {
+          const id = extractVideoId(v);
+          if (!id) return null; // 🔒 prevents crashes
 
           return (
             <VideoCard
-              key={id}
+              key={`${id}-${index}`}
               video={{
                 id,
                 title: v.title || "Untitled",
-                thumbnail: v.thumbnail || null, // let VideoCard normalize
+                thumbnail: v.thumbnail || null, // VideoCard handles fallback
                 author: v.uploaderName || v.author || "Unknown",
                 views: v.views,
                 duration:
@@ -113,13 +110,7 @@ export default function Home() {
       </div>
 
       {!loadingSearch && !loadingTrending && list.length === 0 && (
-        <p
-          style={{
-            textAlign: "center",
-            padding: "3rem",
-            opacity: 0.7,
-          }}
-        >
+        <p style={{ textAlign: "center", padding: "3rem", opacity: 0.7 }}>
           No videos found.
         </p>
       )}
