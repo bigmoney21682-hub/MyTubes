@@ -1,5 +1,3 @@
-// File: src/pages/Watch.jsx
-
 import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { API_BASE } from "../config";
@@ -12,6 +10,7 @@ export default function Watch() {
   const [error, setError] = useState("");
   const [videoUrl, setVideoUrl] = useState("");
   const [title, setTitle] = useState("");
+  const [debugStreams, setDebugStreams] = useState(null); // 🔹 new debug info
 
   useEffect(() => {
     if (!id) return;
@@ -20,16 +19,9 @@ export default function Watch() {
       setLoading(true);
       setError("");
       setVideoUrl("");
+      setDebugStreams(null);
 
       try {
-        /**
-         * Backend contract:
-         * GET /streams/:id
-         * {
-         *   title: string,
-         *   videoStreams: [{ url, mimeType, quality }]
-         * }
-         */
         const res = await fetch(`${API_BASE}/streams/${id}`);
         const data = await res.json();
 
@@ -38,6 +30,9 @@ export default function Watch() {
         }
 
         setTitle(data.title || "Untitled");
+
+        // Save full stream info for debug/testing
+        setDebugStreams(data);
 
         // Prefer first playable stream
         if (
@@ -58,18 +53,15 @@ export default function Watch() {
     })();
   }, [id]);
 
-  if (loading) {
-    return <Spinner message="Loading video…" />;
-  }
+  if (loading) return <Spinner message="Loading video…" />;
 
-  if (error) {
+  if (error)
     return (
       <div style={{ padding: "2rem", color: "#fff" }}>
         <h3>Playback error</h3>
         <p style={{ opacity: 0.8 }}>{error}</p>
       </div>
     );
-  }
 
   return (
     <div style={{ padding: "1rem" }}>
@@ -88,9 +80,17 @@ export default function Watch() {
         }}
       />
 
-      <p style={{ marginTop: "0.5rem", opacity: 0.6 }}>
-        Video ID: {id}
-      </p>
+      <p style={{ marginTop: "0.5rem", opacity: 0.6 }}>Video ID: {id}</p>
+
+      {/* 🔹 Debug section to confirm backend/cookies worked */}
+      {debugStreams && (
+        <div style={{ marginTop: "1rem", fontSize: "0.75rem", color: "#aaa" }}>
+          <h4>Debug Streams Info</h4>
+          <pre style={{ whiteSpace: "pre-wrap" }}>
+            {JSON.stringify(debugStreams, null, 2)}
+          </pre>
+        </div>
+      )}
     </div>
   );
 }
