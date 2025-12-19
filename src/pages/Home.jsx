@@ -1,4 +1,4 @@
-// src/pages/Home.jsx
+// File: src/pages/Home.jsx
 
 import { useEffect, useState } from "react";
 import Header from "../components/Header";
@@ -6,24 +6,13 @@ import VideoCard from "../components/VideoCard";
 import Spinner from "../components/Spinner";
 import { API_BASE } from "../config";
 
-/**
- * SAFELY extract a YouTube ID from Piped data
- * NEVER throws
- */
 function extractVideoId(v) {
   if (!v) return null;
-
-  // Most reliable
-  if (typeof v.id === "string" && v.id.length > 5) {
-    return v.id;
-  }
-
-  // Handle /watch?v=XXXX
+  if (typeof v.id === "string" && v.id.length > 5) return v.id;
   if (typeof v.url === "string") {
     const match = v.url.match(/[?&]v=([^&]+)/);
     if (match) return match[1];
   }
-
   return null;
 }
 
@@ -33,13 +22,10 @@ export default function Home() {
   const [loadingSearch, setLoadingSearch] = useState(false);
   const [loadingTrending, setLoadingTrending] = useState(true);
 
-  // ---------------- SEARCH ----------------
   async function search(q) {
     if (!q.trim()) return;
-
     setLoadingSearch(true);
     setVideos([]);
-
     try {
       const res = await fetch(
         `${API_BASE}/search?q=${encodeURIComponent(q.trim())}&filter=videos`
@@ -54,7 +40,6 @@ export default function Home() {
     }
   }
 
-  // ---------------- TRENDING ----------------
   useEffect(() => {
     (async () => {
       setLoadingTrending(true);
@@ -88,15 +73,14 @@ export default function Home() {
       <div className="grid">
         {list.map((v, index) => {
           const id = extractVideoId(v);
-          if (!id) return null; // 🔒 prevents crashes
-
+          if (!id) return null;
           return (
             <VideoCard
               key={`${id}-${index}`}
               video={{
                 id,
                 title: v.title || "Untitled",
-                thumbnail: v.thumbnail || null, // VideoCard handles fallback
+                thumbnail: v.thumbnail || null,
                 author: v.uploaderName || v.author || "Unknown",
                 views: v.views,
                 duration:
