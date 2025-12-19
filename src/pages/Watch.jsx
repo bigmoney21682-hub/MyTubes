@@ -1,3 +1,5 @@
+// File: src/pages/Watch.jsx
+
 import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { API_BASE } from "../config";
@@ -10,7 +12,7 @@ export default function Watch() {
   const [error, setError] = useState("");
   const [videoUrl, setVideoUrl] = useState("");
   const [title, setTitle] = useState("");
-  const [debugStreams, setDebugStreams] = useState(null); // 🔹 new debug info
+  const [debugStreams, setDebugStreams] = useState(null);
 
   useEffect(() => {
     if (!id) return;
@@ -30,8 +32,6 @@ export default function Watch() {
         }
 
         setTitle(data.title || "Untitled");
-
-        // Save full stream info for debug/testing
         setDebugStreams(data);
 
         // Prefer first playable stream
@@ -82,7 +82,7 @@ export default function Watch() {
 
       <p style={{ marginTop: "0.5rem", opacity: 0.6 }}>Video ID: {id}</p>
 
-      {/* 🔹 Debug section to confirm backend/cookies worked */}
+      {/* 🔹 Debug section */}
       {debugStreams && (
         <div style={{ marginTop: "1rem", fontSize: "0.75rem", color: "#aaa" }}>
           <h4>Debug Streams Info</h4>
