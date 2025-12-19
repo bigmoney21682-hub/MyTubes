@@ -26,8 +26,8 @@ function extractVideoId(v) {
 
 /**
  * Build a thumbnail URL.
- * Always prefer backend-provided thumbnail.
- * Fallback to YouTube CDN (reliable, no backend dependency).
+ * Prefer backend-provided thumbnail.
+ * Fallback to YouTube CDN.
  */
 function getThumbnail(v, id) {
   if (typeof v.thumbnail === "string" && v.thumbnail.length > 0) {
@@ -93,10 +93,10 @@ export default function Home() {
         />
       )}
 
-      {/* ✅ RESTORED HEADER (SEARCH / BANNER / TITLE) */}
+      {/* ✅ Header / Search / Banner */}
       <Header onSearch={search} />
 
-      {/* ✅ RESTORED TRENDING LABEL */}
+      {/* ✅ Trending label */}
       {videos.length === 0 && !loadingTrending && list.length > 0 && (
         <h3 style={{ padding: "1rem", opacity: 0.8 }}>👀 Trending</h3>
       )}
