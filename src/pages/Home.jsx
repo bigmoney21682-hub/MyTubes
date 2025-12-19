@@ -7,7 +7,7 @@ import Spinner from "../components/Spinner";
 import { API_BASE } from "../config";
 
 /**
- * Safely extract a YouTube video ID from backend objects
+ * Safely extract a YouTube video ID from Piped backend objects
  */
 function extractVideoId(v) {
   if (!v) return null;
@@ -26,8 +26,7 @@ function extractVideoId(v) {
 
 /**
  * Build a thumbnail URL.
- * Prefer backend-provided thumbnail.
- * Fallback to YouTube CDN.
+ * Prefer backend thumbnail, fallback to YouTube CDN.
  */
 function getThumbnail(v, id) {
   if (typeof v.thumbnail === "string" && v.thumbnail.length > 0) {
@@ -93,10 +92,10 @@ export default function Home() {
         />
       )}
 
-      {/* ✅ Header / Search / Banner */}
+      {/* Header with search */}
       <Header onSearch={search} />
 
-      {/* ✅ Trending label */}
+      {/* Trending label */}
       {videos.length === 0 && !loadingTrending && list.length > 0 && (
         <h3 style={{ padding: "1rem", opacity: 0.8 }}>👀 Trending</h3>
       )}
