@@ -22,7 +22,6 @@ export default function Home() {
       const res = await fetch(
         `${API_BASE}/search?q=${encodeURIComponent(q.trim())}&filter=videos`
       );
-      if (!res.ok) throw new Error("Search failed");
       const data = await res.json();
       setVideos(data.items || []);
     } catch (err) {
@@ -38,9 +37,7 @@ export default function Home() {
       setLoadingTrending(true);
       try {
         const res = await fetch(`${API_BASE}/trending?region=US`);
-        if (!res.ok) throw new Error("Trending failed");
         const data = await res.json();
-        // Trending is direct array in Piped
         setTrending(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error("Trending failed", err);
