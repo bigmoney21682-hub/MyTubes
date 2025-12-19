@@ -63,7 +63,7 @@ export default function VideoCard({ video, onClick }) {
         alt={video.title}
         style={{ width: "100%", display: "block" }}
         onError={(e) => {
-          e.currentTarget.src = "/MyTube-Piped-Frontend/fallback.jpg";
+          const resolvedThumbnail = "https://i.ytimg.com/vi/${video.id}/hqdefault.jpg";
         }}
       />
 
