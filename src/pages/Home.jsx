@@ -1,103 +1,53 @@
-// File: src/pages/Home.jsx
-
 import { useEffect, useState } from "react";
-import Header from "../components/Header";
-import VideoCard from "../components/VideoCard";
-import Spinner from "../components/Spinner";
-import { API_BASE } from "../config";
-
-function extractVideoId(v) {
-  if (!v) return null;
-  if (typeof v.id === "string" && v.id.length > 5) return v.id;
-  if (typeof v.url === "string") {
-    const match = v.url.match(/[?&]v=([^&]+)/);
-    if (match) return match[1];
-  }
-  return null;
-}
+import { Link } from "react-router-dom";
 
 export default function Home() {
   const [videos, setVideos] = useState([]);
-  const [trending, setTrending] = useState([]);
-  const [loadingSearch, setLoadingSearch] = useState(false);
-  const [loadingTrending, setLoadingTrending] = useState(true);
-
-  async function search(q) {
-    if (!q.trim()) return;
-    setLoadingSearch(true);
-    setVideos([]);
-    try {
-      const res = await fetch(
-        `${API_BASE}/search?q=${encodeURIComponent(q.trim())}&filter=videos`
-      );
-      const data = await res.json();
-      setVideos(Array.isArray(data.items) ? data.items : []);
-    } catch (err) {
-      console.error("Search failed:", err);
-      setVideos([]);
-    } finally {
-      setLoadingSearch(false);
-    }
-  }
 
   useEffect(() => {
     (async () => {
-      setLoadingTrending(true);
       try {
-        const res = await fetch(`${API_BASE}/trending?region=US`);
+        const res = await fetch("https://mytube-python-backend.onrender.com/trending");
         const data = await res.json();
-        setTrending(Array.isArray(data) ? data : []);
+        setVideos(data);
       } catch (err) {
-        console.error("Trending failed:", err);
-        setTrending([]);
-      } finally {
-        setLoadingTrending(false);
+        console.error("Error fetching trending videos:", err);
       }
     })();
   }, []);
 
-  const list = videos.length > 0 ? videos : trending;
+  const formatViews = (views) => {
+    if (views >= 1e9) return (views / 1e9).toFixed(1) + "B views";
+    if (views >= 1e6) return (views / 1e6).toFixed(1) + "M views";
+    if (views >= 1e3) return (views / 1e3).toFixed(1) + "K views";
+    return views + " views";
+  };
+
+  const formatDuration = (seconds) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, "0")}`;
+  };
 
   return (
-    <div>
-      {(loadingSearch || loadingTrending) && (
-        <Spinner message={loadingSearch ? "Searching…" : "Loading trending…"} />
-      )}
-
-      <Header onSearch={search} />
-
-      {videos.length === 0 && !loadingTrending && list.length > 0 && (
-        <h3 style={{ padding: "1rem", opacity: 0.8 }}>👀 Trending</h3>
-      )}
-
-      <div className="grid">
-        {list.map((v, index) => {
-          const id = extractVideoId(v);
-          if (!id) return null;
-          return (
-            <VideoCard
-              key={`${id}-${index}`}
-              video={{
-                id,
-                title: v.title || "Untitled",
-                thumbnail: v.thumbnail || null,
-                author: v.uploaderName || v.author || "Unknown",
-                views: v.views,
-                duration:
-                  typeof v.duration === "number" && v.duration > 0
-                    ? v.duration
-                    : null,
-              }}
-            />
-          );
-        })}
-      </div>
-
-      {!loadingSearch && !loadingTrending && list.length === 0 && (
-        <p style={{ textAlign: "center", padding: "3rem", opacity: 0.7 }}>
-          No videos found.
-        </p>
-      )}
+    <div className="trending-container">
+      {videos.map((video) => (
+        <Link
+          to={`/watch/${video.id}`}
+          key={video.id}
+          className="video-card"
+        >
+          <img
+            src={`https://i.ytimg.com/vi/${video.id}/hqdefault.jpg`}
+            alt={video.title}
+          />
+          <div className="video-info">
+            <h4>{video.title}</h4>
+            <p>{video.uploaderName}</p>
+            <p>{formatViews(video.views)} • {formatDuration(video.duration)}</p>
+          </div>
+        </Link>
+      ))}
     </div>
   );
 }
