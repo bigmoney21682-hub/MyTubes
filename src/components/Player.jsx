@@ -1,44 +1,51 @@
 // File: src/components/Player.jsx
 
-import React, { useEffect, useRef } from "react";
+import React, { forwardRef, useEffect } from "react";
 import ReactPlayer from "react-player";
 
-export default function Player({ src, onEnded }) {
-  const playerRef = useRef(null);
-
+const Player = forwardRef(({ src, playing, title, author }, ref) => {
   useEffect(() => {
-    // Optional: focus on mobile for iOS autoplay fix
-    const audioElement = playerRef.current?.getInternalPlayer();
-    if (audioElement) {
-      audioElement.setAttribute("playsinline", true);
-      audioElement.setAttribute("webkit-playsinline", true);
+    if (!src) return;
+    if ("mediaSession" in navigator) {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: title || "Playing",
+        artist: author || "Unknown",
+        artwork: [
+          { src: "/favicon.png", sizes: "512x512", type: "image/png" }
+        ]
+      });
+
+      navigator.mediaSession.setActionHandler("play", () => {});
+      navigator.mediaSession.setActionHandler("pause", () => {});
+      navigator.mediaSession.setActionHandler("previoustrack", () => {});
+      navigator.mediaSession.setActionHandler("nexttrack", () => {});
     }
-  }, [src]);
+  }, [src, title, author]);
 
   return (
-    <div>
-      {/* Audio-first approach, hide video but keep playing */}
+    <div
+      style={{
+        position: "fixed",
+        bottom: 0,
+        left: 0,
+        width: "100%",
+        height: 60,
+        background: "#000",
+        zIndex: 9999
+      }}
+    >
       <ReactPlayer
-        ref={playerRef}
+        ref={ref}
         url={src}
-        playing
+        playing={playing}
         controls
-        width="0"
-        height="0"
+        width="100%"
+        height="100%"
+        style={{ position: "absolute", top: 0, left: 0 }}
         playsinline
-        onEnded={onEnded}
-        config={{
-          youtube: {
-            playerVars: {
-              // Minimal YouTube player options
-              modestbranding: 1,
-              rel: 0,
-              showinfo: 0,
-              controls: 1,
-            },
-          },
-        }}
       />
     </div>
   );
-}
+});
+
+export default Player;
