@@ -7,9 +7,9 @@ import "./index.css";
 export default function App({ apiKey }) {
   if (!apiKey) {
     return (
-      <div style={{ padding: "2rem", color: "#fff" }}>
+      <div style={{ padding: "2rem", color: "#fff", background: "#000", minHeight: "100vh" }}>
         <h3>Error: Missing YouTube API Key</h3>
-        <p>Please provide a valid API key to App component.</p>
+        <p>Please set VITE_YOUTUBE_API_KEY in your .env file.</p>
       </div>
     );
   }
@@ -22,7 +22,7 @@ export default function App({ apiKey }) {
       <Route
         path="*"
         element={
-          <div style={{ padding: "2rem", color: "#fff" }}>
+          <div style={{ padding: "2rem", color: "#fff", background: "#000", minHeight: "100vh" }}>
             <h3>Page not found</h3>
           </div>
         }
