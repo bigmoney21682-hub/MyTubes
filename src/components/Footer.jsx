@@ -21,12 +21,13 @@ export default function Footer() {
         zIndex: 1000,
       }}
     >
-      <FooterButton label="Home" icon="🏠" onClick={() => navigate("/")} />
+      {/* Swapped order */}
       <FooterButton
         label="Playlists"
         icon="📁"
         onClick={() => navigate("/playlists")}
       />
+      <FooterButton label="Home" icon="🏠" onClick={() => navigate("/")} />
       <FooterButton label="Now Playing" icon="🎵" disabled />
     </footer>
   );
