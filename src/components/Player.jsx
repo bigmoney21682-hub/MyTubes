@@ -14,7 +14,7 @@ const Player = forwardRef(({ src, playing, onEnded }, ref) => {
       controls={false}
       volume={1}
       muted={false}
-      playsinline={true}      // ✅ Prevent fullscreen on iOS
+      playsinline={true} // iOS background playback
     />
   );
 });
