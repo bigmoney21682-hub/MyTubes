@@ -4,7 +4,7 @@ import ReactDOM from "react-dom/client";
 import App from "./App";
 import { HashRouter } from "react-router-dom";
 import { PlayerProvider } from "./contexts/PlayerContext";
-import { PlaylistProvider } from "./components/PlaylistContext";
+import { PlaylistProvider } from "./contexts/PlaylistContext"; // ✅ corrected path
 import "./index.css";
 
 const apiKey = import.meta.env.VITE_YOUTUBE_API_KEY;
