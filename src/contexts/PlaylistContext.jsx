@@ -1,38 +1,75 @@
-// File: src/contexts/PlaylistContext.jsx
-import { createContext, useContext, useState, useEffect } from "react";
+// File: src/components/PlaylistContext.jsx
 
-const PlaylistContext = createContext();
+import { createContext, useContext, useEffect, useState } from "react";
 
-export const usePlaylists = () => useContext(PlaylistContext);
+const PlaylistContext = createContext(null);
+
+export function usePlaylists() {
+  return useContext(PlaylistContext);
+}
 
 export function PlaylistProvider({ children }) {
-  const [favorites, setFavorites] = useState(() => {
+  const [playlists, setPlaylists] = useState(() => {
     try {
-      const saved = localStorage.getItem("mytube_favorites");
-      return saved ? JSON.parse(saved) : [];
+      const stored = localStorage.getItem("mytube_playlists");
+      return stored ? JSON.parse(stored) : [];
     } catch {
       return [];
     }
   });
 
-  useEffect(() => {
-    localStorage.setItem("mytube_favorites", JSON.stringify(favorites));
-  }, [favorites]);
+  const [currentPlaylist, setCurrentPlaylist] = useState(null);
 
-  function toggleFavorite(video) {
-    setFavorites(prev => {
-      const exists = prev.find(v => v.id === video.id);
-      if (exists) return prev.filter(v => v.id !== video.id);
-      return [...prev, video];
-    });
+  useEffect(() => {
+    localStorage.setItem("mytube_playlists", JSON.stringify(playlists));
+  }, [playlists]);
+
+  function addPlaylist(name) {
+    setPlaylists((prev) => [
+      ...prev,
+      {
+        id: crypto.randomUUID(),
+        name,
+        videos: [],
+      },
+    ]);
   }
 
-  function isFavorite(id) {
-    return favorites.some(v => v.id === id);
+  function renamePlaylist(id, name) {
+    setPlaylists((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, name } : p))
+    );
+  }
+
+  function deletePlaylist(id) {
+    setPlaylists((prev) => prev.filter((p) => p.id !== id));
+    if (currentPlaylist?.id === id) {
+      setCurrentPlaylist(null);
+    }
+  }
+
+  function addVideoToPlaylist(playlistId, video) {
+    setPlaylists((prev) =>
+      prev.map((p) =>
+        p.id === playlistId
+          ? { ...p, videos: [...p.videos, video] }
+          : p
+      )
+    );
   }
 
   return (
-    <PlaylistContext.Provider value={{ favorites, toggleFavorite, isFavorite }}>
+    <PlaylistContext.Provider
+      value={{
+        playlists,              // ✅ ALWAYS an array
+        currentPlaylist,
+        setCurrentPlaylist,
+        addPlaylist,
+        renamePlaylist,
+        deletePlaylist,
+        addVideoToPlaylist,
+      }}
+    >
       {children}
     </PlaylistContext.Provider>
   );
