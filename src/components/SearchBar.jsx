@@ -14,13 +14,10 @@ export default function SearchBar({ onSearch }) {
     <form
       onSubmit={submit}
       style={{
-        width: "80%",
+        width: "75%",
         maxWidth: 520,
         display: "flex",
-        borderRadius: 999,
-        overflow: "hidden",
-        border: "1px solid #333",
-        background: "#000",
+        gap: 8,
       }}
     >
       <input
@@ -30,21 +27,20 @@ export default function SearchBar({ onSearch }) {
         style={{
           flex: 1,
           padding: "10px 14px",
-          border: "none",
-          outline: "none",
-          background: "transparent",
+          borderRadius: 999,
+          border: "1px solid #333",
+          background: "#000",
           color: "#fff",
+          textAlign: "center",
           fontSize: "1rem",
         }}
       />
 
-      {/* vertical divider */}
-      <div style={{ width: 1, background: "#333" }} />
-
       <button
         type="submit"
         style={{
-          padding: "0 16px",
+          padding: "0 14px",
+          borderRadius: 999,
           border: "none",
           background: "#ff0000",
           color: "#fff",
@@ -52,7 +48,7 @@ export default function SearchBar({ onSearch }) {
           cursor: "pointer",
         }}
       >
-        Search
+        🔍
       </button>
     </form>
   );
