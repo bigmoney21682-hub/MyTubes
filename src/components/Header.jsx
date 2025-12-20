@@ -1,16 +1,10 @@
 // File: src/components/Header.jsx
+
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
 import SearchBar from "./SearchBar";
 
 export default function Header({ onSearch }) {
   const navigate = useNavigate();
-  const [open, setOpen] = useState(false);
-
-  function go(path) {
-    setOpen(false);
-    navigate(path);
-  }
 
   return (
     <header
@@ -26,63 +20,36 @@ export default function Header({ onSearch }) {
         padding: "10px 12px",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        {/* Menu dropdown */}
-        <div style={{ position: "relative" }}>
-          <button
-            onClick={() => setOpen(v => !v)}
-            style={{
-              background: "none",
-              border: "none",
-              color: "#fff",
-              cursor: "pointer",
-              textAlign: "center",
-            }}
-          >
-            ☰
-            <div style={{ fontSize: 11, opacity: 0.7 }}>Menu</div>
-          </button>
+      {/* Top row */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: 8,
+        }}
+      >
+        <button
+          onClick={() => navigate("/settings")}
+          style={{
+            background: "none",
+            border: "none",
+            color: "#fff",
+            cursor: "pointer",
+            textAlign: "center",
+          }}
+        >
+          ☰
+          <div style={{ fontSize: 11, opacity: 0.7 }}>Menu</div>
+        </button>
 
-          {open && (
-            <div
-              style={{
-                position: "absolute",
-                top: 36,
-                left: 0,
-                background: "#111",
-                border: "1px solid #333",
-                borderRadius: 8,
-                padding: 8,
-                minWidth: 140,
-              }}
-            >
-              {[
-                ["Home", "/"],
-                ["Playlists", "/playlists"],
-                ["Subs", "/subs"],
-                ["Settings", "/settings"],
-                ["About", "/about"],
-              ].map(([label, path]) => (
-                <div
-                  key={label}
-                  onClick={() => go(path)}
-                  style={{
-                    padding: "8px 10px",
-                    cursor: "pointer",
-                    opacity: 0.85,
-                  }}
-                >
-                  {label}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Title */}
         <div
-          style={{ flex: 1, textAlign: "center", cursor: "pointer" }}
           onClick={() => navigate("/")}
+          style={{
+            cursor: "pointer",
+            textAlign: "center",
+            flex: 1,
+          }}
         >
           <h1
             style={{
@@ -98,25 +65,24 @@ export default function Header({ onSearch }) {
           </h1>
         </div>
 
-        {/* Subs button restored */}
-        <div style={{ textAlign: "center" }}>
-          <button
-            onClick={() => navigate("/subs")}
-            style={{
-              background: "none",
-              border: "none",
-              color: "#fff",
-              cursor: "pointer",
-            }}
-          >
-            ▶︎
-            <div style={{ fontSize: 11, opacity: 0.7 }}>Subs</div>
-          </button>
-        </div>
+        <button
+          onClick={() => navigate("/subs")}
+          style={{
+            background: "none",
+            border: "none",
+            color: "#fff",
+            cursor: "pointer",
+            textAlign: "center",
+          }}
+        >
+          📺
+          <div style={{ fontSize: 11, opacity: 0.7 }}>Subs</div>
+        </button>
       </div>
 
+      {/* Search bar */}
       {onSearch && (
-        <div style={{ marginTop: 8, display: "flex", justifyContent: "center" }}>
+        <div style={{ display: "flex", justifyContent: "center" }}>
           <SearchBar onSearch={onSearch} />
         </div>
       )}
