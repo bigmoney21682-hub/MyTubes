@@ -1,24 +1,35 @@
-// File: src/pages/Playlist.jsx
 import { useNavigate, useParams } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { usePlaylists } from "../contexts/PlaylistContext";
 import Header from "../components/Header";
+import Spinner from "../components/Spinner"; // ✅ optional spinner for loading
 
 export default function Playlist() {
   const navigate = useNavigate();
   const { id } = useParams();
   const { playlists, currentPlaylist, setCurrentPlaylist, removeFromPlaylist } = usePlaylists();
 
-  // Find playlist safely
-  const playlist = playlists?.find(p => p.id === id) || currentPlaylist;
+  const [loading, setLoading] = useState(true);
 
-  // Update currentPlaylist when navigating
+  // Wait for playlists to load from context
   useEffect(() => {
-    if (id && playlists) {
-      const found = playlists.find(p => p.id === id);
+    if (playlists.length > 0) {
+      const found = playlists.find((p) => p.id === id);
       if (found) setCurrentPlaylist(found);
+      setLoading(false);
     }
   }, [id, playlists]);
+
+  if (loading) {
+    return (
+      <div style={{ paddingTop: "var(--header-height)", paddingBottom: "var(--footer-height)", minHeight: "100vh", background: "var(--app-bg)", color: "#fff" }}>
+        <Header />
+        <Spinner message="Loading playlist…" />
+      </div>
+    );
+  }
+
+  const playlist = playlists?.find((p) => p.id === id) || currentPlaylist;
 
   if (!playlist) {
     return (
@@ -33,15 +44,14 @@ export default function Playlist() {
 
   const { name, videos = [] } = playlist;
 
-  // Move video up/down
   const moveVideo = (index, direction) => {
     if (!playlist.videos) return;
     if (direction === "up" && index > 0) {
       [playlist.videos[index - 1], playlist.videos[index]] = [playlist.videos[index], playlist.videos[index - 1]];
     } else if (direction === "down" && index < playlist.videos.length - 1) {
-      [playlist.videos[index + 1], playlist.videos[index]] = [playlist.videos[index], playlist.videos[index + 1]];
+      [playlist.videos[index + 1], playlist.videos[index]] = [playlist.videos[index + 1], playlist.videos[index]];
     }
-    setCurrentPlaylist({ ...playlist }); // trigger re-render
+    setCurrentPlaylist({ ...playlist });
   };
 
   return (
