@@ -1,4 +1,4 @@
-// src/components/SearchBar.jsx
+// File: src/components/SearchBar.jsx
 
 import { useState } from "react";
 
@@ -16,6 +16,8 @@ export default function SearchBar({ onSearch }) {
       style={{
         width: "75%",
         maxWidth: 520,
+        display: "flex",
+        gap: 8,
       }}
     >
       <input
@@ -23,7 +25,7 @@ export default function SearchBar({ onSearch }) {
         onChange={e => setQ(e.target.value)}
         placeholder="Search YouTube"
         style={{
-          width: "100%",
+          flex: 1,
           padding: "10px 14px",
           borderRadius: 999,
           border: "1px solid #333",
@@ -33,6 +35,21 @@ export default function SearchBar({ onSearch }) {
           fontSize: "1rem",
         }}
       />
+
+      <button
+        type="submit"
+        style={{
+          padding: "0 14px",
+          borderRadius: 999,
+          border: "none",
+          background: "#ff0000",
+          color: "#fff",
+          fontWeight: 600,
+          cursor: "pointer",
+        }}
+      >
+        🔍
+      </button>
     </form>
   );
 }
