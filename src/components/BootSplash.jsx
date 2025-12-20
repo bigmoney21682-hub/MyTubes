@@ -1,5 +1,4 @@
 // File: src/components/BootSplash.jsx
-
 import { useEffect, useState } from "react";
 
 const text = "MyTube";
@@ -9,7 +8,7 @@ export default function BootSplash({ ready }) {
 
   useEffect(() => {
     if (index < text.length) {
-      const t = setTimeout(() => setIndex(i => i + 1), 180);
+      const t = setTimeout(() => setIndex(i => i + 1), 300); // slower
       return () => clearTimeout(t);
     }
   }, [index]);
