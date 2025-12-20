@@ -1,16 +1,17 @@
+// File: src/main.jsx
+
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { BrowserRouter } from "react-router-dom";
 import App from "./App";
-import { PlaylistProvider } from "./components/PlaylistContext";
-import "./index.css";
+import { BrowserRouter } from "react-router-dom";
+import { PlayerProvider } from "./contexts/PlayerContext";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <BrowserRouter basename="/MyTube-Piped-Frontend/">
-      <PlaylistProvider>
+    <BrowserRouter>
+      <PlayerProvider>
         <App />
-      </PlaylistProvider>
+      </PlayerProvider>
     </BrowserRouter>
   </React.StrictMode>
 );
