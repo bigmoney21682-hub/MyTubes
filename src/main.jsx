@@ -1,21 +1,22 @@
 // File: src/main.jsx
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { BrowserRouter } from "react-router-dom";
 import App from "./App";
+import { HashRouter } from "react-router-dom";
 import { PlayerProvider } from "./contexts/PlayerContext";
-import { PlaylistProvider } from "./contexts/PlaylistContext";
-import { API_KEY } from "./config";
+import { PlaylistProvider } from "./components/PlaylistContext";
 import "./index.css";
+
+const apiKey = import.meta.env.VITE_YOUTUBE_API_KEY;
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <PlaylistProvider>
-      <PlayerProvider>
-        <BrowserRouter>
-          <App apiKey={API_KEY} />
-        </BrowserRouter>
-      </PlayerProvider>
-    </PlaylistProvider>
+    <HashRouter>
+      <PlaylistProvider>
+        <PlayerProvider>
+          <App apiKey={apiKey} />
+        </PlayerProvider>
+      </PlaylistProvider>
+    </HashRouter>
   </React.StrictMode>
 );
