@@ -1,7 +1,7 @@
-// src/pages/Playlists.jsx
+// File: src/pages/Playlists.jsx
 
 import { useNavigate } from "react-router-dom";
-import { usePlaylists } from "../components/PlaylistContext";
+import { usePlaylists } from "../contexts/PlaylistContext";
 
 export default function Playlists() {
   const navigate = useNavigate();
