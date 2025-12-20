@@ -1,46 +1,36 @@
-// File: src/components/BootSplash.jsx
 import { useEffect, useState } from "react";
 
 export default function BootSplash({ onFinish }) {
-  const [displayText, setDisplayText] = useState("");
-
-  const fullText = "MyTube";
-
+  const letters = ["M", "y", "T", "u", "b", "e"];
+  const [displayed, setDisplayed] = useState([]);
+  
   useEffect(() => {
     let i = 0;
-
-    function typeNext() {
-      if (i < fullText.length) {
-        setDisplayText((prev) => prev + fullText[i]);
-        i++;
-        setTimeout(typeNext, 250); // 250ms per letter
-      } else {
-        // Finish splash after short pause
-        setTimeout(() => {
-          if (typeof onFinish === "function") onFinish();
-        }, 500); // half-second hold
+    const interval = setInterval(() => {
+      setDisplayed((prev) => [...prev, letters[i]]);
+      i++;
+      if (i >= letters.length) {
+        clearInterval(interval);
+        setTimeout(() => onFinish(), 800); // small delay before showing home
       }
-    }
-
-    typeNext();
+    }, 300); // adjust speed here
+    return () => clearInterval(interval);
   }, [onFinish]);
 
   return (
     <div
       style={{
-        position: "fixed",
-        inset: 0,
-        background: "#000",
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
+        height: "100vh",
+        background: "#000",
         flexDirection: "column",
-        zIndex: 9999,
+        color: "#fff",
       }}
     >
-      <div style={{ fontSize: 64, color: "#ff4500" }}>🔥</div>
-      <div style={{ fontSize: 48, color: "#fff", marginTop: 16 }}>
-        {displayText}
+      <div style={{ fontSize: 48, fontWeight: "bold" }}>
+        🔥 {displayed.join("")} 🔥
       </div>
     </div>
   );
