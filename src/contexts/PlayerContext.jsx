@@ -1,41 +1,46 @@
 // File: src/contexts/PlayerContext.jsx
-
-import { createContext, useContext, useState, useRef } from "react";
+import { createContext, useContext, useRef, useState } from "react";
 import Player from "../components/Player";
 
 const PlayerContext = createContext();
-
 export const usePlayer = () => useContext(PlayerContext);
 
 export function PlayerProvider({ children }) {
-  const [src, setSrc] = useState(null);
-  const [playing, setPlaying] = useState(false);
-  const [title, setTitle] = useState("");
-  const [author, setAuthor] = useState("");
   const playerRef = useRef(null);
+  const [currentVideo, setCurrentVideo] = useState(null);
+  const [playing, setPlaying] = useState(false);
+
+  const playVideo = (video) => {
+    setCurrentVideo(video);
+    setPlaying(true);
+  };
+
+  const pauseVideo = () => setPlaying(false);
+  const stopVideo = () => {
+    setPlaying(false);
+    setCurrentVideo(null);
+  };
 
   return (
     <PlayerContext.Provider
       value={{
-        src,
-        setSrc,
+        playerRef,
+        currentVideo,
         playing,
-        setPlaying,
-        title,
-        setTitle,
-        author,
-        setAuthor,
-        playerRef
+        playVideo,
+        pauseVideo,
+        stopVideo
       }}
     >
       {children}
-      {src && (
+
+      {/* Global headless player */}
+      {currentVideo && (
         <Player
           ref={playerRef}
-          src={src}
+          src={`https://www.youtube.com/watch?v=${currentVideo.id}`}
           playing={playing}
-          title={title}
-          author={author}
+          onEnded={stopVideo}
         />
       )}
     </PlayerContext.Provider>
