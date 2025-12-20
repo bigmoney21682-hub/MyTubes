@@ -1,8 +1,8 @@
-// src/pages/Playlist.jsx
+// File: src/pages/Playlist.jsx
 
 import { useNavigate, useParams } from "react-router-dom";
 import { useEffect } from "react";
-import { usePlaylists } from "../components/PlaylistContext";
+import { usePlaylists } from "../contexts/PlaylistContext";
 import Header from "../components/Header";
 import VideoCard from "../components/VideoCard";
 
