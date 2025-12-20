@@ -6,8 +6,48 @@ export default function Footer() {
   const navigate = useNavigate();
 
   return (
-    <footer style={{ padding: "12px", borderTop: "1px solid #222", textAlign: "left" }}>
-      <button onClick={() => navigate("/")}>← Back</button>
+    <footer
+      style={{
+        position: "fixed",
+        bottom: 0,
+        left: 0,
+        right: 0,
+        height: "var(--footer-height)",
+        background: "var(--app-bg)",
+        borderTop: "1px solid #222",
+        display: "flex",
+        justifyContent: "space-around",
+        alignItems: "center",
+        zIndex: 1000,
+      }}
+    >
+      <FooterButton label="Home" icon="🏠" onClick={() => navigate("/")} />
+      <FooterButton
+        label="Playlists"
+        icon="📁"
+        onClick={() => navigate("/playlists")}
+      />
+      <FooterButton label="Now Playing" icon="🎵" disabled />
     </footer>
+  );
+}
+
+function FooterButton({ icon, label, onClick, disabled }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      style={{
+        background: "none",
+        border: "none",
+        color: "#fff",
+        cursor: disabled ? "default" : "pointer",
+        textAlign: "center",
+        opacity: disabled ? 0.5 : 1,
+      }}
+    >
+      <div style={{ fontSize: 18 }}>{icon}</div>
+      <div style={{ fontSize: 11, opacity: 0.7 }}>{label}</div>
+    </button>
   );
 }
