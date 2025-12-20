@@ -9,7 +9,7 @@ export default function AppWrapper({ apiKey }) {
   return (
     <>
       {!ready && <BootSplash onFinish={() => setReady(true)} />}
-      {ready && <App apiKey={apiKey} />}
+      {ready && <App apiKey={apiKey} bootSplashReady={ready} />}
     </>
   );
 }
