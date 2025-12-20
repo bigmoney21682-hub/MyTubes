@@ -1,12 +1,10 @@
 // File: src/components/VideoCard.jsx
 import { useNavigate } from "react-router-dom";
 import { usePlaylists } from "../contexts/PlaylistContext";
-import { useState } from "react";
 
 export default function VideoCard({ video, onClick }) {
   const navigate = useNavigate();
-  const { playlists, addPlaylist, addToPlaylist } = usePlaylists();
-  const [showSelect, setShowSelect] = useState(false);
+  const { playlists, addToPlaylist } = usePlaylists();
 
   function handleClick() {
     if (typeof onClick === "function") {
@@ -16,33 +14,26 @@ export default function VideoCard({ video, onClick }) {
     navigate(`/watch/${video.id}`);
   }
 
-  function handleAddClick(e) {
+  const handleAdd = (e) => {
     e.stopPropagation();
+
     if (playlists.length === 0) {
-      const name = prompt("No playlists yet. Enter new playlist name:");
-      if (name) {
-        addPlaylist(name);
-        const p = playlists.find((p) => p.name === name);
-        if (p) addToPlaylist(p.id, video);
-      }
+      const name = prompt("No playlists found. Enter name for a new playlist:");
+      if (name) addToPlaylist(name, video);
       return;
     }
-    setShowSelect(true);
-  }
 
-  function handleSelect(playlistId) {
-    addToPlaylist(playlistId, video);
-    setShowSelect(false);
-  }
+    // Scrollable selection prompt
+    const playlistNames = playlists.map((p) => p.name);
+    const choice = prompt(
+      "Add to playlist:\n" + playlistNames.map((n, i) => `${i + 1}. ${n}`).join("\n")
+    );
 
-  function handleCreateNew() {
-    const name = prompt("Enter new playlist name:");
-    if (!name) return;
-    addPlaylist(name);
-    const p = playlists.find((p) => p.name === name);
-    if (p) addToPlaylist(p.id, video);
-    setShowSelect(false);
-  }
+    const index = parseInt(choice) - 1;
+    if (!isNaN(index) && playlists[index]) {
+      addToPlaylist(playlists[index].id, video);
+    }
+  };
 
   return (
     <div className="video-card" onClick={handleClick}>
@@ -52,83 +43,7 @@ export default function VideoCard({ video, onClick }) {
         <h4>{video.title}</h4>
         <p>{video.author}</p>
 
-        <button onClick={handleAddClick}>+ Playlist</button>
-
-        {/* Playlist selection modal */}
-        {showSelect && (
-          <div
-            style={{
-              position: "absolute",
-              background: "#111",
-              color: "#fff",
-              padding: 16,
-              borderRadius: 12,
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-              zIndex: 2000,
-              maxHeight: 300,
-              overflowY: "auto",
-              width: 250,
-            }}
-          >
-            <strong>Select a playlist:</strong>
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: 8,
-                marginTop: 12,
-              }}
-            >
-              {playlists.map((p) => (
-                <button
-                  key={p.id}
-                  onClick={() => handleSelect(p.id)}
-                  style={{
-                    padding: "6px 10px",
-                    background: "#222",
-                    border: "none",
-                    borderRadius: 6,
-                    color: "#fff",
-                    cursor: "pointer",
-                    textAlign: "left",
-                  }}
-                >
-                  {p.name} ({p.videos.length})
-                </button>
-              ))}
-              <button
-                onClick={handleCreateNew}
-                style={{
-                  marginTop: 8,
-                  padding: "6px 10px",
-                  background: "#ff0000",
-                  border: "none",
-                  borderRadius: 6,
-                  color: "#fff",
-                  cursor: "pointer",
-                }}
-              >
-                + Create new playlist
-              </button>
-              <button
-                onClick={() => setShowSelect(false)}
-                style={{
-                  marginTop: 8,
-                  padding: "6px 10px",
-                  background: "#555",
-                  border: "none",
-                  borderRadius: 6,
-                  color: "#fff",
-                  cursor: "pointer",
-                }}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        )}
+        <button onClick={handleAdd}>+ Playlist</button>
       </div>
     </div>
   );
