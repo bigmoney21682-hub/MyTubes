@@ -2,7 +2,6 @@
 import { useNavigate } from "react-router-dom";
 import { usePlaylists } from "../contexts/PlaylistContext";
 import Header from "../components/Header";
-import { useState, useRef } from "react";
 
 export default function Playlists() {
   const navigate = useNavigate();
@@ -12,11 +11,8 @@ export default function Playlists() {
     addPlaylist,
     renamePlaylist,
     deletePlaylist,
-    reorderPlaylists,
+    movePlaylist,
   } = usePlaylists();
-
-  const [draggingId, setDraggingId] = useState(null);
-  const dragStartIndex = useRef(null);
 
   const handleAddPlaylist = () => {
     const name = prompt("Enter playlist name:");
@@ -32,22 +28,6 @@ export default function Playlists() {
     if (window.confirm(`Delete playlist "${name}"? This cannot be undone.`)) {
       deletePlaylist(id);
     }
-  };
-
-  const handleDragStart = (id, index) => {
-    setDraggingId(id);
-    dragStartIndex.current = index;
-  };
-
-  const handleDragOver = (e) => {
-    e.preventDefault(); // allow drop
-  };
-
-  const handleDrop = (index) => {
-    if (dragStartIndex.current === null) return;
-    reorderPlaylists(dragStartIndex.current, index);
-    setDraggingId(null);
-    dragStartIndex.current = null;
   };
 
   return (
@@ -81,22 +61,17 @@ export default function Playlists() {
           ➕ New Playlist
         </button>
 
-        {playlists.map((p, index) => (
+        {playlists.map((p, idx) => (
           <div
             key={p.id}
-            draggable
-            onDragStart={() => handleDragStart(p.id, index)}
-            onDragOver={handleDragOver}
-            onDrop={() => handleDrop(index)}
             style={{
               padding: 16,
               marginBottom: 12,
-              background: draggingId === p.id ? "#222" : "#111",
+              background: "#111",
               borderRadius: 12,
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              touchAction: "none",
             }}
           >
             <strong
@@ -104,27 +79,28 @@ export default function Playlists() {
                 setCurrentPlaylist(p);
                 navigate(`/playlist/${p.id}`);
               }}
-              style={{ cursor: "pointer", fontSize: "1.1rem" }}
+              style={{ cursor: "pointer", fontSize: "1.1rem", flex: 1 }}
             >
               {p.name} ({p.videos.length} videos)
             </strong>
 
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              {/* Edit/Delete buttons moved left */}
+            <div style={{ display: "flex", gap: 8 }}>
+              {/* Move Up / Down buttons */}
+              <button
+                onClick={() => movePlaylist(p.id, "up")}
+                disabled={idx === 0}
+              >
+                ↑
+              </button>
+              <button
+                onClick={() => movePlaylist(p.id, "down")}
+                disabled={idx === playlists.length - 1}
+              >
+                ↓
+              </button>
+
               <button onClick={() => handleRename(p.id, p.name)}>✏️</button>
               <button onClick={() => handleDelete(p.id, p.name)}>🗑️</button>
-
-              {/* Drag handle on right */}
-              <span
-                style={{
-                  cursor: "grab",
-                  fontSize: 20,
-                  padding: "0 6px",
-                  userSelect: "none",
-                }}
-              >
-                ☰
-              </span>
             </div>
           </div>
         ))}
