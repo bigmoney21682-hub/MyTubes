@@ -13,7 +13,7 @@ export default function Footer() {
         left: 0,
         right: 0,
         height: "var(--footer-height)",
-        background: "var(--app-bg)",
+        background: "linear-gradient(180deg, #ff8c00 0%, #000 90%)",
         borderTop: "1px solid #222",
         display: "flex",
         justifyContent: "space-around",
@@ -21,7 +21,6 @@ export default function Footer() {
         zIndex: 1000,
       }}
     >
-      {/* Swapped order */}
       <FooterButton
         label="Playlists"
         icon="📁"
