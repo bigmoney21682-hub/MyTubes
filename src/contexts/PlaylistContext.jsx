@@ -1,145 +1,69 @@
 // File: src/contexts/PlaylistContext.jsx
+import { createContext, useContext, useState, useEffect } from "react";
+import { v4 as uuidv4 } from "uuid";
 
-import { createContext, useContext, useState } from "react";
+const PlaylistContext = createContext();
 
-/*
-  Playlist shape:
-  {
-    id: string,
-    name: string,
-    videos: []
-  }
-*/
+export const PlaylistProvider = ({ children }) => {
+  const [playlists, setPlaylists] = useState(() => {
+    const saved = localStorage.getItem("playlists");
+    return saved ? JSON.parse(saved) : [];
+  });
 
-const PlaylistContext = createContext(null);
+  useEffect(() => {
+    localStorage.setItem("playlists", JSON.stringify(playlists));
+  }, [playlists]);
 
-export function PlaylistProvider({ children }) {
-  const [playlists, setPlaylists] = useState([]);
-  const [currentPlaylist, setCurrentPlaylist] = useState(null);
+  const addPlaylist = (name) => {
+    setPlaylists((prev) => [...prev, { id: uuidv4(), name, videos: [] }]);
+  };
 
-  /* ------------------------
-     PLAYLIST CRUD
-  -------------------------*/
-
-  function addPlaylist(name) {
-    setPlaylists((prev) => [
-      ...prev,
-      {
-        id: crypto.randomUUID(),
-        name,
-        videos: [],
-      },
-    ]);
-  }
-
-  function renamePlaylist(id, newName) {
+  const renamePlaylist = (id, name) => {
     setPlaylists((prev) =>
-      prev.map((p) =>
-        p.id === id ? { ...p, name: newName } : p
-      )
+      prev.map((p) => (p.id === id ? { ...p, name } : p))
     );
-  }
+  };
 
-  function deletePlaylist(id) {
+  const deletePlaylist = (id) => {
     setPlaylists((prev) => prev.filter((p) => p.id !== id));
+  };
 
-    if (currentPlaylist?.id === id) {
-      setCurrentPlaylist(null);
-    }
-  }
-
-  /* ------------------------
-     VIDEO MANAGEMENT
-  -------------------------*/
-
-  function addToPlaylist(playlistId, video) {
-    setPlaylists((prev) =>
-      prev.map((p) => {
-        if (p.id !== playlistId) return p;
-
-        // prevent duplicates
-        if (p.videos.some((v) => v.id === video.id)) {
-          return p;
-        }
-
-        return {
-          ...p,
-          videos: [...p.videos, video],
-        };
-      })
-    );
-  }
-
-  function removeFromPlaylist(playlistId, videoId) {
+  const addToPlaylist = (id, video) => {
     setPlaylists((prev) =>
       prev.map((p) =>
-        p.id === playlistId
-          ? {
-              ...p,
-              videos: p.videos.filter((v) => v.id !== videoId),
-            }
+        p.id === id
+          ? { ...p, videos: p.videos.some((v) => v.id === video.id) ? p.videos : [...p.videos, video] }
           : p
       )
     );
-  }
-
-  /* ------------------------
-     PLAYLIST REORDERING
-  -------------------------*/
-
-  function movePlaylist(fromIndex, toIndex) {
-    setPlaylists((prev) => {
-      if (
-        fromIndex === null ||
-        toIndex === null ||
-        fromIndex === toIndex
-      ) {
-        return prev;
-      }
-
-      const next = [...prev];
-      const [moved] = next.splice(fromIndex, 1);
-      next.splice(toIndex, 0, moved);
-      return next;
-    });
-  }
-
-  /* ------------------------
-     CONTEXT VALUE
-  -------------------------*/
-
-  const value = {
-    playlists,
-    currentPlaylist,
-    setCurrentPlaylist,
-
-    addPlaylist,
-    renamePlaylist,
-    deletePlaylist,
-
-    addToPlaylist,
-    removeFromPlaylist,
-
-    movePlaylist,
   };
 
+  const reorderPlaylists = (fromIndex, toIndex) => {
+    setPlaylists((prev) => {
+      const copy = [...prev];
+      const [moved] = copy.splice(fromIndex, 1);
+      copy.splice(toIndex, 0, moved);
+      return copy;
+    });
+  };
+
+  const setCurrentPlaylist = (p) => {}; // placeholder if needed
+
   return (
-    <PlaylistContext.Provider value={value}>
+    <PlaylistContext.Provider
+      value={{
+        playlists,
+        addPlaylist,
+        renamePlaylist,
+        deletePlaylist,
+        addToPlaylist,
+        reorderPlaylists,
+        setCurrentPlaylist,
+      }}
+    >
       {children}
     </PlaylistContext.Provider>
   );
-}
+};
 
-/* ------------------------
-   HOOK
--------------------------*/
-
-export function usePlaylists() {
-  const ctx = useContext(PlaylistContext);
-  if (!ctx) {
-    throw new Error(
-      "usePlaylists must be used inside PlaylistProvider"
-    );
-  }
-  return ctx;
-}
+export const usePlaylists = () => useContext(PlaylistContext);
