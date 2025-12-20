@@ -1,7 +1,8 @@
 // File: src/pages/Playlists.jsx
 
 import { useNavigate } from "react-router-dom";
-import { usePlaylists } from "../contexts/PlaylistContext";
+import { usePlaylists } from "../components/PlaylistContext";
+import Header from "../components/Header";
 
 export default function Playlists() {
   const navigate = useNavigate();
@@ -30,27 +31,37 @@ export default function Playlists() {
   };
 
   return (
-    <div style={{ padding: 16 }}>
-      <h2 style={{ marginBottom: 24 }}>📁 Playlists</h2>
+    <div
+      style={{
+        paddingTop: "var(--header-height)",
+        paddingBottom: "var(--footer-height)",
+        minHeight: "100vh",
+        background: "var(--app-bg)",
+        color: "#fff",
+      }}
+    >
+      <Header />
 
-      <button
-        onClick={handleAddPlaylist}
-        style={{
-          padding: "10px 16px",
-          background: "#ff0000",
-          color: "white",
-          border: "none",
-          borderRadius: 8,
-          fontSize: "1rem",
-          marginBottom: 24,
-          cursor: "pointer",
-        }}
-      >
-        ➕ New Playlist
-      </button>
+      <div style={{ padding: 16 }}>
+        <h2 style={{ marginBottom: 24 }}>📁 Playlists</h2>
 
-      <div>
-        {playlists.map(p => (
+        <button
+          onClick={handleAddPlaylist}
+          style={{
+            padding: "10px 16px",
+            background: "#ff0000",
+            color: "white",
+            border: "none",
+            borderRadius: 8,
+            fontSize: "1rem",
+            marginBottom: 24,
+            cursor: "pointer",
+          }}
+        >
+          ➕ New Playlist
+        </button>
+
+        {playlists.map((p) => (
           <div
             key={p.id}
             style={{
@@ -79,13 +90,13 @@ export default function Playlists() {
             </div>
           </div>
         ))}
-      </div>
 
-      {playlists.length === 0 && (
-        <p style={{ opacity: 0.7, textAlign: "center" }}>
-          No playlists yet. Create one!
-        </p>
-      )}
+        {playlists.length === 0 && (
+          <p style={{ opacity: 0.7, textAlign: "center" }}>
+            No playlists yet. Create one!
+          </p>
+        )}
+      </div>
     </div>
   );
 }
