@@ -13,7 +13,9 @@ export default function Watch() {
   const [loading, setLoading] = useState(true);
   const [playlist, setPlaylist] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [pipVisible, setPipVisible] = useState(true);
   const playerRef = useRef(null);
+  const touchStartRef = useRef(null);
 
   // Load video metadata
   useEffect(() => {
@@ -40,10 +42,29 @@ export default function Watch() {
   // Setup playlist
   useEffect(() => {
     if (video) {
-      setPlaylist([video]);
+      setPlaylist([video]); // replace with multi-track playlist as needed
       setCurrentIndex(0);
     }
   }, [video]);
+
+  // Handle swipe from top-right to toggle mini-player
+  const handleTouchStart = (e) => {
+    const touch = e.touches[0];
+    if (touch.clientX > window.innerWidth - 50 && touch.clientY < 50) {
+      touchStartRef.current = touch.clientY;
+    } else {
+      touchStartRef.current = null;
+    }
+  };
+
+  const handleTouchMove = (e) => {
+    if (!touchStartRef.current) return;
+    const touch = e.touches[0];
+    if (touch.clientY - touchStartRef.current > 50) {
+      setPipVisible((v) => !v);
+      touchStartRef.current = null;
+    }
+  };
 
   const handleEnded = () => {
     if (currentIndex < playlist.length - 1) {
@@ -89,8 +110,8 @@ export default function Watch() {
       </div>
     );
 
-  const { snippet } = video;
-  const embedUrl = `https://www.youtube.com/embed/${id}?autoplay=1&controls=1`;
+  const { snippet } = playlist[currentIndex];
+  const embedUrl = `https://www.youtube.com/embed/${playlist[currentIndex].id}?autoplay=1&controls=1`;
 
   return (
     <div
@@ -101,26 +122,30 @@ export default function Watch() {
         background: "var(--app-bg)",
         color: "#fff",
       }}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
     >
       <Header />
 
       <h2>{snippet.title}</h2>
       <p style={{ opacity: 0.7 }}>by {snippet.channelTitle}</p>
 
-      {/* Player with embed URL */}
-      <Player
-        ref={playerRef}
-        embedUrl={embedUrl}
-        playing={true}
-        onEnded={handleEnded}
-        pipMode={true}
-        trackTitle={snippet.title}
-      />
+      {pipVisible && (
+        <Player
+          ref={playerRef}
+          embedUrl={embedUrl}
+          playing={true}
+          onEnded={handleEnded}
+          pipMode={true}
+          draggable={true}
+          trackTitle={snippet.title}
+        />
+      )}
 
-      {/* Related videos */}
-      {video.id && <RelatedVideos videoId={id} apiKey={API_KEY} />}
+      {playlist[currentIndex].id && (
+        <RelatedVideos videoId={playlist[currentIndex].id} apiKey={API_KEY} />
+      )}
 
       <Footer />
     </div>
-  );
-}
+  )
