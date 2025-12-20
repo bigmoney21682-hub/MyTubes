@@ -1,5 +1,4 @@
 // File: src/components/RelatedVideos.jsx
-
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
@@ -22,7 +21,11 @@ export default function RelatedVideos({ videoId, apiKey }) {
           return;
         }
 
-        setVideos(data.items || []);
+        const validVideos = (data.items || []).filter(
+          (item) => item.id?.videoId
+        );
+
+        setVideos(validVideos);
         setError(null);
       } catch (err) {
         setError(err.message);
