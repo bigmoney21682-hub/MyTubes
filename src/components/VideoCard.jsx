@@ -3,51 +3,41 @@
 import { useNavigate } from "react-router-dom";
 import { usePlaylists } from "./PlaylistContext";
 
-export default function VideoCard({ video }) {
+export default function VideoCard({ video, onClick }) {
   const navigate = useNavigate();
-  const { isFavorite, toggleFavorite } = usePlaylists();
-
-  if (!video || !video.id) return null;
+  const { toggleFavorite, isFavorite } = usePlaylists();
 
   function handleClick() {
+    // ✅ If parent provided a click handler, use it
+    if (typeof onClick === "function") {
+      onClick(video.id);
+      return;
+    }
+
+    // ✅ Default Musi-style behavior: navigate to watch page
     navigate(`/watch/${video.id}`);
   }
 
   return (
-    <div className="video-card">
-      <div
-        className="thumbnail-wrapper"
-        onClick={handleClick}
-        style={{ cursor: "pointer" }}
-      >
-        {video.thumbnail && (
-          <img
-            src={video.thumbnail}
-            alt={video.title}
-            loading="lazy"
-          />
-        )}
-      </div>
+    <div className="video-card" onClick={handleClick}>
+      <img
+        src={video.thumbnail}
+        alt={video.title}
+        loading="lazy"
+      />
 
       <div className="video-info">
-        <h4
-          className="title"
-          onClick={handleClick}
-          style={{ cursor: "pointer" }}
+        <h4>{video.title}</h4>
+        <p>{video.author}</p>
+
+        <button
+          onClick={(e) => {
+            e.stopPropagation(); // prevent navigation
+            toggleFavorite(video);
+          }}
         >
-          {video.title}
-        </h4>
-
-        <p className="author">{video.author}</p>
-
-        <div className="video-actions">
-          <button
-            onClick={() => toggleFavorite(video)}
-            aria-label="Toggle favorite"
-          >
-            {isFavorite(video.id) ? "❤️" : "🤍"}
-          </button>
-        </div>
+          {isFavorite(video.id) ? "★" : "☆"}
+        </button>
       </div>
     </div>
   );
