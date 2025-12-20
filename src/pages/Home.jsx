@@ -4,30 +4,15 @@ import { useEffect, useState } from "react";
 import Header from "../components/Header";
 import VideoCard from "../components/VideoCard";
 import Spinner from "../components/Spinner";
+import RelatedVideos from "../components/RelatedVideos";
 
-// 🔐 YouTube Data API key (frontend for now)
-const YT_API_KEY = import.meta.env.VITE_YT_API_KEY;
-
-/**
- * Build thumbnail safely
- */
-function getThumbnail(item) {
-  return (
-    item?.snippet?.thumbnails?.high?.url ||
-    item?.snippet?.thumbnails?.medium?.url ||
-    item?.snippet?.thumbnails?.default?.url ||
-    null
-  );
-}
-
-export default function Home() {
+export default function Home({ apiKey }) {
   const [videos, setVideos] = useState([]);
   const [trending, setTrending] = useState([]);
   const [loadingSearch, setLoadingSearch] = useState(false);
   const [loadingTrending, setLoadingTrending] = useState(true);
 
-  /* ================= SEARCH ================= */
-
+  /** Search YouTube via API key */
   async function search(q) {
     if (!q.trim()) return;
 
@@ -36,18 +21,20 @@ export default function Home() {
 
     try {
       const res = await fetch(
-        `https://www.googleapis.com/youtube/v3/search?` +
-          new URLSearchParams({
-            part: "snippet",
-            q: q.trim(),
-            type: "video",
-            maxResults: 25,
-            key: YT_API_KEY,
-          })
+        `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=20&q=${encodeURIComponent(
+          q.trim()
+        )}&key=${apiKey}`
       );
-
       const data = await res.json();
-      setVideos(Array.isArray(data.items) ? data.items : []);
+      const items = data.items || [];
+      setVideos(
+        items.map((item) => ({
+          id: item.id.videoId,
+          title: item.snippet.title,
+          author: item.snippet.channelTitle,
+          thumbnail: item.snippet.thumbnails.high.url,
+        }))
+      );
     } catch (err) {
       console.error("Search failed:", err);
       setVideos([]);
@@ -56,33 +43,32 @@ export default function Home() {
     }
   }
 
-  /* ================= TRENDING ================= */
-
+  /** Fetch trending videos */
   useEffect(() => {
     (async () => {
       setLoadingTrending(true);
       try {
         const res = await fetch(
-          `https://www.googleapis.com/youtube/v3/videos?` +
-            new URLSearchParams({
-              part: "snippet,statistics,contentDetails",
-              chart: "mostPopular",
-              regionCode: "US",
-              maxResults: 25,
-              key: YT_API_KEY,
-            })
+          `https://www.googleapis.com/youtube/v3/videos?part=snippet&chart=mostPopular&regionCode=US&maxResults=20&key=${apiKey}`
         );
-
         const data = await res.json();
-        setTrending(Array.isArray(data.items) ? data.items : []);
+        const items = data.items || [];
+        setTrending(
+          items.map((item) => ({
+            id: item.id,
+            title: item.snippet.title,
+            author: item.snippet.channelTitle,
+            thumbnail: item.snippet.thumbnails.high.url,
+          }))
+        );
       } catch (err) {
-        console.error("Trending failed:", err);
+        console.error("Trending fetch failed:", err);
         setTrending([]);
       } finally {
         setLoadingTrending(false);
       }
     })();
-  }, []);
+  }, [apiKey]);
 
   const list = videos.length > 0 ? videos : trending;
 
@@ -94,32 +80,19 @@ export default function Home() {
         />
       )}
 
+      {/* Header with search bar */}
       <Header onSearch={search} />
 
+      {/* Trending label */}
       {videos.length === 0 && !loadingTrending && list.length > 0 && (
         <h3 style={{ padding: "1rem", opacity: 0.8 }}>👀 Trending</h3>
       )}
 
+      {/* Video grid */}
       <div className="grid">
-        {list.map((item) => {
-          const id =
-            item.id?.videoId || item.id;
-
-          if (!id) return null;
-
-          return (
-            <VideoCard
-              key={id}
-              video={{
-                id,
-                title: item.snippet?.title || "Untitled",
-                thumbnail: getThumbnail(item),
-                author: item.snippet?.channelTitle || "Unknown",
-                views: item.statistics?.viewCount,
-              }}
-            />
-          );
-        })}
+        {list.map((v, index) => (
+          <VideoCard key={`${v.id}-${index}`} video={v} />
+        ))}
       </div>
 
       {!loadingSearch && !loadingTrending && list.length === 0 && (
