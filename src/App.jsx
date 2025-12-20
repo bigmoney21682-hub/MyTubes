@@ -1,31 +1,32 @@
-// File: src/App.jsx
 import { Routes, Route } from "react-router-dom";
-import { useEffect, useState } from "react";
 import Home from "./pages/Home";
+import Watch from "./pages/Watch";
 import Playlists from "./pages/Playlists";
-import BootSplash from "./components/BootSplash";
-import Footer from "./components/Footer";
+import "./index.css";
 
-export default function App() {
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    const t = setTimeout(() => setReady(true), 2000); // slightly slower
-    return () => clearTimeout(t);
-  }, []);
+export default function App({ apiKey }) {
+  if (!apiKey) {
+    return (
+      <div style={{ padding: "2rem", color: "#fff" }}>
+        <h3>Error: Missing YouTube API Key</h3>
+        <p>Please provide a valid API key to App component.</p>
+      </div>
+    );
+  }
 
   return (
-    <>
-      <BootSplash ready={ready} />
-      {ready && (
-        <>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/playlists" element={<Playlists />} />
-          </Routes>
-          <Footer /> {/* always visible */}
-        </>
-      )}
-    </>
+    <Routes>
+      <Route path="/" element={<Home apiKey={apiKey} />} />
+      <Route path="/watch/:id" element={<Watch apiKey={apiKey} />} />
+      <Route path="/playlists" element={<Playlists />} />
+      <Route
+        path="*"
+        element={
+          <div style={{ padding: "2rem", color: "#fff" }}>
+            <h3>Page not found</h3>
+          </div>
+        }
+      />
+    </Routes>
   );
 }
