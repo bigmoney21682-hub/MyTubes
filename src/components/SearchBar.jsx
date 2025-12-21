@@ -23,10 +23,10 @@ export default function SearchBar({ onSearch }) {
         alignItems: "center",
         width: "100%",
         maxWidth: 600,
-        background: "#111",
+        background: "#ff0000", // entire button red
         padding: "6px 12px",
         borderRadius: 24, // keeps oval shape
-        border: "1px solid #555",
+        border: "1px solid #ff0000",
         margin: "0 auto",
       }}
     >
@@ -51,25 +51,25 @@ export default function SearchBar({ onSearch }) {
         style={{
           width: 1,
           height: 24,
-          background: "#555",
+          background: "#fff", // contrast for visibility
           margin: "0 8px",
         }}
       />
 
-      {/* Red search button */}
-      <button
+      {/* Text label for search */}
+      <span
         onClick={() => onSearch && onSearch(query)}
         style={{
-          background: "#ff0000", // red button
-          border: "none",
           color: "#fff",
+          cursor: "pointer",
+          fontWeight: 600,
           padding: "6px 12px",
           borderRadius: 12,
-          cursor: "pointer",
+          userSelect: "none",
         }}
       >
         Search
-      </button>
+      </span>
     </div>
   );
 }
