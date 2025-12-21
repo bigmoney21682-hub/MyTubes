@@ -1,25 +1,27 @@
 // File: src/pages/Watch.jsx
-// PCC v1.0 — Preservation-First Mode
-// Mini-player temporarily disabled to isolate iOS PWA issue
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import RelatedVideos from "../components/RelatedVideos";
 import Spinner from "../components/Spinner";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import Player from "../components/Player";
-import { API_KEY } from "../config";
 import DebugOverlay from "../components/DebugOverlay";
+import { API_KEY } from "../config";
 
 export default function Watch() {
   const { id } = useParams();
   const [video, setVideo] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [playlist, setPlaylist] = useState([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const playerRef = useRef(null);
 
   // Load video metadata
   useEffect(() => {
     if (!id) return;
+
     setLoading(true);
     (async () => {
       try {
@@ -38,57 +40,74 @@ export default function Watch() {
     })();
   }, [id]);
 
-  const snippet = video?.snippet || {};
-  const embedUrl = video?.id
-    ? `https://www.youtube.com/embed/${video.id}?autoplay=1&controls=1`
+  // Setup playlist (single video for now)
+  useEffect(() => {
+    if (video) {
+      setPlaylist([video]);
+      setCurrentIndex(0);
+    }
+  }, [video]);
+
+  const handleEnded = () => {
+    if (currentIndex < playlist.length - 1) {
+      setCurrentIndex(currentIndex + 1);
+    } else {
+      console.log("Playlist ended");
+    }
+  };
+
+  const currentTrack = playlist[currentIndex];
+  const snippet = currentTrack?.snippet || {};
+  const embedUrl = currentTrack?.id
+    ? `https://www.youtube.com/embed/${currentTrack.id}?autoplay=1&controls=1`
     : "";
 
   return (
     <div
       style={{
+        paddingTop: "var(--header-height)",
+        paddingBottom: "var(--footer-height)",
         minHeight: "100vh",
         background: "var(--app-bg)",
         color: "#fff",
       }}
     >
-      {/* Debug overlay always mounted */}
+      {/* DEBUG OVERLAY ALWAYS MOUNTED */}
       <DebugOverlay />
 
-      {/* Header fixed */}
       <Header />
 
       {loading && <Spinner message="Loading video…" />}
 
-      {!loading && !video && (
+      {!loading && !currentTrack && (
         <div style={{ padding: 16 }}>
           <p>Video not found or unavailable.</p>
         </div>
       )}
 
-      {!loading && video && (
+      {!loading && currentTrack && (
         <>
-          <h2 style={{ padding: "1rem 16px" }}>{snippet.title}</h2>
-          <p style={{ padding: "0 16px", opacity: 0.7 }}>
-            by {snippet.channelTitle}
-          </p>
+          <h2>{snippet.title}</h2>
+          <p style={{ opacity: 0.7 }}>by {snippet.channelTitle}</p>
 
-          {/* Player mounted normally at top of content */}
           {embedUrl && (
             <Player
+              ref={playerRef}
               embedUrl={embedUrl}
               playing={true}
-              onEnded={() => console.log("Video ended")}
-              pipMode={false} // Mini-player disabled
-              draggable={false}
+              onEnded={handleEnded}
+              pipMode={false} // mini-player temporarily disabled
+              draggable={false} // disable dragging
               trackTitle={snippet.title}
             />
           )}
 
-          {video.id && <RelatedVideos videoId={video.id} apiKey={API_KEY} />}
+          {currentTrack.id && (
+            <RelatedVideos videoId={currentTrack.id} apiKey={API_KEY} />
+          )}
         </>
       )}
 
-      {/* Footer fixed */}
       <Footer />
     </div>
   );
