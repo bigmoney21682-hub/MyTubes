@@ -1,4 +1,16 @@
+// File: src/App.jsx
+
+import { Routes, Route } from "react-router-dom";
+import { useEffect, useState } from "react";
+
+import Home from "./pages/Home";
+import Playlists from "./pages/Playlists";
+
+import BootSplash from "./components/BootSplash";
+import Footer from "./components/Footer";
 import DebugOverlay from "./components/DebugOverlay";
+
+import { PlaylistProvider } from "./contexts/PlaylistContext";
 
 export default function App() {
   const [ready, setReady] = useState(false);
@@ -14,7 +26,9 @@ export default function App() {
 
       {ready && (
         <>
-          <DebugOverlay /> {/* <-- Add this here */}
+          {/* DEBUG OVERLAY MUST MOUNT BEFORE ROUTES */}
+          <DebugOverlay />
+
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/playlists" element={<Playlists />} />
