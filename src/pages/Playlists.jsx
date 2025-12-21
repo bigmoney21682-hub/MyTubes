@@ -1,13 +1,8 @@
-// File: src/pages/Playlists.jsx
-// PCC v1.0 — Preservation-First Mode
-
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { usePlaylists } from "../contexts/PlaylistContext";
 
 export default function Playlists() {
   const { playlists, addPlaylist } = usePlaylists();
-  const navigate = useNavigate();
 
   useEffect(() => {
     window.debugLog?.("DEBUG: Playlists page mounted");
@@ -20,51 +15,15 @@ export default function Playlists() {
   };
 
   return (
-    <div
-      style={{
-        paddingTop: "var(--header-height)",
-        paddingBottom: "var(--footer-height)",
-        minHeight: "100vh",
-        background: "var(--app-bg)",
-        color: "#fff",
-      }}
-    >
-      <Header />
+    <div style={{ paddingTop: "var(--header-height)", paddingBottom: "var(--footer-height)" }}>
+      <h2>Playlists</h2>
+      <button onClick={handleAdd}>+ Add Playlist</button>
 
-      <div style={{ padding: "1rem" }}>
-        <h2>Playlists</h2>
-        <button onClick={handleAdd}>+ New Playlist</button>
-      </div>
-
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
-          gap: "16px",
-          padding: "1rem",
-        }}
-      >
+      <ul>
         {playlists.map((p) => (
-          <div
-            key={p.id}
-            onClick={() => navigate(`/playlist/${p.id}`)}
-            style={{
-              background: "#111",
-              borderRadius: "12px",
-              padding: "16px",
-              cursor: "pointer",
-              border: "1px solid #222",
-            }}
-          >
-            <div style={{ fontSize: "1.1rem", fontWeight: 600 }}>
-              📁 {p.name}
-            </div>
-            <div style={{ opacity: 0.6, marginTop: 6 }}>
-              {p.videos.length} videos
-            </div>
-          </div>
+          <li key={p.id}>{p.name} ({p.videos?.length || 0} videos)</li>
         ))}
-      </div>
+      </ul>
     </div>
   );
 }
