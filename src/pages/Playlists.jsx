@@ -1,75 +1,75 @@
-// File: src/components/SearchBar.jsx
+// File: src/pages/Playlists.jsx
 // PCC v1.0 — Preservation-First Mode
 
-import { useState } from "react";
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { usePlaylists } from "../contexts/PlaylistContext";
 
-export default function SearchBar({ onSearch }) {
-  const [query, setQuery] = useState("");
+export default function Playlists() {
+  const { playlists, addPlaylist } = usePlaylists();
+  const navigate = useNavigate();
 
-  const handleChange = (e) => {
-    const value = e.target.value;
-    setQuery(value);
-    if (onSearch) onSearch(value);
-  };
+  useEffect(() => {
+    window.debugLog?.("DEBUG: Playlists page mounted");
+    window.debugLog?.(`DEBUG: Playlists count = ${playlists?.length}`);
+    console.log("DEBUG: Playlists state", playlists);
+  }, [playlists]);
 
-  const handleKeyPress = (e) => {
-    if (e.key === "Enter" && onSearch) onSearch(query);
+  const handleAdd = () => {
+    const name = prompt("Enter new playlist name:");
+    if (name) addPlaylist(name);
   };
 
   return (
     <div
       style={{
-        display: "flex",
-        alignItems: "center",
-        width: "100%",
-        maxWidth: 600,
-        background: "#ff0000", // entire button red
-        padding: "6px 12px",
-        borderRadius: 24, // keeps oval shape
-        border: "1px solid #ff0000",
-        margin: "0 auto",
+        paddingTop: "var(--header-height)",
+        paddingBottom: "var(--footer-height)",
+        minHeight: "100vh",
+        background: "var(--app-bg)",
+        color: "#fff",
       }}
     >
-      <input
-        type="text"
-        value={query}
-        onChange={handleChange}
-        onKeyPress={handleKeyPress}
-        placeholder="Search videos, playlists..."
-        style={{
-          flex: 1,
-          background: "transparent",
-          border: "none",
-          color: "#fff",
-          outline: "none",
-          fontSize: 14,
-        }}
-      />
+      {/* Header removed per baby step #1 */}
 
-      {/* Vertical divider */}
+      <div style={{ padding: "1rem" }}>
+        <h2>Playlists</h2>
+        <button onClick={handleAdd}>+ New Playlist</button>
+      </div>
+
       <div
         style={{
-          width: 1,
-          height: 24,
-          background: "#fff", // contrast for visibility
-          margin: "0 8px",
-        }}
-      />
-
-      {/* Text label for search */}
-      <span
-        onClick={() => onSearch && onSearch(query)}
-        style={{
-          color: "#fff",
-          cursor: "pointer",
-          fontWeight: 600,
-          padding: "6px 12px",
-          borderRadius: 12,
-          userSelect: "none",
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
+          gap: "16px",
+          padding: "1rem",
+          width: "100%", // explicit width for Safari
+          boxSizing: "border-box",
         }}
       >
-        Search
-      </span>
+        {playlists?.map((p) => (
+          p && (
+            <div
+              key={p.id}
+              onClick={() => navigate(`/playlist/${p.id}`)}
+              style={{
+                background: "#111",
+                borderRadius: "12px",
+                padding: "16px",
+                cursor: "pointer",
+                border: "1px solid #222",
+              }}
+            >
+              <div style={{ fontSize: "1.1rem", fontWeight: 600 }}>
+                📁 {p.name}
+              </div>
+              <div style={{ opacity: 0.6, marginTop: 6 }}>
+                {p.videos?.length ?? 0} videos
+              </div>
+            </div>
+          )
+        ))}
+      </div>
     </div>
   );
 }
