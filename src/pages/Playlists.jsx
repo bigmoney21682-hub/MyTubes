@@ -11,8 +11,9 @@ export default function Playlists() {
 
   useEffect(() => {
     window.debugLog?.("DEBUG: Playlists page mounted");
-    window.debugLog?.(`DEBUG: Playlists count = ${playlists.length}`);
-  }, [playlists.length]);
+    window.debugLog?.(`DEBUG: Playlists count = ${playlists?.length}`);
+    console.log("DEBUG: Playlists state", playlists);
+  }, [playlists]);
 
   const handleAdd = () => {
     const name = prompt("Enter new playlist name:");
@@ -42,27 +43,31 @@ export default function Playlists() {
           gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
           gap: "16px",
           padding: "1rem",
+          width: "100%", // explicit width for Safari
+          boxSizing: "border-box",
         }}
       >
-        {playlists.map((p) => (
-          <div
-            key={p.id}
-            onClick={() => navigate(`/playlist/${p.id}`)}
-            style={{
-              background: "#111",
-              borderRadius: "12px",
-              padding: "16px",
-              cursor: "pointer",
-              border: "1px solid #222",
-            }}
-          >
-            <div style={{ fontSize: "1.1rem", fontWeight: 600 }}>
-              📁 {p.name}
+        {playlists?.map((p) => (
+          p && (
+            <div
+              key={p.id}
+              onClick={() => navigate(`/playlist/${p.id}`)}
+              style={{
+                background: "#111",
+                borderRadius: "12px",
+                padding: "16px",
+                cursor: "pointer",
+                border: "1px solid #222",
+              }}
+            >
+              <div style={{ fontSize: "1.1rem", fontWeight: 600 }}>
+                📁 {p.name}
+              </div>
+              <div style={{ opacity: 0.6, marginTop: 6 }}>
+                {p.videos?.length ?? 0} videos
+              </div>
             </div>
-            <div style={{ opacity: 0.6, marginTop: 6 }}>
-              {p.videos.length} videos
-            </div>
-          </div>
+          )
         ))}
       </div>
     </div>
