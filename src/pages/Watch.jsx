@@ -8,6 +8,7 @@ import Spinner from "../components/Spinner";
 import Footer from "../components/Footer";
 import Player from "../components/Player";
 import DebugOverlay from "../components/DebugOverlay";
+import SearchBar from "../components/SearchBar";
 import { API_KEY } from "../config";
 
 export default function Watch() {
@@ -16,6 +17,7 @@ export default function Watch() {
   const [loading, setLoading] = useState(true);
   const [playlist, setPlaylist] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [searchQuery, setSearchQuery] = useState("");
   const playerRef = useRef(null);
 
   const log = (msg) => window.debugLog?.(msg);
@@ -65,6 +67,12 @@ export default function Watch() {
     }
   };
 
+  const handleSearch = (query) => {
+    setSearchQuery(query);
+    log(`DEBUG: Search triggered for query: ${query}`);
+    // Placeholder: you can integrate search functionality here
+  };
+
   const currentTrack = playlist[currentIndex];
   const snippet = currentTrack?.snippet || {};
   const embedUrl = currentTrack?.id
@@ -77,7 +85,7 @@ export default function Watch() {
   return (
     <div
       style={{
-        paddingTop: "var(--header-height)", // Preserve spacing for centralized Header
+        paddingTop: "var(--header-height)",
         paddingBottom: "var(--footer-height)",
         minHeight: "100vh",
         background: "var(--app-bg)",
@@ -88,6 +96,11 @@ export default function Watch() {
       <div style={{ height: "var(--header-height)" }} />
 
       <DebugOverlay />
+
+      {/* Search Block */}
+      <div style={{ padding: "1rem", maxWidth: 600, margin: "0 auto" }}>
+        <SearchBar onSearch={handleSearch} />
+      </div>
 
       {loading && <Spinner message="Loading video…" />}
 
@@ -111,6 +124,7 @@ export default function Watch() {
               pipMode={false}
               draggable={false}
               trackTitle={snippet.title}
+              style={{ width: "100%" }} // Fill visible width
             />
           )}
 
