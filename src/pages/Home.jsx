@@ -25,6 +25,14 @@ export default function Home() {
   const [loadingSearch, setLoadingSearch] = useState(false);
   const [loadingTrending, setLoadingTrending] = useState(true);
 
+  // ✅ Detect first boot only
+  const isInitialBoot = !sessionStorage.getItem("mytube_boot_complete");
+
+  useEffect(() => {
+    // Mark boot complete after first Home mount
+    sessionStorage.setItem("mytube_boot_complete", "1");
+  }, []);
+
   async function search(q) {
     if (!q.trim()) return;
     setLoadingSearch(true);
@@ -64,8 +72,11 @@ export default function Home() {
 
   return (
     <div>
-      {(loadingSearch || loadingTrending) && (
-        <Spinner message={loadingSearch ? "Searching…" : "Loading trending…"} />
+      {/* 🔒 Disable spinner ONLY during initial boot */}
+      {!isInitialBoot && (loadingSearch || loadingTrending) && (
+        <Spinner
+          message={loadingSearch ? "Searching…" : "Loading trending…"}
+        />
       )}
 
       <Header onSearch={search} />
@@ -74,7 +85,6 @@ export default function Home() {
         <h3 style={{ padding: "1rem", opacity: 0.8 }}>👀 Trending</h3>
       )}
 
-      {/* 1x1 vertical list */}
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         {list.map((v, index) => {
           const id = extractVideoId(v);
