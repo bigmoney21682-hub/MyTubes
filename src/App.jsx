@@ -32,7 +32,7 @@ export default function App() {
       {ready && (
         <>
           <DebugOverlay />
-          <Header />
+          {typeof Header === "function" && <Header />}
 
           <Routes>
             <Route path="/" element={<Home />} />
