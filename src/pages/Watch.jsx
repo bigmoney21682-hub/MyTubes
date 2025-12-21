@@ -3,7 +3,6 @@ import React, { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import RelatedVideos from "../components/RelatedVideos";
 import Spinner from "../components/Spinner";
-import Header from "../components/Header";
 import Player from "../components/Player";
 import { API_KEY } from "../config";
 
