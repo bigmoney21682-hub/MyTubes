@@ -69,6 +69,10 @@ export default function Watch() {
     ? `https://www.youtube.com/embed/${currentTrack.id}?autoplay=1&controls=1&playsinline=1`
     : "";
 
+  // Debug logging
+  console.log("DEBUG: embedUrl", embedUrl);
+  console.log("DEBUG: currentTrack", currentTrack);
+
   log(`DEBUG: Watch mounted with id = ${id}`);
   log(`DEBUG: Current track: ${snippet.title || "None"}`);
 
@@ -99,15 +103,18 @@ export default function Watch() {
           <p style={{ opacity: 0.7 }}>by {snippet.channelTitle}</p>
 
           {embedUrl && (
-            <Player
-              ref={playerRef}
-              embedUrl={embedUrl}
-              playing={true}
-              onEnded={handleEnded}
-              pipMode={false}
-              draggable={false}
-              trackTitle={snippet.title}
-            />
+            <div style={{ width: "100%", height: "360px", maxWidth: "640px", margin: "auto" }}>
+              <Player
+                ref={playerRef}
+                embedUrl={embedUrl}
+                playing={true}
+                onEnded={handleEnded}
+                pipMode={false}
+                draggable={false}
+                trackTitle={snippet.title}
+                style={{ width: "100%", height: "100%" }}
+              />
+            </div>
           )}
 
           {currentTrack.id && (
