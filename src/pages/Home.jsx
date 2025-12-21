@@ -70,6 +70,8 @@ export default function Home() {
 
   const list = videos.length > 0 ? videos : trending;
 
+  console.log("TRENDING COUNT:", trending.length, "LOADING:", loadingTrending);
+  
   return (
     <div>
       {/* 🔒 Disable spinner ONLY during initial boot */}
