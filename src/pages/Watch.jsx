@@ -1,12 +1,11 @@
 // File: src/pages/Watch.jsx
 import React, { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
-
-import RelatedVideos from "../components/RelatedVideos";
-import Spinner from "../components/Spinner";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import Player from "../components/Player";
+import RelatedVideos from "../components/RelatedVideos";
+import Spinner from "../components/Spinner";
 import DebugOverlay from "../components/DebugOverlay";
 import { API_KEY } from "../config";
 
@@ -18,15 +17,14 @@ export default function Watch() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const playerRef = useRef(null);
 
-  // Load video metadata
+  // Load video metadata with debug
   useEffect(() => {
     if (!id) return;
 
     setLoading(true);
-    console.log("DEBUG: Fetching video metadata for ID:", id);
-
     (async () => {
       try {
+        console.log("DEBUG: Fetching video metadata for ID:", id);
         const res = await fetch(
           `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,statistics&id=${id}&key=${API_KEY}`
         );
@@ -35,10 +33,10 @@ export default function Watch() {
 
         if (data.items?.length > 0) {
           setVideo(data.items[0]);
-          console.log("DEBUG: Video set to state:", data.items[0]);
+          console.log("DEBUG: Video loaded:", data.items[0].snippet.title);
         } else {
           setVideo(null);
-          console.warn("DEBUG: Video not found for ID:", id);
+          console.warn("DEBUG: No video found for ID:", id);
         }
       } catch (err) {
         console.error("DEBUG: Video fetch error:", err);
@@ -49,19 +47,19 @@ export default function Watch() {
     })();
   }, [id]);
 
-  // Setup playlist
+  // Setup single-video playlist (future: multi-track)
   useEffect(() => {
     if (video) {
-      setPlaylist([video]); // single video for now
+      setPlaylist([video]);
       setCurrentIndex(0);
-      console.log("DEBUG: Playlist initialized with video:", video);
+      console.log("DEBUG: Playlist initialized with video:", video.snippet.title);
     }
   }, [video]);
 
   const handleEnded = () => {
     if (currentIndex < playlist.length - 1) {
       setCurrentIndex(currentIndex + 1);
-      console.log("DEBUG: Moving to next video in playlist:", currentIndex + 1);
+      console.log("DEBUG: Advancing to next track in playlist");
     } else {
       console.log("DEBUG: Playlist ended");
     }
@@ -83,7 +81,7 @@ export default function Watch() {
         color: "#fff",
       }}
     >
-      {/* DEBUG overlay */}
+      {/* Debug overlay */}
       <DebugOverlay />
 
       <Header />
@@ -102,29 +100,23 @@ export default function Watch() {
           <p style={{ opacity: 0.7 }}>by {snippet.channelTitle}</p>
 
           {embedUrl && (
-            <>
-              <div style={{ color: "#0f0", marginBottom: 8 }}>
-                DEBUG: mounting Player with URL: {embedUrl}
-              </div>
-              <Player
-                ref={playerRef}
-                embedUrl={embedUrl}
-                playing={true}
-                onEnded={handleEnded}
-                pipMode={false}  // Mini-player temporarily disabled
-                draggable={false} // disable dragging
-                trackTitle={snippet.title}
-              />
-            </>
+            <Player
+              ref={playerRef}
+              embedUrl={embedUrl}
+              playing={true}
+              onEnded={handleEnded}
+              pipMode={false} // temporarily disable mini player
+              draggable={false}
+              trackTitle={snippet.title}
+            />
           )}
 
           {currentTrack.id && (
-            <>
-              <div style={{ color: "#0f0", marginTop: 8 }}>
-                DEBUG: mounting RelatedVideos
-              </div>
-              <RelatedVideos videoId={currentTrack.id} apiKey={API_KEY} />
-            </>
+            <RelatedVideos
+              videoId={currentTrack.id}
+              apiKey={API_KEY}
+              debug={true} // pass debug flag for RelatedVideos logging
+            />
           )}
         </>
       )}
