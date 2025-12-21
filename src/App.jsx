@@ -1,5 +1,5 @@
 // File: src/App.jsx
-// Final Version: Background play via persistent miniplayer
+// Final Version: Background play via persistent miniplayer + working search
 
 import { Routes, Route, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
@@ -13,7 +13,7 @@ import BootSplash from "./components/BootSplash";
 import Footer from "./components/Footer";
 import DebugOverlay from "./components/DebugOverlay";
 import Header from "./components/Header";
-import MiniPlayer from "./components/MiniPlayer";  // ← NEW
+import MiniPlayer from "./components/MiniPlayer";
 
 import { PlaylistProvider } from "./contexts/PlaylistContext";
 import { clearAllCaches } from "./utils/cacheManager";
@@ -25,17 +25,26 @@ export default function App() {
   const [currentVideo, setCurrentVideo] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
 
+  // NEW: global search state
+  const [searchQuery, setSearchQuery] = useState("");
+
   const navigate = useNavigate();
 
   useEffect(() => {
     const t = setTimeout(() => setReady(true), 2000);
+
     const autoClear = localStorage.getItem("autoClearCache") === "true";
     if (autoClear) clearAllCaches();
+
     return () => clearTimeout(t);
   }, []);
 
+  // 🔍 NEW: Search handler
   const handleSearch = (query) => {
     window.debugLog?.(`DEBUG: Search requested: ${query}`);
+
+    setSearchQuery(query);
+    navigate("/"); // always show results on Home page
   };
 
   const playVideo = (video) => {
@@ -56,15 +65,27 @@ export default function App() {
   return (
     <PlaylistProvider>
       <BootSplash ready={ready} />
+
       {ready && (
         <>
           <Header onSearch={handleSearch} />
           <DebugOverlay />
 
-          <div style={{ paddingBottom: currentVideo ? "68px" : "var(--footer-height)" }}>
+          <div
+            style={{
+              paddingBottom: currentVideo
+                ? "68px"
+                : "var(--footer-height)",
+            }}
+          >
             <Routes>
-              <Route path="/" element={<Home />} />
+              <Route
+                path="/"
+                element={<Home searchQuery={searchQuery} />}
+              />
+
               <Route path="/playlists" element={<Playlists />} />
+
               <Route
                 path="/watch/:id"
                 element={
@@ -76,6 +97,7 @@ export default function App() {
                   />
                 }
               />
+
               <Route path="/settings" element={<SettingsPage />} />
             </Routes>
           </div>
