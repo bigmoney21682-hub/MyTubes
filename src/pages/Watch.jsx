@@ -4,23 +4,17 @@ import { useParams } from "react-router-dom";
 import RelatedVideos from "../components/RelatedVideos";
 import Spinner from "../components/Spinner";
 import Header from "../components/Header";
-import Footer from "../components/Footer";
 import Player from "../components/Player";
-import DebugOverlay from "../components/DebugOverlay";
 import { API_KEY } from "../config";
 
 export default function Watch() {
   const { id } = useParams();
   const [video, setVideo] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [playlist, setPlaylist] = useState([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
   const playerRef = useRef(null);
 
-  // Helper for debug logs
   const log = (msg) => window.debugLog?.(msg);
 
-  // Load video metadata
   useEffect(() => {
     if (!id) return;
 
@@ -30,49 +24,27 @@ export default function Watch() {
     (async () => {
       try {
         const res = await fetch(
-          `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,statistics&id=${id}&key=${API_KEY}`
+          `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${id}&key=${API_KEY}`
         );
         const data = await res.json();
-        log(`DEBUG: Video fetch response: ${JSON.stringify(data)}`);
 
-        if (data.items?.length > 0) setVideo(data.items[0]);
-        else setVideo(null);
+        if (data.items?.length) {
+          setVideo(data.items[0]);
+        } else {
+          setVideo(null);
+        }
       } catch (err) {
         log(`DEBUG: Video fetch error: ${err}`);
         setVideo(null);
       } finally {
         setLoading(false);
-        log("DEBUG: Watch loading complete");
       }
     })();
   }, [id]);
 
-  // Setup playlist
-  useEffect(() => {
-    if (video) {
-      setPlaylist([video]);
-      setCurrentIndex(0);
-      log(`DEBUG: Playlist set with video: ${video.snippet?.title || "Unknown"}`);
-    }
-  }, [video]);
-
-  const handleEnded = () => {
-    if (currentIndex < playlist.length - 1) {
-      setCurrentIndex(currentIndex + 1);
-      log(`DEBUG: Track ended, advancing to index ${currentIndex + 1}`);
-    } else {
-      log("DEBUG: Playlist ended");
-    }
-  };
-
-  const currentTrack = playlist[currentIndex];
-  const snippet = currentTrack?.snippet || {};
-  const embedUrl = currentTrack?.id
-    ? `https://www.youtube.com/embed/${currentTrack.id}?autoplay=1&controls=1&playsinline=1`
+  const videoUrl = video?.id
+    ? `https://www.youtube.com/watch?v=${video.id}`
     : "";
-
-  log(`DEBUG: Watch mounted with id = ${id}`);
-  log(`DEBUG: Current track: ${snippet.title || "None"}`);
 
   return (
     <div
@@ -84,46 +56,31 @@ export default function Watch() {
         color: "#fff",
       }}
     >
-      <DebugOverlay />
-
       <Header />
 
       {loading && <Spinner message="Loading video…" />}
 
-      {!loading && !currentTrack && (
-        <div style={{ padding: 16 }}>
-          <p>Video not found or unavailable.</p>
-        </div>
-      )}
+      {!loading && !video && <p>Video unavailable.</p>}
 
-      {!loading && currentTrack && (
+      {!loading && video && (
         <>
-          <h2>{snippet.title}</h2>
-          <p style={{ opacity: 0.7 }}>by {snippet.channelTitle}</p>
+          <h2>{video.snippet.title}</h2>
+          <p style={{ opacity: 0.7 }}>{video.snippet.channelTitle}</p>
 
-          {embedUrl && (
-            <Player
-              ref={playerRef}
-              embedUrl={embedUrl}
-              playing={true}
-              onEnded={handleEnded}
-              pipMode={false} // mini-player disabled for now
-              draggable={false}
-              trackTitle={snippet.title}
-            />
-          )}
+          <Player
+            ref={playerRef}
+            embedUrl={videoUrl}
+            playing={true}
+            controls
+          />
 
-          {currentTrack.id && (
-            <RelatedVideos
-              videoId={currentTrack.id}
-              apiKey={API_KEY}
-              onDebugLog={log} // optional, send logs from RelatedVideos
-            />
-          )}
+          <RelatedVideos
+            videoId={video.id}
+            apiKey={API_KEY}
+            onDebugLog={log}
+          />
         </>
       )}
-
-      <Footer />
     </div>
   );
 }
