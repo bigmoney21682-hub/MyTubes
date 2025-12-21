@@ -1,53 +1,20 @@
 // File: src/components/DebugOverlay.jsx
 
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function DebugOverlay() {
   const [logs, setLogs] = useState([]);
 
-  // Capture console messages
   useEffect(() => {
+    // Capture console.log output
     const originalLog = console.log;
-    const originalError = console.error;
-    const originalWarn = console.warn;
-
     console.log = (...args) => {
-      setLogs((prev) => [...prev, { type: "log", message: args.join(" ") }]);
+      setLogs((prev) => [...prev, args.map(String).join(" ")].slice(-50)); // keep last 50 logs
       originalLog(...args);
     };
-    console.error = (...args) => {
-      setLogs((prev) => [...prev, { type: "error", message: args.join(" ") }]);
-      originalError(...args);
-    };
-    console.warn = (...args) => {
-      setLogs((prev) => [...prev, { type: "warn", message: args.join(" ") }]);
-      originalWarn(...args);
-    };
-
-    // Capture global errors
-    const handleError = (msg, url, line, col, error) => {
-      setLogs((prev) => [
-        ...prev,
-        { type: "error", message: `${msg} at ${url}:${line}:${col}` },
-      ]);
-    };
-
-    const handleRejection = (e) => {
-      setLogs((prev) => [
-        ...prev,
-        { type: "error", message: `Unhandled promise rejection: ${e.reason}` },
-      ]);
-    };
-
-    window.addEventListener("error", handleError);
-    window.addEventListener("unhandledrejection", handleRejection);
 
     return () => {
-      console.log = originalLog;
-      console.error = originalError;
-      console.warn = originalWarn;
-      window.removeEventListener("error", handleError);
-      window.removeEventListener("unhandledrejection", handleRejection);
+      console.log = originalLog; // restore original log on unmount
     };
   }, []);
 
@@ -55,30 +22,23 @@ export default function DebugOverlay() {
     <div
       style={{
         position: "fixed",
-        bottom: 0,
+        bottom: "var(--footer-height)", // pinned above footer
         left: 0,
-        width: "100%",
-        maxHeight: "35vh",
+        right: 0,
+        maxHeight: "200px",
         overflowY: "auto",
-        background: "rgba(0,0,0,0.95)",
-        color: "#fff",
+        background: "rgba(0,0,0,0.85)",
+        color: "#0f0",
         fontSize: "12px",
-        padding: "4px 8px",
-        zIndex: 99999,
+        fontFamily: "monospace",
+        padding: "6px 8px",
+        zIndex: 1500,
+        pointerEvents: "none", // allows clicks through the overlay
+        boxShadow: "0 -2px 8px rgba(0,0,0,0.7)",
       }}
     >
-      <strong>DEBUG LOGS</strong>
-      {logs.length === 0 && <div>Waiting for logs…</div>}
       {logs.map((log, i) => (
-        <div
-          key={i}
-          style={{
-            color:
-              log.type === "error" ? "#ff5555" : log.type === "warn" ? "#ffdd55" : "#fff",
-          }}
-        >
-          {log.message}
-        </div>
+        <div key={i}>{log}</div>
       ))}
     </div>
   );
