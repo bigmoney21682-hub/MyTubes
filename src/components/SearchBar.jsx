@@ -1,69 +1,55 @@
 // File: src/components/SearchBar.jsx
-// PCC v1.0 — Preservation-First Mode
 
 import { useState } from "react";
 
 export default function SearchBar({ onSearch }) {
-  const [query, setQuery] = useState("");
+  const [q, setQ] = useState("");
 
-  const handleChange = (e) => {
-    const value = e.target.value;
-    setQuery(value);
-
-    if (onSearch) {
-      onSearch(value);
-    }
-  };
-
-  const handleKeyPress = (e) => {
-    if (e.key === "Enter" && onSearch) {
-      onSearch(query.trim());
-    }
-  };
+  function submit(e) {
+    e.preventDefault();
+    onSearch(q.trim());
+  }
 
   return (
-    <div
+    <form
+      onSubmit={submit}
       style={{
+        width: "75%",
+        maxWidth: 520,
         display: "flex",
-        alignItems: "center",
-        width: "100%",
-        maxWidth: 600,
-        background: "#111",
-        padding: "6px 12px",
-        borderRadius: 8,
-        border: "1px solid #555",
-        margin: "0 auto",
+        gap: 8,
       }}
     >
       <input
-        type="text"
-        value={query}
-        onChange={handleChange}
-        onKeyPress={handleKeyPress}
-        placeholder="Search videos, playlists..."
+        value={q}
+        onChange={e => setQ(e.target.value)}
+        placeholder="Search YouTube"
         style={{
           flex: 1,
-          background: "transparent",
-          border: "none",
+          padding: "10px 14px",
+          borderRadius: 999,
+          border: "1px solid #333",
+          background: "#000",
           color: "#fff",
-          outline: "none",
-          fontSize: 14,
+          textAlign: "center",
+          fontSize: "1rem",
         }}
       />
+
       <button
-        onClick={() => onSearch && onSearch(query.trim())}
+        type="submit"
         style={{
-          background: "#ff4500",
+          padding: "0 14px",
+          borderRadius: 999,
           border: "none",
+          background: "#ff0000",
           color: "#fff",
-          padding: "6px 10px",
-          borderRadius: 6,
+          fontWeight: 600,
           cursor: "pointer",
-          marginLeft: 6,
         }}
       >
         🔍
       </button>
-    </div>
+    </form>
   );
 }
