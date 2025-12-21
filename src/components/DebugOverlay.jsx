@@ -1,40 +1,37 @@
 // File: src/components/DebugOverlay.jsx
-
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export default function DebugOverlay() {
   const [logs, setLogs] = useState([]);
 
-  useEffect(() => {
-    // Capture console.log output
-    const originalLog = console.log;
-    console.log = (...args) => {
-      setLogs((prev) => [...prev, args.map(String).join(" ")].slice(-50)); // keep last 50 logs
-      originalLog(...args);
-    };
+  // Push a log
+  const pushLog = (msg) => {
+    setLogs((prev) => [...prev, `${new Date().toLocaleTimeString()}: ${msg}`]);
+  };
 
-    return () => {
-      console.log = originalLog; // restore original log on unmount
-    };
+  useEffect(() => {
+    // Mount-time log
+    pushLog("DEBUG: DebugOverlay mounted");
+
+    // Expose global function for temporary debugging
+    window.debugLog = (msg) => pushLog(msg);
   }, []);
 
   return (
     <div
       style={{
         position: "fixed",
-        bottom: "var(--footer-height)", // pinned above footer
+        bottom: "var(--footer-height)", // place just above footer
         left: 0,
         right: 0,
-        maxHeight: "200px",
+        maxHeight: "30vh",
         overflowY: "auto",
         background: "rgba(0,0,0,0.85)",
         color: "#0f0",
         fontSize: "12px",
+        padding: "4px 8px",
+        zIndex: 2000,
         fontFamily: "monospace",
-        padding: "6px 8px",
-        zIndex: 1500,
-        pointerEvents: "none", // allows clicks through the overlay
-        boxShadow: "0 -2px 8px rgba(0,0,0,0.7)",
       }}
     >
       {logs.map((log, i) => (
