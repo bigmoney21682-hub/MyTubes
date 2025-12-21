@@ -25,11 +25,10 @@ export default function Home() {
   const [loadingSearch, setLoadingSearch] = useState(false);
   const [loadingTrending, setLoadingTrending] = useState(true);
 
-  // ✅ Detect first boot only
+  // Boot detection (unchanged)
   const isInitialBoot = !sessionStorage.getItem("mytube_boot_complete");
 
   useEffect(() => {
-    // Mark boot complete after first Home mount
     sessionStorage.setItem("mytube_boot_complete", "1");
   }, []);
 
@@ -54,6 +53,8 @@ export default function Home() {
   }
 
   useEffect(() => {
+    let active = true;
+
     (async () => {
       setLoadingTrending(true);
       try {
@@ -61,20 +62,27 @@ export default function Home() {
           `https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&chart=mostPopular&maxResults=20&regionCode=US&key=${API_KEY}`
         );
         const data = await res.json();
-        setTrending(Array.isArray(data.items) ? data.items : []);
+        if (active) {
+          setTrending(Array.isArray(data.items) ? data.items : []);
+        }
       } finally {
-        setLoadingTrending(false);
+        if (active) setLoadingTrending(false);
       }
     })();
+
+    // 🔥 CRITICAL SAFETY CLEANUP
+    return () => {
+      active = false;
+      setLoadingTrending(false);
+      setLoadingSearch(false);
+    };
   }, []);
 
   const list = videos.length > 0 ? videos : trending;
 
-  console.log("TRENDING COUNT:", trending.length, "LOADING:", loadingTrending);
-  
   return (
     <div>
-      {/* 🔒 Disable spinner ONLY during initial boot */}
+      {/* 🔒 Spinner can NEVER survive route unmount */}
       {!isInitialBoot && (loadingSearch || loadingTrending) && (
         <Spinner
           message={loadingSearch ? "Searching…" : "Loading trending…"}
