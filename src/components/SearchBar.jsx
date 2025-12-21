@@ -1,68 +1,38 @@
 // File: src/components/SearchBar.jsx
-// PCC v1.0 — Preservation-First Mode
 
 import { useState } from "react";
 
 export default function SearchBar({ onSearch }) {
-  const [query, setQuery] = useState("");
+  const [q, setQ] = useState("");
 
-  const handleChange = (e) => {
-    const value = e.target.value;
-    setQuery(value);
-
-    if (onSearch) {
-      onSearch(value);
-    }
-  };
-
-  const handleKeyPress = (e) => {
-    if (e.key === "Enter" && onSearch) {
-      onSearch(query);
-    }
-  };
+  function submit(e) {
+    e.preventDefault();
+    onSearch(q.trim());
+  }
 
   return (
-    <div
+    <form
+      onSubmit={submit}
       style={{
-        display: "flex",
-        alignItems: "center",
-        width: "100%",
-        maxWidth: 600,
-        background: "#222",
-        padding: "6px 12px",
-        borderRadius: 8,
-        margin: "0 auto",
+        width: "75%",
+        maxWidth: 520,
       }}
     >
       <input
-        type="text"
-        value={query}
-        onChange={handleChange}
-        onKeyPress={handleKeyPress}
-        placeholder="Search videos, playlists..."
+        value={q}
+        onChange={e => setQ(e.target.value)}
+        placeholder="Search YouTube"
         style={{
-          flex: 1,
-          background: "transparent",
-          border: "none",
+          width: "100%",
+          padding: "10px 14px",
+          borderRadius: 999,
+          border: "1px solid #333",
+          background: "#000",
           color: "#fff",
-          outline: "none",
-          fontSize: 14,
+          textAlign: "center",
+          fontSize: "1rem",
         }}
       />
-      <button
-        onClick={() => onSearch && onSearch(query)}
-        style={{
-          background: "#ff4500",
-          border: "none",
-          color: "#fff",
-          padding: "6px 10px",
-          borderRadius: 6,
-          cursor: "pointer",
-          marginLeft: 6,
-        }}
-      >
-        🔍
-      </button>
-    </div>
+    </form>
   );
 }
