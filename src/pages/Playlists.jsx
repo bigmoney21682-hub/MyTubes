@@ -9,8 +9,13 @@ export default function Playlists() {
   const { playlists, addPlaylist } = usePlaylists();
   const navigate = useNavigate();
 
+  // Log page mounted once
   useEffect(() => {
     window.debugLog?.("DEBUG: Playlists page mounted");
+  }, []);
+
+  // Log playlist count whenever it changes
+  useEffect(() => {
     window.debugLog?.(`DEBUG: Playlists count = ${playlists?.length}`);
     console.log("DEBUG: Playlists state", playlists);
   }, [playlists]);
@@ -43,12 +48,12 @@ export default function Playlists() {
           gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
           gap: "16px",
           padding: "1rem",
-          width: "100%", // explicit width for Safari
+          width: "100%", // Safari fix
           boxSizing: "border-box",
         }}
       >
-        {playlists?.map((p) => (
-          p && (
+        {playlists?.map((p) =>
+          p ? (
             <div
               key={p.id}
               onClick={() => navigate(`/playlist/${p.id}`)}
@@ -67,8 +72,8 @@ export default function Playlists() {
                 {p.videos?.length ?? 0} videos
               </div>
             </div>
-          )
-        ))}
+          ) : null
+        )}
       </div>
     </div>
   );
