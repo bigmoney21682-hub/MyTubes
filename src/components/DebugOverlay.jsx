@@ -1,67 +1,51 @@
 // File: src/components/DebugOverlay.jsx
 import { useEffect, useState } from "react";
 
-const MAX_LOGS = 200;
+let globalLogs = [];
 
-export default function DebugOverlay({ pageName = "GLOBAL" }) {
+export function addDebugLog(message) {
+  const timestamp = new Date().toLocaleTimeString();
+  globalLogs.push(`${timestamp}: DEBUG: ${message}`);
+  // Keep only last 50 logs for performance
+  if (globalLogs.length > 50) globalLogs.shift();
+}
+
+export default function DebugOverlay() {
   const [logs, setLogs] = useState([]);
 
-  // Attach global logging function
   useEffect(() => {
-    window.debugLog = (msg) => {
-      setLogs((prev) => [...prev.slice(-MAX_LOGS + 1), `${new Date().toLocaleTimeString()}: ${msg}`]);
-    };
+    // Mount log
+    addDebugLog("DebugOverlay mounted");
 
-    // Initial log
-    window.debugLog(`DEBUG: ${pageName} overlay initialized`);
+    // Interval to sync logs
+    const interval = setInterval(() => {
+      setLogs([...globalLogs]);
+    }, 200);
 
-    // Auto-log home screen boot if pageName is Home
-    if (pageName === "Home") {
-      window.debugLog("DEBUG: Home screen mounted");
-      window.debugLog("DEBUG: Fetching trending videos...");
-      // Optionally you can log other home events here automatically
-    }
-
-    return () => {
-      window.debugLog = null;
-    };
-  }, [pageName]);
-
-  const lineHeight = 18; // px
-  const maxHeight = lineHeight * 4; // 4 lines
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div
       style={{
         position: "fixed",
-        bottom: "var(--footer-height)",
+        bottom: 0,
         left: 0,
         right: 0,
-        maxHeight: maxHeight,
-        background: "rgba(0,0,0,0.85)",
+        maxHeight: "40vh", // Restore full-height scrollable behavior
+        background: "rgba(0,0,0,0.9)",
         color: "#0f0",
-        fontSize: "0.8rem",
-        overflowY: "auto",
-        overflowX: "hidden",
+        fontFamily: "monospace",
+        fontSize: 12,
         padding: 8,
+        overflowY: "auto",
         zIndex: 9999,
-        pointerEvents: "none",
-        display: "flex",
-        flexDirection: "column",
-        gap: 2,
+        pointerEvents: "none", // Prevent interference with UI clicks
+        whiteSpace: "pre-wrap",
       }}
     >
       {logs.map((log, i) => (
-        <div
-          key={i}
-          style={{
-            whiteSpace: "pre-wrap",
-            textOverflow: "ellipsis",
-            overflow: "hidden",
-          }}
-        >
-          {log}
-        </div>
+        <div key={i}>{log}</div>
       ))}
     </div>
   );
