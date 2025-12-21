@@ -1,15 +1,15 @@
 // File: src/components/DebugOverlay.jsx
+
 import { useEffect, useState } from "react";
 
 const MAX_LOGS = 200;
-const LINE_HEIGHT = 18; // approximate line height in pixels
 const VISIBLE_LINES = 4;
 
-export default function DebugOverlay({ pageName = "GLOBAL" }) {
+export default function DebugOverlay() {
   const [logs, setLogs] = useState([]);
 
-  // Attach global debug function
   useEffect(() => {
+    // Install global logger ONCE
     window.debugLog = (msg) => {
       setLogs((prev) => [
         ...prev.slice(-MAX_LOGS + 1),
@@ -17,34 +17,36 @@ export default function DebugOverlay({ pageName = "GLOBAL" }) {
       ]);
     };
 
-    window.debugLog(`DEBUG: ${pageName} overlay initialized`);
+    window.debugLog("DEBUG: DebugOverlay initialized");
 
     return () => {
-      window.debugLog = null;
+      // Do NOT null this unless app fully unmounts
+      // (prevents navigation regressions)
     };
-  }, [pageName]);
+  }, []);
 
   return (
     <div
       style={{
         position: "fixed",
-        bottom: "var(--footer-height)", // anchored above footer
+        bottom: "var(--footer-height)",
         left: 0,
         right: 0,
-        maxHeight: LINE_HEIGHT * VISIBLE_LINES, // show 4 lines
-        background: "rgba(0,0,0,0.85)",
+        height: `${VISIBLE_LINES * 1.4}em`,
+        background: "rgba(0,0,0,0.9)",
         color: "#0f0",
         fontSize: "0.8rem",
         overflowY: "auto",
-        padding: 4,
+        padding: "4px 8px",
         zIndex: 9999,
-        pointerEvents: "auto", // enable text selection
-        whiteSpace: "pre-wrap",
-        userSelect: "text", // allow copying
+
+        // Critical: allow text selection but block clicks through
+        pointerEvents: "auto",
+        userSelect: "text",
       }}
     >
       {logs.map((log, i) => (
-        <div key={i} style={{ lineHeight: `${LINE_HEIGHT}px` }}>
+        <div key={i} style={{ whiteSpace: "pre-wrap", lineHeight: "1.4em" }}>
           {log}
         </div>
       ))}
