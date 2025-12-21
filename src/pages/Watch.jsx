@@ -20,6 +20,7 @@ export default function Watch() {
 
   const log = (msg) => window.debugLog?.(msg);
 
+  // Fetch video metadata
   useEffect(() => {
     if (!id) return;
 
@@ -46,6 +47,7 @@ export default function Watch() {
     })();
   }, [id]);
 
+  // Set playlist with current video
   useEffect(() => {
     if (video) {
       setPlaylist([video]);
@@ -69,24 +71,22 @@ export default function Watch() {
     ? `https://www.youtube.com/embed/${currentTrack.id}?autoplay=1&controls=1&playsinline=1`
     : "";
 
-  // Debug logging
-  console.log("DEBUG: embedUrl", embedUrl);
-  console.log("DEBUG: currentTrack", currentTrack);
-
   log(`DEBUG: Watch mounted with id = ${id}`);
   log(`DEBUG: Current track: ${snippet.title || "None"}`);
 
   return (
     <div
       style={{
-        paddingTop: "var(--header-height)",
+        paddingTop: "var(--header-height)", // Preserve spacing for centralized Header
         paddingBottom: "var(--footer-height)",
         minHeight: "100vh",
         background: "var(--app-bg)",
         color: "#fff",
       }}
     >
-      {/* Header removed per PCC Rule #6 */}
+      {/* Placeholder div preserves layout while Header is centralized in App */}
+      <div style={{ height: "var(--header-height)" }} />
+
       <DebugOverlay />
 
       {loading && <Spinner message="Loading video…" />}
@@ -103,18 +103,15 @@ export default function Watch() {
           <p style={{ opacity: 0.7 }}>by {snippet.channelTitle}</p>
 
           {embedUrl && (
-            <div style={{ width: "100%", height: "360px", maxWidth: "640px", margin: "auto" }}>
-              <Player
-                ref={playerRef}
-                embedUrl={embedUrl}
-                playing={true}
-                onEnded={handleEnded}
-                pipMode={false}
-                draggable={false}
-                trackTitle={snippet.title}
-                style={{ width: "100%", height: "100%" }}
-              />
-            </div>
+            <Player
+              ref={playerRef}
+              embedUrl={embedUrl}
+              playing={true}
+              onEnded={handleEnded}
+              pipMode={false}
+              draggable={false}
+              trackTitle={snippet.title}
+            />
           )}
 
           {currentTrack.id && (
