@@ -17,47 +17,51 @@ export default function Watch() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const playerRef = useRef(null);
 
-  console.log("DEBUG: Watch mounted with id =", id);
+  // Helper for debug logs
+  const log = (msg) => window.debugLog?.(msg);
 
   // Load video metadata
   useEffect(() => {
     if (!id) return;
 
     setLoading(true);
+    log(`DEBUG: Fetching video metadata for id: ${id}`);
+
     (async () => {
       try {
-        console.log("DEBUG: Fetching video metadata for id:", id);
         const res = await fetch(
           `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,statistics&id=${id}&key=${API_KEY}`
         );
         const data = await res.json();
-        console.log("DEBUG: Video fetch response", data);
+        log(`DEBUG: Video fetch response: ${JSON.stringify(data)}`);
+
         if (data.items?.length > 0) setVideo(data.items[0]);
         else setVideo(null);
       } catch (err) {
-        console.error("DEBUG: Video fetch error:", err);
+        log(`DEBUG: Video fetch error: ${err}`);
         setVideo(null);
       } finally {
         setLoading(false);
+        log("DEBUG: Watch loading complete");
       }
     })();
   }, [id]);
 
-  // Setup playlist (single video, mini player disabled)
+  // Setup playlist
   useEffect(() => {
     if (video) {
       setPlaylist([video]);
       setCurrentIndex(0);
-      console.log("DEBUG: Playlist set", [video]);
+      log(`DEBUG: Playlist set with video: ${video.snippet?.title || "Unknown"}`);
     }
   }, [video]);
 
   const handleEnded = () => {
     if (currentIndex < playlist.length - 1) {
       setCurrentIndex(currentIndex + 1);
-      console.log("DEBUG: Advancing playlist to index", currentIndex + 1);
+      log(`DEBUG: Track ended, advancing to index ${currentIndex + 1}`);
     } else {
-      console.log("DEBUG: Playlist ended");
+      log("DEBUG: Playlist ended");
     }
   };
 
@@ -66,6 +70,9 @@ export default function Watch() {
   const embedUrl = currentTrack?.id
     ? `https://www.youtube.com/embed/${currentTrack.id}?autoplay=1&controls=1&playsinline=1`
     : "";
+
+  log(`DEBUG: Watch mounted with id = ${id}`);
+  log(`DEBUG: Current track: ${snippet.title || "None"}`);
 
   return (
     <div
@@ -77,7 +84,6 @@ export default function Watch() {
         color: "#fff",
       }}
     >
-      {/* Debug overlay always mounted */}
       <DebugOverlay />
 
       <Header />
@@ -95,21 +101,24 @@ export default function Watch() {
           <h2>{snippet.title}</h2>
           <p style={{ opacity: 0.7 }}>by {snippet.channelTitle}</p>
 
-          {/* Player always mounted, mini player logic disabled */}
           {embedUrl && (
             <Player
               ref={playerRef}
               embedUrl={embedUrl}
               playing={true}
               onEnded={handleEnded}
-              pipMode={false} // mini player disabled
-              draggable={false} // disable drag
+              pipMode={false} // mini-player disabled for now
+              draggable={false}
               trackTitle={snippet.title}
             />
           )}
 
           {currentTrack.id && (
-            <RelatedVideos videoId={currentTrack.id} apiKey={API_KEY} />
+            <RelatedVideos
+              videoId={currentTrack.id}
+              apiKey={API_KEY}
+              onDebugLog={log} // optional, send logs from RelatedVideos
+            />
           )}
         </>
       )}
