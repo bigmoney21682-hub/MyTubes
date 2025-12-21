@@ -1,3 +1,5 @@
+// File: src/pages/Watch.jsx
+
 import React, { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import RelatedVideos from "../components/RelatedVideos";
@@ -10,27 +12,39 @@ import DebugOverlay from "../components/DebugOverlay";
 
 export default function Watch() {
   const { id } = useParams();
+
   const [video, setVideo] = useState(null);
   const [loading, setLoading] = useState(true);
+
   const [playlist, setPlaylist] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [pipVisible, setPipVisible] = useState(true);
+
+  // 🔒 TEMP: Mini-player hard disabled (PCC-safe)
+  const [pipVisible] = useState(false);
+
   const playerRef = useRef(null);
   const touchStartRef = useRef(null);
 
+  // ─────────────────────────────────────────────
   // Load video metadata
+  // ─────────────────────────────────────────────
   useEffect(() => {
     if (!id) return;
 
     setLoading(true);
+
     (async () => {
       try {
         const res = await fetch(
           `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,statistics&id=${id}&key=${API_KEY}`
         );
         const data = await res.json();
-        if (data.items?.length > 0) setVideo(data.items[0]);
-        else setVideo(null);
+
+        if (data.items?.length > 0) {
+          setVideo(data.items[0]);
+        } else {
+          setVideo(null);
+        }
       } catch (err) {
         console.error("Video fetch error:", err);
         setVideo(null);
@@ -40,15 +54,19 @@ export default function Watch() {
     })();
   }, [id]);
 
-  // Setup playlist
+  // ─────────────────────────────────────────────
+  // Initialize single-track playlist
+  // ─────────────────────────────────────────────
   useEffect(() => {
     if (video) {
-      setPlaylist([video]); // replace with multi-track playlist as needed
+      setPlaylist([video]);
       setCurrentIndex(0);
     }
   }, [video]);
 
-  // Handle swipe from top-right to toggle mini-player
+  // ─────────────────────────────────────────────
+  // Mini-player gesture logic (INTENTIONALLY DORMANT)
+  // ─────────────────────────────────────────────
   const handleTouchStart = (e) => {
     const touch = e.touches[0];
     if (touch.clientX > window.innerWidth - 50 && touch.clientY < 50) {
@@ -62,11 +80,14 @@ export default function Watch() {
     if (!touchStartRef.current) return;
     const touch = e.touches[0];
     if (touch.clientY - touchStartRef.current > 50) {
-      setPipVisible((v) => !v);
+      // setPipVisible(v => !v); // intentionally disabled
       touchStartRef.current = null;
     }
   };
 
+  // ─────────────────────────────────────────────
+  // Playlist end handler
+  // ─────────────────────────────────────────────
   const handleEnded = () => {
     if (currentIndex < playlist.length - 1) {
       setCurrentIndex(currentIndex + 1);
@@ -77,10 +98,14 @@ export default function Watch() {
 
   const currentTrack = playlist[currentIndex];
   const snippet = currentTrack?.snippet || {};
+
   const embedUrl = currentTrack?.id
-    ? `https://www.youtube.com/embed/${currentTrack.id}?autoplay=1&controls=1`
+    ? `https://www.youtube.com/embed/${currentTrack.id}?autoplay=1&controls=1&playsinline=1`
     : "";
 
+  // ─────────────────────────────────────────────
+  // Render
+  // ─────────────────────────────────────────────
   return (
     <div
       style={{
@@ -90,8 +115,9 @@ export default function Watch() {
         background: "var(--app-bg)",
         color: "#fff",
       }}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
+      // 🔒 Gesture handlers disabled during debug
+      // onTouchStart={handleTouchStart}
+      // onTouchMove={handleTouchMove}
     >
       {/* Debug overlay always mounted */}
       <DebugOverlay />
@@ -108,23 +134,34 @@ export default function Watch() {
 
       {!loading && currentTrack && (
         <>
-          <h2>{snippet.title}</h2>
-          <p style={{ opacity: 0.7 }}>by {snippet.channelTitle}</p>
+          <div style={{ padding: "0 16px" }}>
+            <h2>{snippet.title}</h2>
+            <p style={{ opacity: 0.7 }}>
+              by {snippet.channelTitle}
+            </p>
+          </div>
 
-          {pipVisible && embedUrl && (
+          {/* 🔒 Pinned player only — mini-player disabled */}
+          {embedUrl && (
             <Player
               ref={playerRef}
               embedUrl={embedUrl}
               playing={true}
               onEnded={handleEnded}
-              pipMode={true}
-              draggable={true}
+              pipMode={false}
+              draggable={false}
               trackTitle={snippet.title}
             />
           )}
 
+          {/* Related videos */}
           {currentTrack.id && (
-            <RelatedVideos videoId={currentTrack.id} apiKey={API_KEY} />
+            <div style={{ padding: "16px" }}>
+              <RelatedVideos
+                videoId={currentTrack.id}
+                apiKey={API_KEY}
+              />
+            </div>
           )}
         </>
       )}
