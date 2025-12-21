@@ -7,8 +7,9 @@ import Header from "../components/Header";
 import Footer from "../components/Footer";
 import Player from "../components/Player";
 import DebugOverlay from "../components/DebugOverlay";
+import { API_KEY } from "../config";
 
-export default function Watch({ apiKey }) {
+export default function Watch() {
   const { id } = useParams();
   const [video, setVideo] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -16,8 +17,7 @@ export default function Watch({ apiKey }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const playerRef = useRef(null);
 
-  // DEBUG: Log API key
-  console.log("DEBUG: API key received in Watch.jsx:", apiKey);
+  console.log("DEBUG: Watch mounted with id =", id);
 
   // Load video metadata
   useEffect(() => {
@@ -26,13 +26,12 @@ export default function Watch({ apiKey }) {
     setLoading(true);
     (async () => {
       try {
+        console.log("DEBUG: Fetching video metadata for id:", id);
         const res = await fetch(
-          `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,statistics&id=${id}&key=${apiKey}`
+          `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,statistics&id=${id}&key=${API_KEY}`
         );
         const data = await res.json();
-
-        console.log("DEBUG: Video fetch response:", data);
-
+        console.log("DEBUG: Video fetch response", data);
         if (data.items?.length > 0) setVideo(data.items[0]);
         else setVideo(null);
       } catch (err) {
@@ -42,19 +41,21 @@ export default function Watch({ apiKey }) {
         setLoading(false);
       }
     })();
-  }, [id, apiKey]);
+  }, [id]);
 
-  // Setup playlist (single-track for now)
+  // Setup playlist (single video, mini player disabled)
   useEffect(() => {
     if (video) {
       setPlaylist([video]);
       setCurrentIndex(0);
+      console.log("DEBUG: Playlist set", [video]);
     }
   }, [video]);
 
   const handleEnded = () => {
     if (currentIndex < playlist.length - 1) {
       setCurrentIndex(currentIndex + 1);
+      console.log("DEBUG: Advancing playlist to index", currentIndex + 1);
     } else {
       console.log("DEBUG: Playlist ended");
     }
@@ -66,11 +67,6 @@ export default function Watch({ apiKey }) {
     ? `https://www.youtube.com/embed/${currentTrack.id}?autoplay=1&controls=1&playsinline=1`
     : "";
 
-  // DEBUG logs
-  console.log("DEBUG: playlist", playlist);
-  console.log("DEBUG: currentIndex", currentIndex);
-  console.log("DEBUG: currentTrack", currentTrack);
-
   return (
     <div
       style={{
@@ -81,7 +77,7 @@ export default function Watch({ apiKey }) {
         color: "#fff",
       }}
     >
-      {/* Debug overlay */}
+      {/* Debug overlay always mounted */}
       <DebugOverlay />
 
       <Header />
@@ -99,21 +95,21 @@ export default function Watch({ apiKey }) {
           <h2>{snippet.title}</h2>
           <p style={{ opacity: 0.7 }}>by {snippet.channelTitle}</p>
 
-          {/* Player always mounted, mini-player disabled */}
+          {/* Player always mounted, mini player logic disabled */}
           {embedUrl && (
             <Player
               ref={playerRef}
               embedUrl={embedUrl}
               playing={true}
               onEnded={handleEnded}
-              pipMode={false}
-              draggable={false}
+              pipMode={false} // mini player disabled
+              draggable={false} // disable drag
               trackTitle={snippet.title}
             />
           )}
 
           {currentTrack.id && (
-            <RelatedVideos videoId={currentTrack.id} apiKey={apiKey} />
+            <RelatedVideos videoId={currentTrack.id} apiKey={API_KEY} />
           )}
         </>
       )}
