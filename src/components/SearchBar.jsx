@@ -6,11 +6,14 @@ import { useState } from "react";
 export default function SearchBar({ onSearch }) {
   const [query, setQuery] = useState("");
 
-  const handleChange = (e) => setQuery(e.target.value);
+  const handleChange = (e) => {
+    const value = e.target.value;
+    setQuery(value);
+    if (onSearch) onSearch(value);
+  };
+
   const handleKeyPress = (e) => {
-    if (e.key === "Enter" && onSearch) {
-      onSearch(query.trim());
-    }
+    if (e.key === "Enter" && onSearch) onSearch(query);
   };
 
   return (
@@ -20,10 +23,10 @@ export default function SearchBar({ onSearch }) {
         alignItems: "center",
         width: "100%",
         maxWidth: 600,
-        background: "#111",        // search input background black
+        background: "#ff0000", // entire button red
         padding: "6px 12px",
-        borderRadius: 8,
-        border: "1px solid #555",
+        borderRadius: 24, // keeps oval shape
+        border: "1px solid #ff0000",
         margin: "0 auto",
       }}
     >
@@ -35,34 +38,38 @@ export default function SearchBar({ onSearch }) {
         placeholder="Search videos, playlists..."
         style={{
           flex: 1,
-          background: "transparent",  // keeps black input
+          background: "transparent",
           border: "none",
           color: "#fff",
           outline: "none",
           fontSize: 14,
         }}
       />
+
+      {/* Vertical divider */}
       <div
         style={{
           width: 1,
           height: 24,
-          background: "#555",
+          background: "#fff", // contrast for visibility
           margin: "0 8px",
         }}
       />
-      <button
-        onClick={() => onSearch && onSearch(query.trim())}
+
+      {/* Text label for search */}
+      <span
+        onClick={() => onSearch && onSearch(query)}
         style={{
-          background: "#ff0000",    // only button red
-          border: "none",
           color: "#fff",
-          padding: "6px 12px",
-          borderRadius: 6,
           cursor: "pointer",
+          fontWeight: 600,
+          padding: "6px 12px",
+          borderRadius: 12,
+          userSelect: "none",
         }}
       >
         Search
-      </button>
+      </span>
     </div>
   );
 }
