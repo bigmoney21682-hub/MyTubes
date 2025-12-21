@@ -1,29 +1,25 @@
 // File: src/pages/Watch.jsx
-// PCC v1.0 — Preservation-First Mode, full context verified
+// PCC v1.0 — Preservation-First Mode
+// Mini-player temporarily disabled to isolate iOS PWA issue
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import RelatedVideos from "../components/RelatedVideos";
 import Spinner from "../components/Spinner";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
-import DebugOverlay from "../components/DebugOverlay";
+import Player from "../components/Player";
 import { API_KEY } from "../config";
+import DebugOverlay from "../components/DebugOverlay";
 
-// Temporarily disable ReactPlayer to isolate iOS PWA iframe issue
 export default function Watch() {
   const { id } = useParams();
   const [video, setVideo] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [playlist, setPlaylist] = useState([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
-
-  const playerRef = useRef(null);
 
   // Load video metadata
   useEffect(() => {
     if (!id) return;
-
     setLoading(true);
     (async () => {
       try {
@@ -42,71 +38,57 @@ export default function Watch() {
     })();
   }, [id]);
 
-  // Setup playlist
-  useEffect(() => {
-    if (video) {
-      setPlaylist([video]); // placeholder for multi-track support
-      setCurrentIndex(0);
-    }
-  }, [video]);
-
-  const currentTrack = playlist[currentIndex];
-  const snippet = currentTrack?.snippet || {};
-  const embedUrl = currentTrack?.id
-    ? `https://www.youtube.com/embed/${currentTrack.id}?autoplay=1&controls=1&playsinline=1`
+  const snippet = video?.snippet || {};
+  const embedUrl = video?.id
+    ? `https://www.youtube.com/embed/${video.id}?autoplay=1&controls=1`
     : "";
-
-  // PCC-Safe logging for iOS PWA debugging
-  console.log("Watch.jsx debug: currentTrack", currentTrack);
-  console.log("Watch.jsx debug: embedUrl", embedUrl);
-  console.log("Watch.jsx debug: video object", video);
 
   return (
     <div
       style={{
-        paddingTop: "var(--header-height)",
-        paddingBottom: "var(--footer-height)",
         minHeight: "100vh",
         background: "var(--app-bg)",
         color: "#fff",
       }}
     >
+      {/* Debug overlay always mounted */}
       <DebugOverlay />
 
+      {/* Header fixed */}
       <Header />
 
       {loading && <Spinner message="Loading video…" />}
 
-      {!loading && !currentTrack && (
+      {!loading && !video && (
         <div style={{ padding: 16 }}>
           <p>Video not found or unavailable.</p>
         </div>
       )}
 
-      {!loading && currentTrack && (
+      {!loading && video && (
         <>
-          <h2>{snippet.title}</h2>
-          <p style={{ opacity: 0.7 }}>by {snippet.channelTitle}</p>
+          <h2 style={{ padding: "1rem 16px" }}>{snippet.title}</h2>
+          <p style={{ padding: "0 16px", opacity: 0.7 }}>
+            by {snippet.channelTitle}
+          </p>
 
-          {/* PCC-SAFE TEMP: raw iframe for iOS PWA embed test */}
+          {/* Player mounted normally at top of content */}
           {embedUrl && (
-            <iframe
-              title={snippet.title || "YouTube Test"}
-              src={embedUrl}
-              width="100%"
-              height="300px"
-              allow="autoplay; encrypted-media"
-              allowFullScreen
-              style={{ border: "none", marginTop: 16 }}
+            <Player
+              embedUrl={embedUrl}
+              playing={true}
+              onEnded={() => console.log("Video ended")}
+              pipMode={false} // Mini-player disabled
+              draggable={false}
+              trackTitle={snippet.title}
             />
           )}
 
-          {currentTrack.id && (
-            <RelatedVideos videoId={currentTrack.id} apiKey={API_KEY} />
-          )}
+          {video.id && <RelatedVideos videoId={video.id} apiKey={API_KEY} />}
         </>
       )}
 
+      {/* Footer fixed */}
       <Footer />
     </div>
   );
