@@ -1,75 +1,59 @@
 // File: src/components/SearchBar.jsx
-// PCC v1.0 — Preservation-First Mode
 
 import { useState } from "react";
 
 export default function SearchBar({ onSearch }) {
-  const [query, setQuery] = useState("");
+  const [q, setQ] = useState("");
 
-  const handleChange = (e) => {
-    const value = e.target.value;
-    setQuery(value);
-    if (onSearch) onSearch(value);
-  };
-
-  const handleKeyPress = (e) => {
-    if (e.key === "Enter" && onSearch) onSearch(query);
-  };
+  function submit(e) {
+    e.preventDefault();
+    onSearch(q.trim());
+  }
 
   return (
-    <div
+    <form
+      onSubmit={submit}
       style={{
+        width: "80%",
+        maxWidth: 520,
         display: "flex",
-        alignItems: "center",
-        width: "100%",
-        maxWidth: 600,
-        background: "#111",
-        padding: "6px 12px",
-        borderRadius: 24, // keeps oval shape
-        border: "1px solid #555",
-        margin: "0 auto",
+        borderRadius: 999,
+        overflow: "hidden",
+        border: "1px solid #333",
+        background: "#000",
       }}
     >
       <input
-        type="text"
-        value={query}
-        onChange={handleChange}
-        onKeyPress={handleKeyPress}
-        placeholder="Search videos, playlists..."
+        value={q}
+        onChange={e => setQ(e.target.value)}
+        placeholder="Search YouTube"
         style={{
           flex: 1,
-          background: "transparent",
+          padding: "10px 14px",
           border: "none",
-          color: "#fff",
           outline: "none",
-          fontSize: 14,
-        }}
-      />
-
-      {/* Vertical divider */}
-      <div
-        style={{
-          width: 1,
-          height: 24,
-          background: "#555",
-          margin: "0 8px",
-        }}
-      />
-
-      {/* Red search button */}
-      <button
-        onClick={() => onSearch && onSearch(query)}
-        style={{
-          background: "#ff0000", // red button
-          border: "none",
+          background: "transparent",
           color: "#fff",
-          padding: "6px 12px",
-          borderRadius: 12,
+          fontSize: "1rem",
+        }}
+      />
+
+      {/* vertical divider */}
+      <div style={{ width: 1, background: "#333" }} />
+
+      <button
+        type="submit"
+        style={{
+          padding: "0 16px",
+          border: "none",
+          background: "#ff0000",
+          color: "#fff",
+          fontWeight: 600,
           cursor: "pointer",
         }}
       >
         Search
       </button>
-    </div>
+    </form>
   );
 }
