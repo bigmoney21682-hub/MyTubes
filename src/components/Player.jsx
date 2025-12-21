@@ -1,30 +1,39 @@
 // File: src/components/Player.jsx
-
-import { forwardRef } from "react";
+import { forwardRef, useEffect } from "react";
 import ReactPlayer from "react-player";
 
-const Player = forwardRef(({ embedUrl, playing, muted }, ref) => {
-  try {
-    if (!embedUrl) {
-      console.warn("Player: embedUrl is empty");
-      return null;
-    }
+const Player = forwardRef(({ embedUrl, playing, onEnded, pipMode, draggable, trackTitle }, ref) => {
+  useEffect(() => {
+    console.log("DEBUG: Player mounted", { embedUrl, playing, pipMode, trackTitle });
+    return () => console.log("DEBUG: Player unmounted", { trackTitle });
+  }, [embedUrl, trackTitle]);
 
+  if (!embedUrl) {
+    console.warn("DEBUG: Player: embedUrl is empty");
+    return null;
+  }
+
+  try {
     return (
       <ReactPlayer
         ref={ref}
         url={embedUrl}
-        width="100%"
-        height="300px"
+        width="100%"       // Force visible width
+        height="300px"     // Force visible height for iOS mount
         playing={playing}
-        controls={true}      // Allow iOS native controls
+        onEnded={() => {
+          console.log("DEBUG: Player ended", { trackTitle });
+          if (typeof onEnded === "function") onEnded();
+        }}
+        controls={false}
         volume={1}
-        muted={muted}        // iOS autoplay-safe
-        playsinline={true}   // iOS background playback
+        muted={false}
+        playsinline={true} // iOS background playback
+        style={{ borderRadius: pipMode ? 8 : 0 }}
       />
     );
   } catch (e) {
-    console.error("Player error:", e);
+    console.error("DEBUG: Player error:", e);
     return null;
   }
 });
