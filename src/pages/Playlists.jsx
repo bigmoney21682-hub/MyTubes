@@ -4,7 +4,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { usePlaylists } from "../contexts/PlaylistContext";
-import Header from "../components/Header";
 
 export default function Playlists() {
   const { playlists, addPlaylist } = usePlaylists();
