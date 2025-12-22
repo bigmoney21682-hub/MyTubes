@@ -1,8 +1,8 @@
 // File: src/App.jsx
-// PCC v5.0 — Removes duplicate PlaylistProvider to restore footer rendering
+// PCC v5.1 — Quiet debug logging, prevents persistent spam in DebugOverlay
 
 import { Routes, Route, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
 import Home from "./pages/Home";
 import Playlists from "./pages/Playlists";
@@ -30,15 +30,28 @@ export default function App() {
 
   const log = (msg) => window.debugLog?.(`App: ${msg}`);
 
+  // Track previous values to prevent spam
+  const prevVideoRef = useRef(null);
+  const prevPlayingRef = useRef(null);
+
+  // Log only when currentVideo actually changes
   useEffect(() => {
-    if (!currentVideo) log("currentVideo changed -> null");
-    else log(`currentVideo changed -> id=${currentVideo.id || currentVideo.videoId}`);
+    if (prevVideoRef.current !== currentVideo) {
+      if (!currentVideo) log("currentVideo changed -> null");
+      else log(`currentVideo changed -> id=${currentVideo.id || currentVideo.videoId}`);
+      prevVideoRef.current = currentVideo;
+    }
   }, [currentVideo]);
 
+  // Log only when isPlaying actually changes
   useEffect(() => {
-    log(`isPlaying changed -> ${isPlaying}`);
+    if (prevPlayingRef.current !== isPlaying) {
+      log(`isPlaying changed -> ${isPlaying}`);
+      prevPlayingRef.current = isPlaying;
+    }
   }, [isPlaying]);
 
+  // Initial splash + optional cache clear
   useEffect(() => {
     const t = setTimeout(() => setReady(true), 2000);
 
@@ -58,8 +71,7 @@ export default function App() {
   };
 
   const togglePlay = () => {
-    log(`togglePlay -> ${!isPlaying}`);
-    setIsPlaying(!isPlaying);
+    setIsPlaying((prev) => !prev);
   };
 
   const closePlayer = () => {
