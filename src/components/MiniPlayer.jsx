@@ -1,5 +1,5 @@
 // File: src/components/MiniPlayer.jsx
-// PCC v2.4 — Reads from PlayerContext, sits above DebugOverlay
+// PCC v2.5 — Sits below DebugOverlay, above footer
 
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
@@ -52,7 +52,7 @@ export default function MiniPlayer({ onTogglePlay, onClose }) {
     <div
       style={{
         position: "fixed",
-        bottom: "calc(var(--footer-height) + 84px)", // above debug overlay
+        bottom: "calc(var(--footer-height) + 84px)",
         left: 0,
         right: 0,
         height: "68px",
@@ -61,7 +61,7 @@ export default function MiniPlayer({ onTogglePlay, onClose }) {
         display: "flex",
         alignItems: "center",
         padding: "0 12px",
-        zIndex: 10001,
+        zIndex: 9998, // ⬇ now below DebugOverlay
         boxShadow: "0 -4px 12px rgba(0,0,0,0.5)",
       }}
       onClick={handleClick}
