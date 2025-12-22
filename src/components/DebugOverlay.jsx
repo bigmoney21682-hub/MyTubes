@@ -1,5 +1,5 @@
 // File: src/components/DebugOverlay.jsx
-// PCC v3.3 — Guaranteed top-line visibility with blank spacer lines
+// PCC v3.4 — Extra spacer lines + padding to guarantee top log visibility
 
 import { useEffect, useRef, useState } from "react";
 
@@ -36,19 +36,21 @@ export default function DebugOverlay({ pageName }) {
         bottom: "var(--footer-height)",
         left: 0,
         right: 0,
-        height: `${(VISIBLE_LINES + 2) * 1.4}em`, // +2 lines
+        // +3 extra lines worth of height to avoid any clipping
+        height: `${(VISIBLE_LINES + 3) * 1.4}em`,
         background: "rgba(0,0,0,0.9)",
         color: "#0f0",
         fontSize: "0.8rem",
         overflowY: "auto",
-        padding: "12px 8px 4px 8px", // more top padding
+        padding: "18px 8px 4px 8px", // more top padding
         zIndex: 9999,
         borderTop: "1px solid #333",
       }}
     >
-      {/* Spacer lines to guarantee visibility on iOS */}
-      <div style={{ height: "1.4em" }}></div>
-      <div style={{ height: "1.4em" }}></div>
+      {/* Spacer lines to guarantee real content is never hard against top edge */}
+      <div style={{ height: "1.4em" }} />
+      <div style={{ height: "1.4em" }} />
+      <div style={{ height: "1.4em" }} />
 
       <div
         style={{
