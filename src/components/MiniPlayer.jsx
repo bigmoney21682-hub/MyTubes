@@ -1,16 +1,14 @@
 // File: src/components/MiniPlayer.jsx
-// PCC v2.3 — Positioned above DebugOverlay, below header
+// PCC v2.4 — Reads from PlayerContext, sits above DebugOverlay
 
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { usePlayer } from "../contexts/PlayerContext";
 
-export default function MiniPlayer({
-  currentVideo,
-  isPlaying,
-  onTogglePlay,
-  onClose,
-}) {
+export default function MiniPlayer({ onTogglePlay, onClose }) {
   const navigate = useNavigate();
+  const { currentVideo, playing } = usePlayer();
+
   const [title, setTitle] = useState("");
   const [channel, setChannel] = useState("");
   const [thumbnail, setThumbnail] = useState("");
@@ -38,15 +36,23 @@ export default function MiniPlayer({
   if (!currentVideo) return null;
 
   const handleClick = () => {
-    const id = currentVideo.id || currentVideo.videoId;
-    if (id) navigate(`/watch/${id}`);
+    const id =
+      typeof currentVideo.id === "string"
+        ? currentVideo.id
+        : currentVideo.id?.videoId;
+    if (!id) {
+      log("No valid id on currentVideo, cannot navigate to watch");
+      return;
+    }
+    log(`Navigating back to /watch/${id} from miniplayer`);
+    navigate(`/watch/${id}`);
   };
 
   return (
     <div
       style={{
         position: "fixed",
-        bottom: "calc(var(--footer-height) + 84px)", // ABOVE debug overlay
+        bottom: "calc(var(--footer-height) + 84px)", // above debug overlay
         left: 0,
         right: 0,
         height: "68px",
@@ -55,7 +61,7 @@ export default function MiniPlayer({
         display: "flex",
         alignItems: "center",
         padding: "0 12px",
-        zIndex: 10001, // above debug overlay
+        zIndex: 10001,
         boxShadow: "0 -4px 12px rgba(0,0,0,0.5)",
       }}
       onClick={handleClick}
@@ -100,6 +106,7 @@ export default function MiniPlayer({
       <button
         onClick={(e) => {
           e.stopPropagation();
+          log(`Toggle play clicked, playing=${playing}`);
           onTogglePlay();
         }}
         style={{
@@ -111,12 +118,13 @@ export default function MiniPlayer({
           padding: "8px 16px",
         }}
       >
-        {isPlaying ? "⏸" : "▶"}
+        {playing ? "⏸" : "▶"}
       </button>
 
       <button
         onClick={(e) => {
           e.stopPropagation();
+          log("Close clicked");
           onClose();
         }}
         style={{
