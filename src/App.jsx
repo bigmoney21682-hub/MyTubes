@@ -1,5 +1,5 @@
 // File: src/App.jsx
-// PCC v3.0 — Stable global player state, miniplayer activation, playlist routing, search, debug logging
+// PCC v3.1 — Correct layout spacing for miniplayer + footer
 
 import { Routes, Route, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
@@ -22,34 +22,24 @@ import { clearAllCaches } from "./utils/cacheManager";
 export default function App() {
   const [ready, setReady] = useState(false);
 
-  // Global player state (shared across pages)
   const [currentVideo, setCurrentVideo] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
 
-  // Global search state
   const [searchQuery, setSearchQuery] = useState("");
 
   const navigate = useNavigate();
 
-  // Debug helpers
   const log = (msg) => window.debugLog?.(`App: ${msg}`);
 
-  // Track global player state changes
   useEffect(() => {
-    if (!currentVideo) {
-      log("currentVideo changed -> null");
-    } else {
-      log(
-        `currentVideo changed -> id=${currentVideo.id || currentVideo.videoId || "unknown"}`
-      );
-    }
+    if (!currentVideo) log("currentVideo changed -> null");
+    else log(`currentVideo changed -> id=${currentVideo.id || currentVideo.videoId}`);
   }, [currentVideo]);
 
   useEffect(() => {
     log(`isPlaying changed -> ${isPlaying}`);
   }, [isPlaying]);
 
-  // Initial splash + optional cache clear
   useEffect(() => {
     const t = setTimeout(() => setReady(true), 2000);
 
@@ -62,19 +52,10 @@ export default function App() {
     return () => clearTimeout(t);
   }, []);
 
-  // Search handler
   const handleSearch = (query) => {
     log(`Search requested: ${query}`);
     setSearchQuery(query);
-    navigate("/"); // always show results on Home page
-  };
-
-  // Play video from anywhere in the app
-  const playVideo = (video) => {
-    log(`playVideo called for id=${video.id}`);
-    setCurrentVideo(video);
-    setIsPlaying(true);
-    navigate(`/watch/${video.id}`);
+    navigate("/");
   };
 
   const togglePlay = () => {
@@ -99,19 +80,15 @@ export default function App() {
 
           <div
             style={{
-              paddingBottom: currentVideo ? "68px" : "var(--footer-height)",
+              paddingBottom: currentVideo
+                ? "calc(68px + var(--footer-height))"
+                : "var(--footer-height)",
             }}
           >
             <Routes>
-              <Route
-                path="/"
-                element={<Home searchQuery={searchQuery} />}
-              />
-
+              <Route path="/" element={<Home searchQuery={searchQuery} />} />
               <Route path="/playlists" element={<Playlists />} />
-
               <Route path="/playlist/:id" element={<Playlist />} />
-
               <Route
                 path="/watch/:id"
                 element={
@@ -123,20 +100,18 @@ export default function App() {
                   />
                 }
               />
-
               <Route path="/settings" element={<SettingsPage />} />
             </Routes>
           </div>
 
-          <Footer />
-
-          {/* Persistent MiniPlayer – enables background play */}
           <MiniPlayer
             currentVideo={currentVideo}
             isPlaying={isPlaying}
             onTogglePlay={togglePlay}
             onClose={closePlayer}
           />
+
+          <Footer />
         </>
       )}
     </PlaylistProvider>
