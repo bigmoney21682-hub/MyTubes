@@ -1,25 +1,62 @@
 // File: src/components/MiniPlayer.jsx
 // Persistent miniplayer for background play support (Musi-style)
+// PCC v2.0 — Robust to mixed video shapes + debug logging
 
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 
-export default function MiniPlayer({ currentVideo, isPlaying, onTogglePlay, onClose }) {
+export default function MiniPlayer({
+  currentVideo,
+  isPlaying,
+  onTogglePlay,
+  onClose,
+}) {
   const navigate = useNavigate();
   const [title, setTitle] = useState("");
+  const [channel, setChannel] = useState("");
+  const [thumbnail, setThumbnail] = useState("");
 
+  const log = (msg) => window.debugLog?.(`MiniPlayer: ${msg}`);
+
+  // Normalize video data (supports raw YouTube item or normalized video)
   useEffect(() => {
-    if (currentVideo?.snippet?.title) {
-      setTitle(currentVideo.snippet.title);
-    } else {
-      setTitle("Unknown Video");
+    if (!currentVideo) {
+      log("No currentVideo, miniplayer hidden");
+      return;
     }
+
+    log(
+      `currentVideo updated: id=${currentVideo.id || currentVideo.videoId || "unknown"}`
+    );
+
+    // Raw API item: { snippet: { title, channelTitle, thumbnails } }
+    if (currentVideo.snippet) {
+      setTitle(currentVideo.snippet.title || "Unknown Video");
+      setChannel(currentVideo.snippet.channelTitle || "");
+      setThumbnail(
+        currentVideo.snippet.thumbnails?.default?.url ||
+          currentVideo.snippet.thumbnails?.medium?.url ||
+          ""
+      );
+      return;
+    }
+
+    // Normalized video object: { title, author, thumbnail }
+    setTitle(currentVideo.title || "Unknown Video");
+    setChannel(currentVideo.author || "");
+    setThumbnail(currentVideo.thumbnail || "");
   }, [currentVideo]);
 
   if (!currentVideo) return null;
 
   const handleClick = () => {
-    navigate(`/watch/${currentVideo.id}`);
+    const id = currentVideo.id || currentVideo.videoId;
+    if (!id) {
+      log("No valid id on currentVideo, cannot navigate to watch");
+      return;
+    }
+    log(`Navigating back to /watch/${id} from miniplayer`);
+    navigate(`/watch/${id}`);
   };
 
   return (
@@ -38,10 +75,11 @@ export default function MiniPlayer({ currentVideo, isPlaying, onTogglePlay, onCl
         zIndex: 999,
         boxShadow: "0 -4px 12px rgba(0,0,0,0.5)",
       }}
+      onClick={handleClick}
     >
       {/* Thumbnail */}
       <img
-        src={currentVideo.snippet?.thumbnails?.default?.url || ""}
+        src={thumbnail}
         alt=""
         style={{
           width: 48,
@@ -49,10 +87,11 @@ export default function MiniPlayer({ currentVideo, isPlaying, onTogglePlay, onCl
           borderRadius: 6,
           marginRight: 12,
           objectFit: "cover",
+          background: "#000",
         }}
       />
 
-      {/* Title + controls */}
+      {/* Title + channel */}
       <div style={{ flex: 1, minWidth: 0 }}>
         <p
           style={{
@@ -66,8 +105,14 @@ export default function MiniPlayer({ currentVideo, isPlaying, onTogglePlay, onCl
         >
           {title}
         </p>
-        <p style={{ margin: "4px 0 0 0", fontSize: 13, opacity: 0.7 }}>
-          {currentVideo.snippet?.channelTitle || ""}
+        <p
+          style={{
+            margin: "4px 0 0 0",
+            fontSize: 13,
+            opacity: 0.7,
+          }}
+        >
+          {channel}
         </p>
       </div>
 
@@ -75,6 +120,7 @@ export default function MiniPlayer({ currentVideo, isPlaying, onTogglePlay, onCl
       <button
         onClick={(e) => {
           e.stopPropagation();
+          log(`Toggle play clicked, isPlaying=${isPlaying}`);
           onTogglePlay();
         }}
         style={{
@@ -93,6 +139,7 @@ export default function MiniPlayer({ currentVideo, isPlaying, onTogglePlay, onCl
       <button
         onClick={(e) => {
           e.stopPropagation();
+          log("Close clicked, clearing currentVideo");
           onClose();
         }}
         style={{
@@ -106,19 +153,6 @@ export default function MiniPlayer({ currentVideo, isPlaying, onTogglePlay, onCl
       >
         ✕
       </button>
-
-      {/* Tap anywhere else to go to Watch page */}
-      <div
-        onClick={handleClick}
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          zIndex: -1,
-        }}
-      />
     </div>
   );
 }
