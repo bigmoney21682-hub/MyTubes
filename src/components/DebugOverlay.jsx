@@ -1,5 +1,5 @@
 // File: src/components/DebugOverlay.jsx
-// PCC v3.0 — Stacked above miniplayer, auto-scrolling, clearable
+// PCC v3.1 — Positioned above footer, below miniplayer
 
 import { useEffect, useRef, useState } from "react";
 
@@ -16,37 +16,27 @@ export default function DebugOverlay({ pageName }) {
       const timestamp = new Date().toLocaleTimeString();
       const line = `${timestamp}: ${msg}`;
 
-      setLogs((prev) => {
-        const updated = [...prev.slice(-MAX_LOGS + 1), line];
-        return updated;
-      });
+      setLogs((prev) => [...prev.slice(-MAX_LOGS + 1), line]);
     };
 
     window.debugLog("DEBUG: DebugOverlay initialized");
   }, []);
 
-  // Auto-scroll to bottom when logs update
+  // Auto-scroll
   useEffect(() => {
     if (containerRef.current) {
       containerRef.current.scrollTop = containerRef.current.scrollHeight;
     }
   }, [logs]);
 
-  const clearLogs = () => {
-    setLogs([]);
-    window.debugLog("DEBUG: Logs cleared");
-  };
+  const clearLogs = () => setLogs([]);
 
   return (
     <div
       ref={containerRef}
       style={{
         position: "fixed",
-        // IMPORTANT: sit ABOVE miniplayer, which is above footer
-        // Footer: bottom: 0, height: var(--footer-height)
-        // MiniPlayer: bottom: var(--footer-height), height: 68px
-        // DebugOverlay: above both
-        bottom: "calc(var(--footer-height) + 68px)",
+        bottom: "var(--footer-height)", // now ABOVE footer
         left: 0,
         right: 0,
         height: `${VISIBLE_LINES * 1.4}em`,
@@ -55,13 +45,10 @@ export default function DebugOverlay({ pageName }) {
         fontSize: "0.8rem",
         overflowY: "auto",
         padding: "4px 8px",
-        zIndex: 9999, // stays on top visually, but now *above* miniplayer
-        pointerEvents: "auto",
-        userSelect: "text",
+        zIndex: 9999, // below miniplayer, above footer
         borderTop: "1px solid #333",
       }}
     >
-      {/* Header row */}
       <div
         style={{
           display: "flex",
@@ -88,7 +75,6 @@ export default function DebugOverlay({ pageName }) {
         </button>
       </div>
 
-      {/* Log lines */}
       {logs.map((log, i) => (
         <div key={i} style={{ whiteSpace: "pre-wrap", lineHeight: "1.4em" }}>
           {log}
