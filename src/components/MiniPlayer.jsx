@@ -1,6 +1,5 @@
 // File: src/components/MiniPlayer.jsx
-// Persistent miniplayer for background play support (Musi-style)
-// PCC v2.1 — Above debug overlay, robust to mixed video shapes, debug logging
+// PCC v2.2 — Correct stacking order: above footer, below debug overlay
 
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
@@ -18,7 +17,6 @@ export default function MiniPlayer({
 
   const log = (msg) => window.debugLog?.(`MiniPlayer: ${msg}`);
 
-  // Normalize video data (supports raw YouTube item or normalized video)
   useEffect(() => {
     if (!currentVideo) {
       log("No currentVideo, miniplayer hidden");
@@ -29,7 +27,6 @@ export default function MiniPlayer({
       `currentVideo updated: id=${currentVideo.id || currentVideo.videoId || "unknown"}`
     );
 
-    // Raw API item: { snippet: { title, channelTitle, thumbnails } }
     if (currentVideo.snippet) {
       setTitle(currentVideo.snippet.title || "Unknown Video");
       setChannel(currentVideo.snippet.channelTitle || "");
@@ -41,7 +38,6 @@ export default function MiniPlayer({
       return;
     }
 
-    // Normalized video object: { title, author, thumbnail }
     setTitle(currentVideo.title || "Unknown Video");
     setChannel(currentVideo.author || "");
     setThumbnail(currentVideo.thumbnail || "");
@@ -63,7 +59,7 @@ export default function MiniPlayer({
     <div
       style={{
         position: "fixed",
-        bottom: 0,
+        bottom: "var(--footer-height)",   // ← sits ABOVE footer
         left: 0,
         right: 0,
         height: "68px",
@@ -72,13 +68,11 @@ export default function MiniPlayer({
         display: "flex",
         alignItems: "center",
         padding: "0 12px",
-        // Critical: above DebugOverlay (zIndex 9999)
-        zIndex: 10001,
+        zIndex: 1001,                     // ← footer=1000, debug=9999
         boxShadow: "0 -4px 12px rgba(0,0,0,0.5)",
       }}
       onClick={handleClick}
     >
-      {/* Thumbnail */}
       <img
         src={thumbnail}
         alt=""
@@ -92,7 +86,6 @@ export default function MiniPlayer({
         }}
       />
 
-      {/* Title + channel */}
       <div style={{ flex: 1, minWidth: 0 }}>
         <p
           style={{
@@ -117,7 +110,6 @@ export default function MiniPlayer({
         </p>
       </div>
 
-      {/* Play/Pause Button */}
       <button
         onClick={(e) => {
           e.stopPropagation();
@@ -136,7 +128,6 @@ export default function MiniPlayer({
         {isPlaying ? "⏸" : "▶"}
       </button>
 
-      {/* Close button */}
       <button
         onClick={(e) => {
           e.stopPropagation();
