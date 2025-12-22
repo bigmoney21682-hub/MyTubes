@@ -46,7 +46,7 @@ export default function DebugOverlay({ pageName }) {
         borderTop: "1px solid #333",
       }}
     >
-      {/* Spacer lines to guarantee visibility */}
+      {/* Spacer lines to guarantee visibility on iOS */}
       <div style={{ height: "1.4em" }}></div>
       <div style={{ height: "1.4em" }}></div>
 
