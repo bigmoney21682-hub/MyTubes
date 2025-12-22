@@ -1,12 +1,10 @@
 // File: src/pages/Watch.jsx
-// Connected to global miniplayer for background play
-// PCC v2.0 — Syncs playing state with global miniplayer
+// PCC v2.1 — Clean layout, related videos fix, custom player controls
 
 import React, { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import RelatedVideos from "../components/RelatedVideos";
 import Spinner from "../components/Spinner";
-import Footer from "../components/Footer";
 import Player from "../components/Player";
 import DebugOverlay from "../components/DebugOverlay";
 import { API_KEY } from "../config";
@@ -29,8 +27,11 @@ export default function Watch({
   useEffect(() => {
     if (!id) return;
 
-    // If global currentVideo already matches this id, reuse it
-    if (currentVideo && (currentVideo.id === id || currentVideo.id?.videoId === id)) {
+    // Reuse global currentVideo if it matches this id
+    if (
+      currentVideo &&
+      (currentVideo.id === id || currentVideo.id?.videoId === id)
+    ) {
       log("Using existing currentVideo from global state");
       setVideo(currentVideo);
       setLoading(false);
@@ -45,13 +46,13 @@ export default function Watch({
         const res = await fetch(
           `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,statistics&id=${id}&key=${API_KEY}`
         );
-        const data = await res.json();
+          const data = await res.json();
 
         if (data.items?.length > 0) {
           const fetchedVideo = data.items[0];
           setVideo(fetchedVideo);
-          setCurrentVideo(fetchedVideo); // Sync to global
-          setIsPlaying(true);            // Tell miniplayer we're now playing
+          setCurrentVideo(fetchedVideo);
+          setIsPlaying(true);
           log("Video fetched and global currentVideo updated");
         } else {
           setVideo(null);
@@ -77,25 +78,54 @@ export default function Watch({
   const handleEnded = () => {
     log("Video ended");
     setIsPlaying(false);
+    // Later: auto-advance in playlist
   };
 
   const currentTrack = playlist[currentIndex];
   const snippet = currentTrack?.snippet || {};
-  const embedUrl = currentTrack?.id
-    ? `https://www.youtube-nocookie.com/embed/${currentTrack.id}?autoplay=1&rel=0&controls=1&playsinline=1`
+
+  // Normalized videoId for API and embed
+  const videoIdForApi =
+    typeof currentTrack?.id === "string"
+      ? currentTrack.id
+      : currentTrack?.id?.videoId || "";
+
+  const embedUrl = videoIdForApi
+    ? `https://www.youtube-nocookie.com/embed/${videoIdForApi}`
     : "";
+
+  // Seek relative handler used by Player paused overlay
+  const handleSeekRelative = (secs) => {
+    const player = playerRef.current;
+    if (!player) return;
+    try {
+      const current = player.getCurrentTime?.() || 0;
+      player.seekTo(current + secs, "seconds");
+      log(`Seeked ${secs} seconds (${current} -> ${current + secs})`);
+    } catch (e) {
+      log(`Seek error: ${e}`);
+    }
+  };
+
+  const handlePrev = () => {
+    // Placeholder for multi-video playlist
+    log("Prev video requested (no previous in single-item playlist)");
+  };
+
+  const handleNext = () => {
+    // Placeholder for multi-video playlist
+    log("Next video requested (no next in single-item playlist)");
+  };
 
   return (
     <div
       style={{
         paddingTop: "var(--header-height)",
         paddingBottom: "var(--footer-height)",
-        minHeight: "100vh",
         background: "var(--app-bg)",
         color: "#fff",
       }}
     >
-      <div style={{ height: "var(--header-height)" }} />
       <DebugOverlay pageName="Watch" />
 
       {loading && <Spinner message="Loading video…" />}
@@ -108,35 +138,12 @@ export default function Watch({
 
       {!loading && currentTrack && (
         <>
-          <h2 style={{ padding: "0 16px" }}>{snippet.title}</h2>
-          <p style={{ padding: "0 16px", opacity: 0.7 }}>
-            by {snippet.channelTitle}
-          </p>
-
+          {/* Video */}
           {embedUrl && (
-            <Player
-              ref={playerRef}
-              embedUrl={embedUrl}
-              playing={isPlaying}
-              onEnded={handleEnded}
-              pipMode={false}
-              draggable={false}
-              trackTitle={snippet.title}
-              style={{ width: "100%" }}
-            />
-          )}
-
-          {currentTrack.id && (
-            <RelatedVideos
-              videoId={currentTrack.id}
-              apiKey={API_KEY}
-              onDebugLog={log}
-            />
-          )}
-        </>
-      )}
-
-      <Footer />
-    </div>
-  );
-}
+            <div style={{ width: "100%", aspectRatio: "16 / 9" }}>
+              <Player
+                ref={playerRef}
+                embedUrl={embedUrl}
+                playing={isPlaying}
+                onEnded={handleEnded}
+                pipMode={false}
