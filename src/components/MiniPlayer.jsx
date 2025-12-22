@@ -1,5 +1,5 @@
 // File: src/components/MiniPlayer.jsx
-// PCC v2.2 — Correct stacking order: above footer, below debug overlay
+// PCC v2.3 — Correct stacking order for footer + debug overlay
 
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
@@ -59,7 +59,7 @@ export default function MiniPlayer({
     <div
       style={{
         position: "fixed",
-        bottom: "var(--footer-height)",   // ← sits ABOVE footer
+        bottom: "var(--footer-height)",
         left: 0,
         right: 0,
         height: "68px",
@@ -68,7 +68,7 @@ export default function MiniPlayer({
         display: "flex",
         alignItems: "center",
         padding: "0 12px",
-        zIndex: 1001,                     // ← footer=1000, debug=9999
+        zIndex: 1001, // footer=1000, debug=9999
         boxShadow: "0 -4px 12px rgba(0,0,0,0.5)",
       }}
       onClick={handleClick}
