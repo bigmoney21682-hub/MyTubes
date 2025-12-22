@@ -1,5 +1,6 @@
 // File: src/pages/Watch.jsx
 // Connected to global miniplayer for background play
+// PCC v2.0 — Syncs playing state with global miniplayer
 
 import React, { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
@@ -10,7 +11,12 @@ import Player from "../components/Player";
 import DebugOverlay from "../components/DebugOverlay";
 import { API_KEY } from "../config";
 
-export default function Watch({ currentVideo, setCurrentVideo, isPlaying, setIsPlaying }) {
+export default function Watch({
+  currentVideo,
+  setCurrentVideo,
+  isPlaying,
+  setIsPlaying,
+}) {
   const { id } = useParams();
   const [video, setVideo] = useState(currentVideo || null);
   const [loading, setLoading] = useState(!currentVideo);
@@ -18,19 +24,21 @@ export default function Watch({ currentVideo, setCurrentVideo, isPlaying, setIsP
   const [currentIndex, setCurrentIndex] = useState(0);
   const playerRef = useRef(null);
 
-  const log = (msg) => window.debugLog?.(msg);
+  const log = (msg) => window.debugLog?.(`Watch(${id}): ${msg}`);
 
   useEffect(() => {
     if (!id) return;
 
-    if (currentVideo && currentVideo.id === id) {
+    // If global currentVideo already matches this id, reuse it
+    if (currentVideo && (currentVideo.id === id || currentVideo.id?.videoId === id)) {
+      log("Using existing currentVideo from global state");
       setVideo(currentVideo);
       setLoading(false);
       return;
     }
 
     setLoading(true);
-    log(`DEBUG: Fetching video metadata for id: ${id}`);
+    log(`Fetching video metadata for id: ${id}`);
 
     (async () => {
       try {
@@ -42,28 +50,32 @@ export default function Watch({ currentVideo, setCurrentVideo, isPlaying, setIsP
         if (data.items?.length > 0) {
           const fetchedVideo = data.items[0];
           setVideo(fetchedVideo);
-          setCurrentVideo(fetchedVideo);  // Sync to global
+          setCurrentVideo(fetchedVideo); // Sync to global
+          setIsPlaying(true);            // Tell miniplayer we're now playing
+          log("Video fetched and global currentVideo updated");
         } else {
           setVideo(null);
+          log("No video returned from API");
         }
       } catch (err) {
-        log(`DEBUG: Video fetch error: ${err}`);
+        log(`Video fetch error: ${err}`);
         setVideo(null);
       } finally {
         setLoading(false);
       }
     })();
-  }, [id, currentVideo, setCurrentVideo]);
+  }, [id, currentVideo, setCurrentVideo, setIsPlaying]);
 
   useEffect(() => {
     if (video) {
       setPlaylist([video]);
       setCurrentIndex(0);
+      log("Playlist set to single current video");
     }
   }, [video]);
 
   const handleEnded = () => {
-    log("DEBUG: Video ended");
+    log("Video ended");
     setIsPlaying(false);
   };
 
@@ -84,7 +96,7 @@ export default function Watch({ currentVideo, setCurrentVideo, isPlaying, setIsP
       }}
     >
       <div style={{ height: "var(--header-height)" }} />
-      <DebugOverlay />
+      <DebugOverlay pageName="Watch" />
 
       {loading && <Spinner message="Loading video…" />}
 
@@ -97,7 +109,9 @@ export default function Watch({ currentVideo, setCurrentVideo, isPlaying, setIsP
       {!loading && currentTrack && (
         <>
           <h2 style={{ padding: "0 16px" }}>{snippet.title}</h2>
-          <p style={{ padding: "0 16px", opacity: 0.7 }}>by {snippet.channelTitle}</p>
+          <p style={{ padding: "0 16px", opacity: 0.7 }}>
+            by {snippet.channelTitle}
+          </p>
 
           {embedUrl && (
             <Player
