@@ -1,11 +1,12 @@
 // File: src/App.jsx
-// Final Version: Background play via persistent miniplayer + working search
+// Final Version: Background play via persistent miniplayer + working search + playlist routing
 
 import { Routes, Route, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 
 import Home from "./pages/Home";
 import Playlists from "./pages/Playlists";
+import Playlist from "./pages/Playlist";        // ← NEW: required for playlist page
 import SettingsPage from "./pages/SettingsPage";
 import Watch from "./pages/Watch";
 
@@ -25,7 +26,7 @@ export default function App() {
   const [currentVideo, setCurrentVideo] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
 
-  // NEW: global search state
+  // Global search state
   const [searchQuery, setSearchQuery] = useState("");
 
   const navigate = useNavigate();
@@ -39,10 +40,9 @@ export default function App() {
     return () => clearTimeout(t);
   }, []);
 
-  // 🔍 NEW: Search handler
+  // Search handler
   const handleSearch = (query) => {
     window.debugLog?.(`DEBUG: Search requested: ${query}`);
-
     setSearchQuery(query);
     navigate("/"); // always show results on Home page
   };
@@ -85,6 +85,9 @@ export default function App() {
               />
 
               <Route path="/playlists" element={<Playlists />} />
+
+              {/* NEW: Playlist detail page */}
+              <Route path="/playlist/:id" element={<Playlist />} />
 
               <Route
                 path="/watch/:id"
