@@ -1,4 +1,6 @@
 // File: src/components/RelatedVideos.jsx
+// PCC v1.1 — Extra debug logging for error, safe videoId handling
+
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
@@ -12,20 +14,32 @@ export default function RelatedVideos({ videoId, apiKey, onDebugLog }) {
   };
 
   useEffect(() => {
-    if (!videoId || !apiKey) return;
+    const cleanId = String(videoId || "").trim();
+    if (!cleanId || !apiKey) {
+      if (!cleanId) log("DEBUG: RelatedVideos aborted: empty videoId");
+      if (!apiKey) log("DEBUG: RelatedVideos aborted: missing apiKey");
+      return;
+    }
 
     const fetchRelated = async () => {
-      log(`DEBUG: Fetching related videos for id: ${videoId}`);
+      log(`DEBUG: Fetching related videos for id: ${cleanId}`);
 
       try {
-        const res = await fetch(
-          `https://www.googleapis.com/youtube/v3/search?part=snippet&relatedToVideoId=${videoId}&type=video&maxResults=5&key=${apiKey}`
-        );
+        const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&relatedToVideoId=${encodeURIComponent(
+          cleanId
+        )}&type=video&maxResults=5&key=${apiKey}`;
+
+        log(`DEBUG: RelatedVideos request URL: ${url}`);
+
+        const res = await fetch(url);
         const data = await res.json();
 
         if (data.error) {
           setError(data.error.message);
-          log(`DEBUG: Related fetch error: ${data.error.message}`);
+          log(
+            `DEBUG: Related fetch error: ${data.error.message} (code: ${data.error.code})`
+          );
+          log(`DEBUG: Related fetch full error: ${JSON.stringify(data.error)}`);
           return;
         }
 
@@ -49,7 +63,8 @@ export default function RelatedVideos({ videoId, apiKey, onDebugLog }) {
       </p>
     );
 
-  if (!videos.length) return <p style={{ padding: 8 }}>Loading related…</p>;
+  if (!videos.length)
+    return <p style={{ padding: 8 }}>Loading related…</p>;
 
   return (
     <div
@@ -68,9 +83,13 @@ export default function RelatedVideos({ videoId, apiKey, onDebugLog }) {
           key={video.id.videoId || index}
           to={`/watch/${video.id.videoId}`}
           style={{ color: "#fff", textDecoration: "none" }}
-          onClick={() => log(`DEBUG: Related video clicked: ${video.snippet.title}`)}
+          onClick={() =>
+            log(`DEBUG: Related video clicked: ${video.snippet.title}`)
+          }
         >
-          <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+          <div
+            style={{ display: "flex", gap: "10px", alignItems: "center" }}
+          >
             <img
               src={video.snippet.thumbnails.default.url}
               alt={video.snippet.title}
