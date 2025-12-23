@@ -29,7 +29,7 @@ export default function BootSplash({ ready }) {
       }}
     >
       <div style={{ textAlign: "center" }}>
-        <div style={{ fontSize: 48 }}>🔥</div>
+        <div style={{ fontSize: 48 }}>🔥 🔥 🔥</div>
         <div style={{ fontSize: 36, color: "#fff", letterSpacing: 2 }}>
           {text.slice(0, index)}
         </div>
