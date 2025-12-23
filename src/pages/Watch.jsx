@@ -1,5 +1,5 @@
 // File: src/pages/Watch.jsx
-// PCC v12.1 — Watch page + RelatedVideos-fed autonext, GlobalPlayer always enabled
+// PCC v13.0 — YouTube API only, UI-only Player, global iframe controls + related-fed autonext
 
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
@@ -8,10 +8,9 @@ import Player from "../components/Player";
 import RelatedVideos from "../components/RelatedVideos";
 import { usePlayer } from "../contexts/PlayerContext";
 
-const INVIDIOUS_BASE = "https://yewtu.be";
-
 export default function Watch() {
   const { id } = useParams();
+
   const {
     playVideo,
     playing,
@@ -27,37 +26,37 @@ export default function Watch() {
 
   const log = (msg) => window.debugLog?.(`Watch: ${msg}`);
 
-  // NOTE: GlobalPlayer is no longer disabled on Watch.
-  // We will manage "double audio" behavior separately later.
-
   // -------------------------------
-  // Fetchers
+  // YouTube fetcher
   // -------------------------------
-  async function fetchFromInvidious(id) {
-    const url = `${INVIDIOUS_BASE}/api/v1/videos/${id}`;
-    log(`Trying Invidious: ${url}`);
-
-    try {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return await res.json();
-    } catch (err) {
-      log(`Invidious failed: ${err}`);
+  async function fetchFromYouTube(videoId) {
+    const apiKey = window.YT_API_KEY;
+    if (!apiKey) {
+      log("ERROR: No YT_API_KEY on window for Watch");
       return null;
     }
-  }
 
-  async function fetchFromYouTube(id) {
-    log("Fallback → YouTube API");
+    log("DEBUG: Fetching video details via YouTube API");
 
     try {
-      const res = await fetch(
-        `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&id=${id}&key=${window.YT_API_KEY}`
-      );
+      const url =
+        "https://www.googleapis.com/youtube/v3/videos" +
+        `?part=snippet,contentDetails&id=${videoId}&key=${apiKey}`;
+
+      log(`DEBUG: Video details URL → ${url}`);
+
+      const res = await fetch(url);
       const data = await res.json();
-      return data.items?.[0] || null;
+      if (!data.items || !data.items.length) {
+        log("ERROR: YouTube returned no items for this id");
+        log("RAW: " + JSON.stringify(data).slice(0, 300));
+        return null;
+      }
+
+      setSourceUsed("YOUTUBE_API");
+      return data.items[0];
     } catch (err) {
-      log(`YouTube failed: ${err}`);
+      log(`ERROR: YouTube failed: ${err}`);
       return null;
     }
   }
@@ -67,27 +66,11 @@ export default function Watch() {
   // -------------------------------
   const getThumbnail = (v) => {
     if (!v) return null;
-
-    if (Array.isArray(v.videoThumbnails) && v.videoThumbnails.length > 0) {
-      const best = v.videoThumbnails[v.videoThumbnails.length - 1];
-      if (best?.url) {
-        if (best.url.startsWith("http")) return best.url;
-        return `${INVIDIOUS_BASE}${best.url}`;
-      }
-    }
-
-    if (typeof v.thumbnail === "string") {
-      if (v.thumbnail.startsWith("http")) return v.thumbnail;
-      if (v.thumbnail.startsWith("/")) return `${INVIDIOUS_BASE}${v.thumbnail}`;
-      return v.thumbnail;
-    }
-
     const thumbs = v.snippet?.thumbnails;
     if (thumbs?.maxres?.url) return thumbs.maxres.url;
     if (thumbs?.high?.url) return thumbs.high.url;
     if (thumbs?.medium?.url) return thumbs.medium.url;
     if (thumbs?.default?.url) return thumbs.default.url;
-
     return null;
   };
 
@@ -95,38 +78,20 @@ export default function Watch() {
   // Normalizer
   // -------------------------------
   const normalizeVideo = (v) => {
-    if (!v) return null;
+    if (!v || !v.id || !v.snippet) return null;
 
-    if (v.videoId || v.formatStreams || v.adaptiveFormats) {
-      const thumb = getThumbnail(v);
-      log(`Resolved Invidious thumbnail: ${thumb}`);
+    const vid = typeof v.id === "string" ? v.id : v.id.videoId;
+    const thumb = getThumbnail(v);
+    log(`Resolved YouTube thumbnail: ${thumb}`);
 
-      return {
-        id: v.videoId || id,
-        title: v.title,
-        author: v.author,
-        description: v.description,
-        thumbnail: thumb,
-        invidious: v,
-      };
-    }
-
-    if (v.id && v.snippet) {
-      const vid = typeof v.id === "string" ? v.id : v.id.videoId;
-      const thumb = getThumbnail(v);
-      log(`Resolved YouTube thumbnail: ${thumb}`);
-
-      return {
-        id: vid,
-        title: v.snippet.title,
-        author: v.snippet.channelTitle,
-        description: v.snippet.description,
-        thumbnail: thumb,
-        youtube: v,
-      };
-    }
-
-    return null;
+    return {
+      id: vid,
+      title: v.snippet.title,
+      author: v.snippet.channelTitle,
+      description: v.snippet.description,
+      thumbnail: thumb,
+      youtube: v,
+    };
   };
 
   // -------------------------------
@@ -134,17 +99,19 @@ export default function Watch() {
   // -------------------------------
   useEffect(() => {
     async function load() {
-      setLoading(true);
-      setSourceUsed(null);
-
-      let raw = await fetchFromInvidious(id);
-      if (raw && raw.title) {
-        setSourceUsed("INVIDIOUS");
-      } else {
-        raw = await fetchFromYouTube(id);
-        if (raw) setSourceUsed("YOUTUBE_API");
+      const cleanId = String(id || "").trim();
+      if (!cleanId) {
+        log("No id in params, aborting Watch load");
+        setVideo(null);
+        setLoading(false);
+        return;
       }
 
+      setLoading(true);
+      setSourceUsed(null);
+      setVideo(null);
+
+      const raw = await fetchFromYouTube(cleanId);
       log("Raw video object: " + JSON.stringify(raw)?.slice(0, 300));
 
       const normalized = normalizeVideo(raw);
@@ -158,7 +125,7 @@ export default function Watch() {
         setAutonextMode("related"); // Discovery mode
         playVideo(normalized);
       } else {
-        log("No video data available after all fallbacks");
+        log("No video data available after YouTube fetch");
       }
 
       setLoading(false);
@@ -166,14 +133,6 @@ export default function Watch() {
 
     load();
   }, [id]);
-
-  // -------------------------------
-  // Derived embed URL
-  // -------------------------------
-  const embedUrl =
-    video && video.id
-      ? `https://www.youtube-nocookie.com/embed/${video.id}?autoplay=1&controls=0&rel=0&modestbranding=1&playsinline=1`
-      : null;
 
   // -------------------------------
   // Render
@@ -201,7 +160,7 @@ export default function Watch() {
       <DebugOverlay pageName="Watch" sourceUsed={sourceUsed} />
 
       <div style={{ padding: 16, color: "#fff" }}>
-        {/* Immediate Player */}
+        {/* Hero Player (UI-only, uses global iframe for audio/video) */}
         <div
           style={{
             position: "relative",
@@ -214,7 +173,8 @@ export default function Watch() {
           }}
         >
           <div style={{ position: "absolute", inset: 0 }}>
-            <Player embedUrl={embedUrl} playing={playing} />
+            {/* Player no longer takes embedUrl; it just controls global state */}
+            <Player embedUrl={null} playing={playing} />
           </div>
         </div>
 
@@ -227,7 +187,9 @@ export default function Watch() {
           title={video.title}
           onDebugLog={(msg) => log(msg)}
           onLoaded={(list) => {
-            log(`RelatedVideos loaded ${list?.length || 0} items for autonext`);
+            const count = Array.isArray(list) ? list.length : 0;
+            log(`RelatedVideos loaded ${count} items for autonext`);
+            // For related-mode autonext, we store the raw list in PlayerContext
             setRelatedList(Array.isArray(list) ? list : []);
           }}
         />
