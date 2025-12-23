@@ -1,5 +1,5 @@
 // File: src/components/RelatedVideos.jsx
-// PCC v3.0 — Piped → Invidious → YouTube keyword fallback
+// PCC v4.0 — Piped → Invidious → YouTube keyword fallback (GitHub Pages safe)
 
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
@@ -7,7 +7,7 @@ import { Link } from "react-router-dom";
 const PIPED_BASE = "https://pipedapi.kavin.rocks";
 const INVIDIOUS_BASE = "https://yewtu.be";
 
-export default function RelatedVideos({ videoId, title, apiKey, onDebugLog }) {
+export default function RelatedVideos({ videoId, title, onDebugLog }) {
   const [videos, setVideos] = useState([]);
   const [error, setError] = useState(null);
 
@@ -88,6 +88,8 @@ export default function RelatedVideos({ videoId, title, apiKey, onDebugLog }) {
       // -----------------------------------------
       // 3. YouTube API keyword fallback
       // -----------------------------------------
+      const apiKey = window.YT_API_KEY; // <-- GitHub Pages safe
+
       if (!apiKey || !title) {
         log("RelatedVideos: Skipping YouTube fallback (missing apiKey or title)");
         return;
@@ -121,7 +123,7 @@ export default function RelatedVideos({ videoId, title, apiKey, onDebugLog }) {
     }
 
     load();
-  }, [videoId, title, apiKey]);
+  }, [videoId, title]);
 
   if (error)
     return (
