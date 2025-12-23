@@ -1,85 +1,88 @@
 // File: src/components/DebugOverlay.jsx
-// PCC v3.3 — Mobile-visible by default, desktop-toggle, scroll area, [SOURCE] tag
+// PCC v3.6 — Compact height so MiniPlayer is fully visible
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-export default function DebugOverlay({ pageName, sourceUsed }) {
-  // Mobile Safari cannot toggle with keyboard -> default ON for mobile
-  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+const MAX_LOGS = 300;
+const VISIBLE_LINES = 6;
 
-  const [visible, setVisible] = useState(isMobile ? true : false);
+export default function DebugOverlay({ pageName }) {
+  const [logs, setLogs] = useState([]);
+  const containerRef = useRef(null);
 
-  // Desktop toggle with backtick
   useEffect(() => {
-    if (isMobile) return; // mobile cannot toggle
-    const handler = (e) => {
-      if (e.key === "`") {
-        setVisible((v) => !v);
-      }
+    window.debugLog = (msg) => {
+      const timestamp = new Date().toLocaleTimeString();
+      const line = `${timestamp}: ${msg}`;
+      setLogs((prev) => [...prev.slice(-MAX_LOGS + 1), line]);
     };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [isMobile]);
 
-  const tagStyle = {
-    display: "inline-block",
-    padding: "2px 6px",
-    borderRadius: 4,
-    fontSize: 12,
-    fontWeight: 700,
-    marginLeft: 6,
-  };
+    window.debugLog("DEBUG: DebugOverlay initialized");
+  }, []);
 
-  const sourceColor =
-    sourceUsed === "INVIDIOUS"
-      ? "#2196f3"
-      : sourceUsed === "YOUTUBE_API"
-      ? "#ff9800"
-      : "#777";
+  useEffect(() => {
+    if (containerRef.current) {
+      containerRef.current.scrollTop = containerRef.current.scrollHeight;
+    }
+  }, [logs]);
 
-  if (!visible) return null;
+  const clearLogs = () => setLogs([]);
 
   return (
     <div
+      ref={containerRef}
       style={{
         position: "fixed",
-        top: 10,
-        right: 10,
-        background: "rgba(0,0,0,0.85)",
-        padding: 12,
-        borderRadius: 8,
-        color: "#fff",
-        fontSize: 13,
-        zIndex: 9999,
-        maxWidth: 260,
-        lineHeight: 1.4,
+        bottom: "var(--footer-height)",
+        left: 0,
+        right: 0,
+
+        // 🔥 COMPACT HEIGHT (about half of before)
+        height: `${(VISIBLE_LINES * 0.6) * 1.4}em`,
+
+        background: "rgba(0,0,0,0.9)",
+        color: "#0f0",
+        fontSize: "0.8rem",
+        overflowY: "auto",
+
+        // small top padding so first line is never clipped
+        padding: "6px 8px 4px 8px",
+
+        zIndex: 10001, // stays above MiniPlayer
+        borderTop: "1px solid #333",
       }}
     >
-      <div style={{ fontWeight: 700, marginBottom: 6 }}>
-        Debug: {pageName}
-      </div>
-
-      {sourceUsed && (
-        <div style={{ marginBottom: 8 }}>
-          Source:
-          <span style={{ ...tagStyle, background: sourceColor }}>
-            [{sourceUsed}]
-          </span>
-        </div>
-      )}
-
       <div
         style={{
-          maxHeight: 160,
-          overflowY: "auto",
-          paddingRight: 4,
-          opacity: 0.9,
+          display: "flex",
+          justifyContent: "space-between",
+          marginBottom: 4,
+          opacity: 0.8,
         }}
       >
-        <div style={{ fontSize: 12, opacity: 0.7 }}>
-          Debug info will appear here as you extend this overlay.
-        </div>
+        <div>{pageName ? `Page: ${pageName}` : "Debug Console"}</div>
+
+        <button
+          onClick={clearLogs}
+          style={{
+            background: "none",
+            border: "1px solid #0f0",
+            color: "#0f0",
+            padding: "0 6px",
+            borderRadius: 4,
+            cursor: "pointer",
+            fontSize: "0.7rem",
+          }}
+        >
+          Clear
+        </button>
       </div>
+
+      {logs.map((log, i) => (
+        <div key={i} style={{ whiteSpace: "pre-wrap", lineHeight: "1.4em" }}>
+          {log}
+        </div>
+      ))}
     </div>
   );
 }
