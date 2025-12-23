@@ -1,5 +1,5 @@
 // File: src/components/GlobalPlayer.jsx
-// PCC v3.1 — Clarified logging, stable Invidious → YouTube audio engine
+// PCC v3.2 — Background audio engine (Invidious → YouTube), disabled while Watch is active
 
 import { useEffect, useRef, useState } from "react";
 import { usePlayer } from "../contexts/PlayerContext";
@@ -25,6 +25,9 @@ export default function GlobalPlayer() {
   };
 
   const videoId = getVideoId(currentVideo);
+
+  // Helper: is global audio engine allowed right now?
+  const audioEnabled = window.__GLOBAL_AUDIO_ENABLED !== false;
 
   // Invidious stream loader
   async function fetchInvidiousStreams(id) {
@@ -92,6 +95,15 @@ export default function GlobalPlayer() {
 
   // Load stream whenever videoId changes
   useEffect(() => {
+    if (!audioEnabled) {
+      log(
+        "Audio engine globally disabled (likely on Watch page) -> not loading streams"
+      );
+      setAudioSrc(null);
+      setSourceType("none");
+      return;
+    }
+
     if (!videoId) {
       log("No currentVideo or invalid id -> stopping audio");
       setAudioSrc(null);
@@ -127,13 +139,20 @@ export default function GlobalPlayer() {
     return () => {
       cancelled = true;
     };
-  }, [videoId]);
+  }, [videoId, audioEnabled]);
 
   // Sync play/pause with context (Invidious-only; YouTube handled by iframe autoplay)
   useEffect(() => {
+    if (!audioEnabled) {
+      log(
+        "Audio engine disabled -> skipping play/pause sync (Watch page likely active)"
+      );
+      return;
+    }
+
     if (sourceType !== "invidious") {
       log(
-        `Play/pause sync: sourceType=${sourceType} -> iframe/autoplay path, no direct audioRef control`
+        `Play/pause sync: sourceType=${sourceType} -> iframe/autoplay path or disabled, no direct audioRef control`
       );
       return;
     }
@@ -161,12 +180,17 @@ export default function GlobalPlayer() {
       audio.pause();
       log("Audio paused due to playing=false (Invidious)");
     }
-  }, [playing, audioSrc, sourceType]);
+  }, [playing, audioSrc, sourceType, audioEnabled]);
 
   const handleEnded = () => {
     log("Audio ended -> calling playNext()");
     playNext();
   };
+
+  if (!audioEnabled) {
+    // While on Watch, GlobalPlayer is inert
+    return null;
+  }
 
   return (
     <>
