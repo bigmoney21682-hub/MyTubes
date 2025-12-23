@@ -1,5 +1,5 @@
 // File: src/components/VideoCard.jsx
-// Updated: Integrated PlaylistPicker modal (no prompts, iOS-safe)
+// PCC v3.0 — Correct ID extraction for navigation + playlist picker
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -25,15 +25,37 @@ export default function VideoCard({ video, onClick }) {
   const navigate = useNavigate();
   const { playlists } = usePlaylists();
 
-  // NEW: modal state
   const [showPicker, setShowPicker] = useState(false);
 
+  // ---------------------------------------------------------
+  // Extract a clean video ID (string only)
+  // ---------------------------------------------------------
+  const getId = () => {
+    if (!video) return null;
+
+    if (typeof video.id === "string") return video.id;
+    if (typeof video.id?.videoId === "string") return video.id.videoId;
+
+    return null;
+  };
+
   function handleClick() {
-    if (typeof onClick === "function") {
-      onClick(video.id);
+    const vid = getId();
+
+    if (!vid) {
+      window.debugLog?.("VideoCard: ERROR — invalid video.id");
       return;
     }
-    navigate(`/watch/${video.id}`);
+
+    // If parent provided a click handler, use it
+    if (typeof onClick === "function") {
+      onClick(vid);
+      return;
+    }
+
+    // Otherwise navigate to Watch page
+    window.debugLog?.(`VideoCard: navigating to /watch/${vid}`);
+    navigate(`/watch/${vid}`);
   }
 
   const handleAdd = (e) => {
