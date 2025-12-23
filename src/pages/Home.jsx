@@ -1,202 +1,226 @@
-// File: src/components/VideoCard.jsx
-// PCC v3.0 — Correct ID extraction for navigation + playlist picker
+// File: src/pages/Home.jsx
+// PCC v6.0 — Unified Piped → Invidious → YouTube fallback for Trending + Search
 
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { usePlaylists } from "../contexts/PlaylistContext";
-import PlaylistPicker from "./PlaylistPicker";
+import { useEffect, useState } from "react";
+import VideoCard from "../components/VideoCard";
 
-// Helper to format ISO duration (e.g., PT4M13S → 4:13)
-function formatDuration(isoDuration) {
-  if (!isoDuration) return "";
-  const match = isoDuration.match(/PT(\d+H)?(\d+M)?(\d+S)?/);
-  if (!match) return "";
-  const hours = match[1] ? parseInt(match[1]) : 0;
-  const minutes = match[2] ? parseInt(match[2]) : 0;
-  const seconds = match[3] ? parseInt(match[3]) : 0;
-  if (hours > 0)
-    return `${hours}:${minutes.toString().padStart(2, "0")}:${seconds
-      .toString()
-      .padStart(2, "0")}`;
-  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
-}
+export default function Home({ searchQuery }) {
+  const [videos, setVideos] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-export default function VideoCard({ video, onClick }) {
-  const navigate = useNavigate();
-  const { playlists } = usePlaylists();
-
-  const [showPicker, setShowPicker] = useState(false);
+  const log = (msg) => window.debugLog?.(`Home: ${msg}`);
 
   // ---------------------------------------------------------
-  // Extract a clean video ID (string only)
+  // Helper: Extract clean video ID
   // ---------------------------------------------------------
-  const getId = () => {
+  const getId = (video) => {
     if (!video) return null;
-
     if (typeof video.id === "string") return video.id;
     if (typeof video.id?.videoId === "string") return video.id.videoId;
-
     return null;
   };
 
-  function handleClick() {
-    const vid = getId();
+  // ---------------------------------------------------------
+  // Helper: Normalize Piped → Invidious → YouTube item format
+  // ---------------------------------------------------------
+  const normalizeItem = (item) => {
+    const vid = getId(item);
+    if (!vid) return null;
 
-    if (!vid) {
-      window.debugLog?.("VideoCard: ERROR — invalid video.id");
-      return;
-    }
-
-    // If parent provided a click handler, use it
-    if (typeof onClick === "function") {
-      onClick(vid);
-      return;
-    }
-
-    // Otherwise navigate to Watch page
-    window.debugLog?.(`VideoCard: navigating to /watch/${vid}`);
-    navigate(`/watch/${vid}`);
-  }
-
-  const handleAdd = (e) => {
-    e.stopPropagation();
-    setShowPicker(true);
+    return {
+      id: vid,
+      title: item.title || item.snippet?.title,
+      author: item.uploader || item.author || item.snippet?.channelTitle,
+      thumbnail:
+        item.thumbnail ||
+        item.thumbnails?.medium?.url ||
+        item.thumbnails?.default?.url,
+      duration: item.duration || item.contentDetails?.duration,
+    };
   };
 
-  const duration = formatDuration(video.duration);
+  // ---------------------------------------------------------
+  // Fetch from Piped (primary)
+  // ---------------------------------------------------------
+  async function fetchFromPiped(path) {
+    const url = `https://pipedapi.kavin.rocks${path}`;
+    log(`DEBUG: Trying Piped: ${url}`);
+
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      const raw = await res.text();
+      log(`DEBUG: Piped raw: ${raw.slice(0, 200)}...`);
+
+      return JSON.parse(raw);
+    } catch (err) {
+      log(`ERROR: Piped failed: ${err}`);
+      return null;
+    }
+  }
+
+  // ---------------------------------------------------------
+  // Fetch from Invidious (fallback)
+  // ---------------------------------------------------------
+  async function fetchFromInvidious(path) {
+    const url = `https://yewtu.be${path}`;
+    log(`DEBUG: Trying Invidious: ${url}`);
+
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      const raw = await res.text();
+      log(`DEBUG: Invidious raw: ${raw.slice(0, 200)}...`);
+
+      return JSON.parse(raw);
+    } catch (err) {
+      log(`ERROR: Invidious failed: ${err}`);
+      return null;
+    }
+  }
+
+  // ---------------------------------------------------------
+  // Fetch from YouTube API (final fallback)
+  // ---------------------------------------------------------
+  async function fetchFromYouTubeTrending() {
+    log("DEBUG: Trending fallback → YouTube API");
+
+    try {
+      const res = await fetch(
+        `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&chart=mostPopular&regionCode=US&maxResults=20&key=${window.YT_API_KEY}`
+      );
+      const data = await res.json();
+      return data.items || [];
+    } catch (err) {
+      log(`ERROR: YouTube trending failed: ${err}`);
+      return [];
+    }
+  }
+
+  async function fetchFromYouTubeSearch(query) {
+    log("DEBUG: Search fallback → YouTube API");
+
+    try {
+      const res = await fetch(
+        `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=20&q=${encodeURIComponent(
+          query
+        )}&key=${window.YT_API_KEY}`
+      );
+      const data = await res.json();
+      return data.items || [];
+    } catch (err) {
+      log(`ERROR: YouTube search failed: ${err}`);
+      return [];
+    }
+  }
+
+  // ---------------------------------------------------------
+  // Main loader: Trending + Search with unified fallback chain
+  // ---------------------------------------------------------
+  useEffect(() => {
+    async function load() {
+      setLoading(true);
+
+      let items = [];
+
+      // -----------------------------
+      // SEARCH MODE
+      // -----------------------------
+      if (searchQuery && searchQuery.trim().length > 0) {
+        const q = searchQuery.trim();
+        log(`DEBUG: Searching for "${q}"`);
+
+        // 1) Try Piped
+        const piped = await fetchFromPiped(
+          `/search?q=${encodeURIComponent(q)}&filter=videos`
+        );
+        if (piped?.items?.length) {
+          items = piped.items;
+        }
+
+        // 2) Try Invidious
+        if (!items.length) {
+          const inv = await fetchFromInvidious(
+            `/api/v1/search?q=${encodeURIComponent(q)}`
+          );
+          if (Array.isArray(inv) && inv.length) {
+            items = inv;
+          }
+        }
+
+        // 3) Final fallback → YouTube API
+        if (!items.length) {
+          items = await fetchFromYouTubeSearch(q);
+        }
+
+        log(`DEBUG: Search returned ${items.length} items`);
+      }
+
+      // -----------------------------
+      // TRENDING MODE
+      // -----------------------------
+      else {
+        log("DEBUG: Fetching YouTube trending");
+
+        // 1) Try Piped
+        const piped = await fetchFromPiped("/trending?region=US");
+        if (Array.isArray(piped) && piped.length) {
+          items = piped;
+        }
+
+        // 2) Try Invidious
+        if (!items.length) {
+          const inv = await fetchFromInvidious("/api/v1/trending?region=US");
+          if (Array.isArray(inv) && inv.length) {
+            items = inv;
+          }
+        }
+
+        // 3) Final fallback → YouTube API
+        if (!items.length) {
+          items = await fetchFromYouTubeTrending();
+        }
+
+        log(`DEBUG: Trending returned ${items.length} items`);
+      }
+
+      // Normalize items
+      const normalized = items
+        .map((item) => normalizeItem(item))
+        .filter(Boolean);
+
+      setVideos(normalized);
+      setLoading(false);
+    }
+
+    load();
+  }, [searchQuery]);
+
+  // ---------------------------------------------------------
+  // Render
+  // ---------------------------------------------------------
+  if (loading)
+    return <p style={{ color: "#fff", padding: 16 }}>Loading…</p>;
 
   return (
-    <>
-      {/* MAIN CARD */}
+    <div style={{ padding: 16 }}>
+      {videos.length === 0 && (
+        <p style={{ color: "#fff" }}>No results found.</p>
+      )}
+
       <div
-        onClick={handleClick}
         style={{
-          cursor: "pointer",
-          borderRadius: 12,
-          overflow: "hidden",
-          background: "#111",
-          display: "flex",
-          flexDirection: "column",
-          height: "100%",
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
+          gap: 16,
         }}
       >
-        {/* Thumbnail – full width with 16:9 aspect ratio */}
-        <div
-          style={{
-            position: "relative",
-            width: "100%",
-            paddingTop: "56.25%",
-            background: "#000",
-          }}
-        >
-          <img
-            src={video.thumbnail}
-            alt={video.title}
-            loading="lazy"
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-            }}
-          />
-
-          {/* Duration badge */}
-          {duration && (
-            <div
-              style={{
-                position: "absolute",
-                bottom: 8,
-                right: 8,
-                background: "rgba(0,0,0,0.8)",
-                color: "#fff",
-                padding: "2px 6px",
-                borderRadius: 4,
-                fontSize: 13,
-                fontWeight: 600,
-              }}
-            >
-              {duration}
-            </div>
-          )}
-        </div>
-
-        {/* Metadata */}
-        <div
-          style={{
-            padding: 12,
-            flexGrow: 1,
-            display: "flex",
-            flexDirection: "column",
-          }}
-        >
-          <h4
-            style={{
-              margin: "0 0 8px 0",
-              fontSize: 16,
-              lineHeight: 1.3,
-              display: "-webkit-box",
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: "vertical",
-              overflow: "hidden",
-              color: "#fff",
-            }}
-          >
-            {video.title}
-          </h4>
-
-          <p
-            style={{
-              margin: "0 0 8px 0",
-              opacity: 0.8,
-              fontSize: 14,
-              color: "#fff",
-            }}
-          >
-            {video.author}
-          </p>
-
-          {/* Bottom row */}
-          <div
-            style={{
-              marginTop: "auto",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <span style={{ fontSize: 13, opacity: 0.7 }}>
-              {duration || ""}
-            </span>
-
-            <button
-              onClick={handleAdd}
-              style={{
-                background: "#ff0000",
-                color: "#fff",
-                border: "none",
-                padding: "6px 12px",
-                borderRadius: 4,
-                fontSize: 13,
-                fontWeight: 600,
-                cursor: "pointer",
-              }}
-            >
-              + Playlist
-            </button>
-          </div>
-        </div>
+        {videos.map((video) => (
+          <VideoCard key={video.id} video={video} />
+        ))}
       </div>
-
-      {/* PLAYLIST PICKER MODAL */}
-      {showPicker && (
-        <PlaylistPicker
-          video={video}
-          onClose={() => setShowPicker(false)}
-        />
-      )}
-    </>
+    </div>
   );
 }
