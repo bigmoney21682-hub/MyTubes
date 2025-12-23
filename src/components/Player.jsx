@@ -1,7 +1,7 @@
 // File: src/components/Player.jsx
-// PCC v2.2 — Video player component (ReactPlayer), controlled by Watch page
+// PCC v3.0 — Video player with tap overlay controls (MyTube-orange), fixed aspect ratio
 
-import React, { forwardRef, useEffect, useState } from "react";
+import React, { forwardRef, useEffect, useRef, useState } from "react";
 import ReactPlayer from "react-player";
 
 const Player = forwardRef(
@@ -23,12 +23,19 @@ const Player = forwardRef(
     const [videoVolume, setVideoVolume] = useState(1);
     const [adOverlayVisible, setAdOverlayVisible] = useState(false);
 
+    // Tap-to-show overlay controls
+    const [tapOverlayVisible, setTapOverlayVisible] = useState(false);
+    const tapOverlayTimeoutRef = useRef(null);
+
     useEffect(() => {
       window.debugLog?.(
         `DEBUG: Player mounted - embedUrl: ${embedUrl}, playing: ${playing}`
       );
       return () => {
         window.debugLog?.("DEBUG: Player unmounted");
+        if (tapOverlayTimeoutRef.current) {
+          clearTimeout(tapOverlayTimeoutRef.current);
+        }
       };
     }, [embedUrl, playing]);
 
@@ -55,8 +62,50 @@ const Player = forwardRef(
       setVideoVolume(1);
     };
 
+    // Show overlay controls when user taps anywhere on the video
+    const handleTap = () => {
+      if (adOverlayVisible) return;
+
+      setTapOverlayVisible(true);
+      if (tapOverlayTimeoutRef.current) {
+        clearTimeout(tapOverlayTimeoutRef.current);
+      }
+      tapOverlayTimeoutRef.current = setTimeout(() => {
+        setTapOverlayVisible(false);
+      }, 2000);
+    };
+
+    const handleSeekBack = (e) => {
+      e.stopPropagation();
+      onSeekRelative?.(-15);
+    };
+
+    const handleSeekForward = (e) => {
+      e.stopPropagation();
+      onSeekRelative?.(15);
+    };
+
+    const handlePrev = (e) => {
+      e.stopPropagation();
+      onPrev?.();
+    };
+
+    const handleNext = (e) => {
+      e.stopPropagation();
+      onNext?.();
+    };
+
     return (
-      <div style={{ position: "relative", width: "100%", background: "#000" }}>
+      <div
+        style={{
+          position: "relative",
+          width: "100%",
+          height: "100%", // important so ReactPlayer can fill the container
+          background: "#000",
+        }}
+        onClick={handleTap}
+      >
+        {/* Ad overlay */}
         {adOverlayVisible && (
           <div
             style={{
@@ -73,6 +122,7 @@ const Player = forwardRef(
           </div>
         )}
 
+        {/* Existing pause overlay controls (unchanged) */}
         {!playing && !adOverlayVisible && (
           <div
             style={{
@@ -87,38 +137,116 @@ const Player = forwardRef(
             }}
           >
             <button
-              onClick={() => onSeekRelative?.(-15)}
-              style={controlButtonStyle}
+              onClick={(e) => {
+                e.stopPropagation();
+                onSeekRelative?.(-15);
+              }}
+              style={controlButtonStyleOld}
             >
               ⏪ 15s
             </button>
-            <button onClick={onPrev} style={controlButtonStyle}>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onPrev?.();
+              }}
+              style={controlButtonStyleOld}
+            >
               ⏮ Prev
             </button>
             <button
-              onClick={() => onSeekRelative?.(15)}
-              style={controlButtonStyle}
+              onClick={(e) => {
+                e.stopPropagation();
+                onSeekRelative?.(15);
+              }}
+              style={controlButtonStyleOld}
             >
               15s ⏩
             </button>
-            <button onClick={onNext} style={controlButtonStyle}>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onNext?.();
+              }}
+              style={controlButtonStyleOld}
+            >
               ⏭ Next
             </button>
           </div>
         )}
 
+        {/* Tap overlay controls (MyTube-orange, centered, does NOT pause video) */}
+        {tapOverlayVisible && !adOverlayVisible && (
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              zIndex: 11,
+              display: "flex",
+              alignItems: "center", // vertically centered (O1)
+              justifyContent: "center",
+              pointerEvents: "none", // allow buttons to re-enable
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                gap: 16,
+                pointerEvents: "auto", // buttons are clickable
+              }}
+            >
+              {/* 15s back */}
+              <button
+                onClick={handleSeekBack}
+                style={circleControlStyle}
+              >
+                <span style={circleTextStyle}>15</span>
+              </button>
+
+              {/* Prev */}
+              <button
+                onClick={handlePrev}
+                style={circleControlStyle}
+              >
+                <span style={circleTextStyle}>⏮</span>
+              </button>
+
+              {/* Next */}
+              <button
+                onClick={handleNext}
+                style={circleControlStyle}
+              >
+                <span style={circleTextStyle}>⏭</span>
+              </button>
+
+              {/* 15s forward */}
+              <button
+                onClick={handleSeekForward}
+                style={circleControlStyle}
+              >
+                <span style={circleTextStyle}>15</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ReactPlayer fills the container (no zoom/crop when parent is 16:9) */}
         <ReactPlayer
           ref={ref}
           url={embedUrl}
           width="100%"
-          height={pipMode ? "260px" : "360px"}
+          height="100%"
           playing={playing}
           onEnded={onEnded}
           controls={false}
           volume={videoVolume}
           muted={false}
           playsinline={true}
-          style={{ borderRadius: pipMode ? 8 : 0 }}
+          style={{
+            position: "absolute",
+            inset: 0,
+            borderRadius: pipMode ? 8 : 0,
+          }}
           progressInterval={500}
           onProgress={handleProgress}
           onStart={handleStart}
@@ -139,7 +267,8 @@ const Player = forwardRef(
   }
 );
 
-const controlButtonStyle = {
+// Old pause-overlay button style (preserved)
+const controlButtonStyleOld = {
   background: "rgba(0,0,0,0.7)",
   border: "1px solid #fff",
   color: "#fff",
@@ -147,6 +276,29 @@ const controlButtonStyle = {
   borderRadius: 999,
   fontSize: 14,
   cursor: "pointer",
+};
+
+// New tap-overlay circular controls (C2 + S1)
+const circleControlStyle = {
+  width: 48,
+  height: 48,
+  borderRadius: "50%",
+  border: "none",
+  background:
+    "linear-gradient(90deg, #ff8c00, #ff4500, #ff0000)", // MyTube-orange gradient
+  boxShadow: "0 3px 8px rgba(0,0,0,0.5)",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  cursor: "pointer",
+  transition: "transform 0.12s ease, opacity 0.12s ease",
+  opacity: 0.96,
+};
+
+const circleTextStyle = {
+  color: "#fff",
+  fontSize: 16,
+  fontWeight: 700,
 };
 
 export default Player;
