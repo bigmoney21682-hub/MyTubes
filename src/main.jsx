@@ -7,14 +7,15 @@ import { PlayerProvider } from "./contexts/PlayerContext";
 import { PlaylistProvider } from "./contexts/PlaylistContext";
 import "./index.css";
 
-const apiKey = import.meta.env.VITE_YOUTUBE_API_KEY;
+// Load YouTube API key from Vite env and expose globally
+window.YT_API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY;
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <HashRouter>
       <PlaylistProvider>
         <PlayerProvider>
-          <App apiKey={apiKey} />
+          <App />
         </PlayerProvider>
       </PlaylistProvider>
     </HashRouter>
