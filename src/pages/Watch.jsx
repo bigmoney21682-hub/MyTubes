@@ -1,5 +1,5 @@
 // File: src/pages/Watch.jsx
-// PCC v3.5 — Route-aware audio engine toggle + stable video loading
+// PCC v3.6 — API key from .env + route-aware audio engine + stable video loading
 
 import React, { useEffect, useState } from "react";
 import { useParams, useLocation } from "react-router-dom";
@@ -11,10 +11,12 @@ const INVIDIOUS_BASE = "https://yewtu.be";
 export default function Watch() {
   const { id } = useParams();
   const location = useLocation();
-  const { playVideo, currentVideo, playing } = usePlayer();
+  const { playVideo, playing } = usePlayer();
 
   const [video, setVideo] = useState(null);
   const [embedUrl, setEmbedUrl] = useState("");
+
+  const API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY;
 
   const log = (msg) => window.debugLog?.(`Watch: ${msg}`);
 
@@ -46,12 +48,14 @@ export default function Watch() {
     async function loadVideo() {
       log(`Trying Invidious: ${INVIDIOUS_BASE}/api/v1/videos/${id}`);
 
+      // Try Invidious first
       try {
         const invRes = await fetch(`${INVIDIOUS_BASE}/api/v1/videos/${id}`);
         const invData = await invRes.json();
 
         if (invData && invData.title) {
           log("Loaded from Invidious");
+
           const normalized = {
             id,
             title: invData.title,
@@ -62,6 +66,7 @@ export default function Watch() {
               { url: invData.thumbnailUrl },
             ],
           };
+
           setVideo(normalized);
           playVideo(normalized);
           return;
@@ -75,8 +80,9 @@ export default function Watch() {
 
       try {
         const ytRes = await fetch(
-          `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${id}&key=YOUR_API_KEY`
+          `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${id}&key=${API_KEY}`
         );
+
         const ytData = await ytRes.json();
 
         if (ytData.items && ytData.items.length > 0) {
@@ -100,7 +106,7 @@ export default function Watch() {
     }
 
     loadVideo();
-  }, [id, playVideo]);
+  }, [id, API_KEY, playVideo]);
 
   // ---------------------------------------------------------
   // 3. Build embed URL for ReactPlayer
@@ -129,7 +135,7 @@ export default function Watch() {
         </div>
       )}
 
-      {/* Related videos section (currently empty — we’ll fix next) */}
+      {/* Related videos section (we’ll restore this next) */}
       <div style={{ padding: 16, color: "#fff" }}>
         <h3>Related Videos</h3>
         <p style={{ opacity: 0.5 }}>Coming soon…</p>
