@@ -1,5 +1,5 @@
 // File: src/components/MiniPlayer.jsx
-// PCC v4.0 — Adds next/prev controls + correct logging
+// PCC v4.1 — Stable next/prev controls + logging aligned with GlobalPlayer
 
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
