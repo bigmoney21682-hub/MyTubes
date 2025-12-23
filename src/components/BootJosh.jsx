@@ -1,8 +1,8 @@
 // File: src/components/BootJosh.jsx
-// PCC v2.1 — Secondary splash screen with imported GIF + title + load logging
+// PCC v2.2 — Secondary splash screen with imported GIF + larger size + load logging
 
 import { useEffect, useState } from "react";
-import JoshGif from "../assets/Josh.gif"; // ⭐ Correct lowercase import
+import JoshGif from "../assets/Josh.gif"; // lowercase extension for Vite
 
 export default function BootJosh({ onDone }) {
   const [visible, setVisible] = useState(true);
@@ -37,7 +37,7 @@ export default function BootJosh({ onDone }) {
         src={JoshGif}
         alt="BootJosh"
         style={{
-          width: 180,
+          width: 225, // 25% larger than 180, aspect ratio preserved
           height: "auto",
           marginBottom: 40,
         }}
