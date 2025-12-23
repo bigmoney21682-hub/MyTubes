@@ -1,18 +1,15 @@
 // File: src/components/DebugOverlay.jsx
-// PCC v2.0 — Adds colored [SOURCE] tag for fallback visibility
+// PCC v3.0 — Always-on debug panel with colored [SOURCE] tag
 
 import { useEffect, useState } from "react";
 
 export default function DebugOverlay({ pageName, sourceUsed }) {
-  const [visible, setVisible] = useState(false);
+  // Keep a local copy so we can show "last known" source for the page
+  const [lastSource, setLastSource] = useState(null);
 
   useEffect(() => {
-    const handler = (e) => {
-      if (e.key === "`") setVisible((v) => !v);
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, []);
+    if (sourceUsed) setLastSource(sourceUsed);
+  }, [sourceUsed]);
 
   const tagStyle = {
     display: "inline-block",
@@ -24,44 +21,40 @@ export default function DebugOverlay({ pageName, sourceUsed }) {
   };
 
   const sourceColor =
-    sourceUsed === "PIPED"
-      ? "#4caf50"
-      : sourceUsed === "INVIDIOUS"
+    lastSource === "INVIDIOUS"
       ? "#2196f3"
-      : sourceUsed === "YOUTUBE_API"
+      : lastSource === "YOUTUBE_API"
       ? "#ff9800"
       : "#777";
 
   return (
-    visible && (
-      <div
-        style={{
-          position: "fixed",
-          top: 10,
-          right: 10,
-          background: "rgba(0,0,0,0.85)",
-          padding: 12,
-          borderRadius: 8,
-          color: "#fff",
-          fontSize: 13,
-          zIndex: 9999,
-          maxWidth: 260,
-          lineHeight: 1.4,
-        }}
-      >
-        <div style={{ fontWeight: 700, marginBottom: 6 }}>
-          Debug: {pageName}
-        </div>
-
-        {sourceUsed && (
-          <div style={{ marginTop: 4 }}>
-            Source:
-            <span style={{ ...tagStyle, background: sourceColor }}>
-              [{sourceUsed}]
-            </span>
-          </div>
-        )}
+    <div
+      style={{
+        position: "fixed",
+        top: 10,
+        right: 10,
+        background: "rgba(0,0,0,0.85)",
+        padding: 12,
+        borderRadius: 8,
+        color: "#fff",
+        fontSize: 13,
+        zIndex: 9999,
+        maxWidth: 260,
+        lineHeight: 1.4,
+      }}
+    >
+      <div style={{ fontWeight: 700, marginBottom: 6 }}>
+        Debug: {pageName}
       </div>
-    )
+
+      {lastSource && (
+        <div style={{ marginTop: 4 }}>
+          Source:
+          <span style={{ ...tagStyle, background: sourceColor }}>
+            [{lastSource}]
+          </span>
+        </div>
+      )}
+    </div>
   );
 }
