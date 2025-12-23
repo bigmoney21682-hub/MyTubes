@@ -1,8 +1,8 @@
 // File: src/components/BootJosh.jsx
-// PCC v2.0 — Secondary splash screen with imported GIF + title + load logging
+// PCC v2.1 — Secondary splash screen with imported GIF + title + load logging
 
 import { useEffect, useState } from "react";
-import JoshGif from "../assets/Josh.GIF";
+import JoshGif from "../assets/Josh.gif"; // ⭐ Correct lowercase import
 
 export default function BootJosh({ onDone }) {
   const [visible, setVisible] = useState(true);
@@ -30,7 +30,7 @@ export default function BootJosh({ onDone }) {
         flexDirection: "column",
         justifyContent: "center",
         alignItems: "center",
-        zIndex: 999999,
+        zIndex: 999999, // DebugOverlay is above this
       }}
     >
       <img
@@ -41,8 +41,8 @@ export default function BootJosh({ onDone }) {
           height: "auto",
           marginBottom: 40,
         }}
-        onLoad={() => log("GIF loaded successfully (imported Josh.GIF)")}
-        onError={() => log("GIF FAILED to load from imported Josh.GIF")}
+        onLoad={() => log("GIF loaded successfully (imported Josh.gif)")}
+        onError={() => log("GIF FAILED to load from imported Josh.gif")}
       />
 
       <div
