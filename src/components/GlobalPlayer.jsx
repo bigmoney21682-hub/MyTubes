@@ -1,5 +1,5 @@
 // File: src/components/GlobalPlayer.jsx
-// PCC v3.0 — Robust global audio engine (Invidious -> YouTube fallback, auto-next, toggle-safe)
+// PCC v3.1 — Clarified logging, stable Invidious → YouTube audio engine
 
 import { useEffect, useRef, useState } from "react";
 import { usePlayer } from "../contexts/PlayerContext";
@@ -129,17 +129,22 @@ export default function GlobalPlayer() {
     };
   }, [videoId]);
 
-  // Sync play/pause with context
+  // Sync play/pause with context (Invidious-only; YouTube handled by iframe autoplay)
   useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) {
-      log("No audio element yet, skipping play/pause sync");
+    if (sourceType !== "invidious") {
+      log(
+        `Play/pause sync: sourceType=${sourceType} -> iframe/autoplay path, no direct audioRef control`
+      );
       return;
     }
-    if (!audioSrc || sourceType !== "invidious") {
-      log(
-        `Play/pause sync: sourceType=${sourceType}, audioSrc=${!!audioSrc} -> skipping audio control`
-      );
+
+    const audio = audioRef.current;
+    if (!audio) {
+      log("No audio element yet for Invidious, skipping play/pause sync");
+      return;
+    }
+    if (!audioSrc) {
+      log("No audioSrc set for Invidious, skipping play/pause sync");
       return;
     }
 
@@ -198,7 +203,7 @@ export default function GlobalPlayer() {
             opacity: 0,
             pointerEvents: "none",
           }}
-          allow="autoplay; encrypted-media"
+          allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
         />
       )}
     </>
