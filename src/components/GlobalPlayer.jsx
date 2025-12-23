@@ -1,5 +1,5 @@
 // File: src/components/GlobalPlayer.jsx
-// PCC v4.1 — Background audio engine with route-aware reactivation after Watch
+// PCC v4.2 — Background audio engine with explicit route + video reactivation
 
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
@@ -30,6 +30,13 @@ export default function GlobalPlayer() {
 
   // Compute audioEnabled from global each render
   const audioEnabled = window.__GLOBAL_AUDIO_ENABLED !== false;
+
+  // Simple log when route changes so we know reactivation points
+  useEffect(() => {
+    log(
+      `Route changed -> pathname=${location.pathname}, audioEnabled=${audioEnabled}, videoId=${videoId}`
+    );
+  }, [location.pathname, audioEnabled, videoId]);
 
   // -------------------------------
   // Invidious stream loader
@@ -98,10 +105,14 @@ export default function GlobalPlayer() {
   // -------------------------------
   // Load stream whenever:
   // - videoId changes
-  // - route changes (location.pathname)
-  // -> this is how we see audioEnabled flip after leaving Watch
+  // - route changes
+  // - currentVideo object changes
   // -------------------------------
   useEffect(() => {
+    log(
+      `Loader effect fired -> audioEnabled=${audioEnabled}, videoId=${videoId}, pathname=${location.pathname}`
+    );
+
     if (!audioEnabled) {
       log("Audio engine disabled -> clearing audio");
       setAudioSrc(null);
@@ -144,7 +155,8 @@ export default function GlobalPlayer() {
     return () => {
       cancelled = true;
     };
-  }, [videoId, location.pathname, audioEnabled]);
+    // depend on currentVideo (object), not just id
+  }, [currentVideo, videoId, location.pathname, audioEnabled]);
 
   // -------------------------------
   // Sync play/pause with context
