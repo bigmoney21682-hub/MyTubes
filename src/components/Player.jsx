@@ -1,5 +1,5 @@
 // File: src/components/Player.jsx
-// PCC v3.0 — Video player with tap overlay controls (MyTube-orange), fixed aspect ratio
+// PCC v3.1 — Video player with working tap overlay controls (MyTube-orange), fixed aspect ratio
 
 import React, { forwardRef, useEffect, useRef, useState } from "react";
 import ReactPlayer from "react-player";
@@ -103,8 +103,18 @@ const Player = forwardRef(
           height: "100%", // important so ReactPlayer can fill the container
           background: "#000",
         }}
-        onClick={handleTap}
       >
+        {/* Invisible tap layer ABOVE iframe so taps work (iframe eats click events) */}
+        <div
+          onClick={handleTap}
+          style={{
+            position: "absolute",
+            inset: 0,
+            zIndex: 5,
+            background: "transparent",
+          }}
+        />
+
         {/* Ad overlay */}
         {adOverlayVisible && (
           <div
@@ -122,7 +132,7 @@ const Player = forwardRef(
           </div>
         )}
 
-        {/* Existing pause overlay controls (unchanged) */}
+        {/* Existing pause overlay controls (unchanged behavior) */}
         {!playing && !adOverlayVisible && (
           <div
             style={{
@@ -183,47 +193,35 @@ const Player = forwardRef(
               inset: 0,
               zIndex: 11,
               display: "flex",
-              alignItems: "center", // vertically centered (O1)
+              alignItems: "center", // vertically centered
               justifyContent: "center",
-              pointerEvents: "none", // allow buttons to re-enable
+              pointerEvents: "none",
             }}
           >
             <div
               style={{
                 display: "flex",
                 gap: 16,
-                pointerEvents: "auto", // buttons are clickable
+                pointerEvents: "auto",
               }}
             >
               {/* 15s back */}
-              <button
-                onClick={handleSeekBack}
-                style={circleControlStyle}
-              >
+              <button onClick={handleSeekBack} style={circleControlStyle}>
                 <span style={circleTextStyle}>15</span>
               </button>
 
               {/* Prev */}
-              <button
-                onClick={handlePrev}
-                style={circleControlStyle}
-              >
+              <button onClick={handlePrev} style={circleControlStyle}>
                 <span style={circleTextStyle}>⏮</span>
               </button>
 
               {/* Next */}
-              <button
-                onClick={handleNext}
-                style={circleControlStyle}
-              >
+              <button onClick={handleNext} style={circleControlStyle}>
                 <span style={circleTextStyle}>⏭</span>
               </button>
 
               {/* 15s forward */}
-              <button
-                onClick={handleSeekForward}
-                style={circleControlStyle}
-              >
+              <button onClick={handleSeekForward} style={circleControlStyle}>
                 <span style={circleTextStyle}>15</span>
               </button>
             </div>
