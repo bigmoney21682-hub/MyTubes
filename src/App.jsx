@@ -1,5 +1,5 @@
 // File: src/App.jsx
-// PCC v5.2 — Uses PlayerContext instead of local player state
+// PCC v6.0 — Uses PlayerContext + GlobalPlayer for background audio
 
 import { Routes, Route, useNavigate } from "react-router-dom";
 import { useEffect, useState, useRef } from "react";
@@ -15,6 +15,7 @@ import Footer from "./components/Footer";
 import DebugOverlay from "./components/DebugOverlay";
 import Header from "./components/Header";
 import MiniPlayer from "./components/MiniPlayer";
+import GlobalPlayer from "./components/GlobalPlayer";
 
 import { clearAllCaches } from "./utils/cacheManager";
 import { usePlayer } from "./contexts/PlayerContext";
@@ -23,7 +24,7 @@ export default function App() {
   const [ready, setReady] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const { currentVideo, playing, setPlaying } = usePlayer();
+  const { currentVideo, playing, setPlaying, stopVideo } = usePlayer();
 
   const navigate = useNavigate();
   const log = (msg) => window.debugLog?.(`App: ${msg}`);
@@ -74,9 +75,8 @@ export default function App() {
   };
 
   const closePlayer = () => {
-    log("closePlayer -> clearing currentVideo");
-    // we keep stop logic inside PlayerContext for next step
-    setPlaying(false);
+    log("closePlayer -> stopVideo");
+    stopVideo();
   };
 
   return (
@@ -87,6 +87,9 @@ export default function App() {
         <div className="app-root">
           <Header onSearch={handleSearch} />
           <DebugOverlay pageName="App" />
+
+          {/* Global audio engine — always mounted, no visible UI */}
+          <GlobalPlayer />
 
           <div className="app-content">
             <Routes>
