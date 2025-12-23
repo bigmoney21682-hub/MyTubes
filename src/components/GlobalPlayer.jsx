@@ -1,26 +1,23 @@
 // File: src/components/GlobalPlayer.jsx
-// PCC v1.0 — Global audio engine (Piped -> YouTube fallback, auto-next)
+// PCC v2.0 — Robust global audio engine (Piped -> YouTube fallback, auto-next, toggle-safe)
 
 import { useEffect, useRef, useState } from "react";
 import { usePlayer } from "../contexts/PlayerContext";
 
 export default function GlobalPlayer() {
-  const {
-    currentVideo,
-    playing,
-    playNext,
-  } = usePlayer();
+  const { currentVideo, playing, playNext } = usePlayer();
 
   const audioRef = useRef(null);
 
   const [audioSrc, setAudioSrc] = useState(null);
   const [sourceType, setSourceType] = useState("none"); // "none" | "piped" | "youtube"
   const [loading, setLoading] = useState(false);
-  const [lastVideoId, setLastVideoId] = useState(null);
 
   const log = (msg) => window.debugLog?.(`GlobalPlayer: ${msg}`);
 
-  // Helper to extract a YouTube video id from currentVideo
+  // ------------------------------
+  // Helpers
+  // ------------------------------
   const getVideoId = (video) => {
     if (!video) return null;
     if (typeof video.id === "string") return video.id;
@@ -28,23 +25,16 @@ export default function GlobalPlayer() {
     return null;
   };
 
-  // ---------------------------------------------------------
-  // Fetch Piped audio stream with YouTube fallback
-  // ---------------------------------------------------------
-  useEffect(() => {
-    const videoId = getVideoId(currentVideo);
+  const videoId = getVideoId(currentVideo);
 
+  // ------------------------------
+  // Fetch Piped audio stream with YouTube fallback
+  // ------------------------------
+  useEffect(() => {
     if (!videoId) {
-      log("No currentVideo or invalid id -> stopping");
+      log("No currentVideo or invalid id -> stopping audio");
       setAudioSrc(null);
       setSourceType("none");
-      setLastVideoId(null);
-      return;
-    }
-
-    // If we're already loaded for this video, don't refetch
-    if (lastVideoId === videoId && audioSrc) {
-      log(`Video id unchanged (${videoId}), reusing existing audioSrc`);
       return;
     }
 
@@ -54,16 +44,14 @@ export default function GlobalPlayer() {
       setLoading(true);
       setAudioSrc(null);
       setSourceType("none");
-      setLastVideoId(videoId);
 
-      // 1) Try Piped streams endpoint
       const pipedUrl = `https://pipedapi.kavin.rocks/streams/${videoId}`;
-      log(`Trying Piped audio stream: ${pipedUrl}`);
+      log(`Loading new videoId=${videoId} -> trying Piped: ${pipedUrl}`);
 
       try {
         const res = await fetch(pipedUrl);
         const raw = await res.text();
-        log(`Piped streams raw response: ${raw}`);
+        log(`Piped streams raw response (trimmed): ${raw.slice(0, 200)}...`);
 
         if (cancelled) return;
 
@@ -77,7 +65,6 @@ export default function GlobalPlayer() {
 
         const audioStreams = data?.audioStreams;
         if (Array.isArray(audioStreams) && audioStreams.length > 0) {
-          // Pick the first stream (usually highest quality)
           const best = audioStreams[0];
           log(
             `Piped audioStreams available: ${audioStreams.length}, using bitrate=${best.bitrate}, codec=${best.codec}`
@@ -93,9 +80,9 @@ export default function GlobalPlayer() {
         log(`Piped streams fetch exception: ${err}`);
       }
 
-      // 2) Fallback to YouTube iframe
+      // Fallback to YouTube iframe
       log("Falling back to YouTube iframe audio");
-      setAudioSrc(null); // iframe will derive URL from id
+      setAudioSrc(null);
       setSourceType("youtube");
       setLoading(false);
     }
@@ -105,42 +92,50 @@ export default function GlobalPlayer() {
     return () => {
       cancelled = true;
     };
-  }, [currentVideo]);
+  }, [videoId]);
 
-  // ---------------------------------------------------------
-  // Sync play/pause with <audio> element
-  // ---------------------------------------------------------
+  // ------------------------------
+  // Sync play / pause with <audio> (Piped)
+  // ------------------------------
   useEffect(() => {
     const audio = audioRef.current;
-    if (!audio) return;
-    if (!audioSrc || sourceType !== "piped") return;
+    if (!audio) {
+      log("No audio element yet, skipping play/pause sync");
+      return;
+    }
+    if (!audioSrc || sourceType !== "piped") {
+      log(
+        `Play/pause sync: sourceType=${sourceType}, audioSrc=${!!audioSrc} -> skipping audio control`
+      );
+      return;
+    }
 
     if (playing) {
       audio
         .play()
         .then(() => {
-          log("Audio play() resolved");
+          log("Audio play() resolved (Piped)");
         })
         .catch((err) => {
-          log(`Audio play() error: ${err}`);
+          log(`Audio play() error (Piped): ${err}`);
         });
     } else {
       audio.pause();
-      log("Audio paused due to playing=false");
+      log("Audio paused due to playing=false (Piped)");
     }
   }, [playing, audioSrc, sourceType]);
 
-  // ---------------------------------------------------------
-  // Handle auto-next on track end
-  // ---------------------------------------------------------
+  // ------------------------------
+  // Auto-next when track ends
+  // ------------------------------
   const handleEnded = () => {
     log("Audio ended -> calling playNext()");
     playNext();
   };
 
-  const videoId = getVideoId(currentVideo);
-
-  // No UI, just hidden playback engines
+  // ------------------------------
+  // Render hidden playback engines
+  // ------------------------------
   return (
     <>
       {/* PIPED AUDIO ENGINE */}
@@ -151,20 +146,20 @@ export default function GlobalPlayer() {
           autoPlay={playing}
           onEnded={handleEnded}
           onError={(e) => {
-            log(`Audio element error, falling back to YouTube: ${e.message || "unknown"}`);
-            // If audio element fails, fall back to YouTube mode
+            const msg = e?.message || (e?.target && e.target.error?.code) || "unknown";
+            log(`Audio element error (Piped) -> falling back to YouTube: ${msg}`);
             setSourceType("youtube");
+            setAudioSrc(null);
           }}
         />
       )}
 
       {/* YOUTUBE IFRAME FALLBACK ENGINE */}
-      {sourceType === "youtube" && videoId && (
+      {sourceType === "youtube" && videoId && playing && (
         <iframe
+          key={`${videoId}-playing`} // force reload when video changes
           title="Global YouTube audio fallback"
-          src={`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=${
-            playing ? "1" : "0"
-          }&mute=0`}
+          src={`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=0`}
           style={{
             position: "fixed",
             width: 0,
@@ -177,7 +172,13 @@ export default function GlobalPlayer() {
         />
       )}
 
-      {/* DEBUG STATE (optional if you ever want to surface) */}
+      {/* NOTE:
+        - When playing=false and sourceType='youtube', we render nothing,
+          which effectively "pauses" by destroying the iframe.
+        - When playing=true, we remount the iframe with autoplay=1.
+      */}
+
+      {/* OPTIONAL INLINE DEBUG */}
       {false && (
         <div
           style={{
@@ -191,7 +192,9 @@ export default function GlobalPlayer() {
             zIndex: 9999,
           }}
         >
-          srcType={sourceType}, loading={String(loading)}
+          srcType={sourceType}, loading={String(loading)}, playing={String(
+            playing
+          )}
         </div>
       )}
     </>
