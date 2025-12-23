@@ -1,5 +1,5 @@
 // File: src/pages/Home.jsx
-// PCC v4.0 — Correct ID extraction + debug logging + stable navigation
+// PCC v5.0 — Multi-instance Piped fallback + stable trending
 
 import { useEffect, useState } from "react";
 import VideoCard from "../components/VideoCard";
@@ -10,65 +10,67 @@ export default function Home({ searchQuery }) {
 
   const log = (msg) => window.debugLog?.(`Home: ${msg}`);
 
-  // ---------------------------------------------------------
-  // Fetch trending or search results
-  // ---------------------------------------------------------
+  const PIPED_INSTANCES = [
+    "https://pipedapi.syncpundit.com",
+    "https://pipedapi.kavin.rocks",
+    "https://pipedapi.adminforge.de",
+  ];
+
+  async function fetchFromInstances(path) {
+    for (const base of PIPED_INSTANCES) {
+      try {
+        const url = `${base}${path}`;
+        log(`DEBUG: Trying ${url}`);
+
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        const raw = await res.text();
+        log(`DEBUG: Raw response from ${base}: ${raw.slice(0, 200)}...`);
+
+        return JSON.parse(raw);
+      } catch (err) {
+        log(`ERROR: ${base} failed: ${err}`);
+      }
+    }
+    return null;
+  }
+
   useEffect(() => {
     async function load() {
       setLoading(true);
 
-      try {
-        if (searchQuery && searchQuery.trim().length > 0) {
-          log(`DEBUG: Searching for "${searchQuery}"`);
+      let items = [];
 
-          const res = await fetch(
-            `https://pipedapi.kavin.rocks/search?q=${encodeURIComponent(
-              searchQuery
-            )}&filter=videos`
-          );
-          const raw = await res.text();
-          log(`DEBUG: Search raw: ${raw.slice(0, 200)}...`);
+      if (searchQuery && searchQuery.trim().length > 0) {
+        log(`DEBUG: Searching for "${searchQuery}"`);
 
-          const data = JSON.parse(raw);
-          const items = data?.items || [];
+        const data = await fetchFromInstances(
+          `/search?q=${encodeURIComponent(searchQuery)}&filter=videos`
+        );
 
-          log(`DEBUG: Search returned ${items.length} items`);
-          setVideos(items);
-        } else {
-          log("DEBUG: Fetching YouTube trending");
+        items = data?.items || [];
+        log(`DEBUG: Search returned ${items.length} items`);
+      } else {
+        log("DEBUG: Fetching YouTube trending");
 
-          const res = await fetch(
-            "https://pipedapi.kavin.rocks/trending?region=US"
-          );
-          const raw = await res.text();
-          log(`DEBUG: Trending raw: ${raw.slice(0, 200)}...`);
+        const data = await fetchFromInstances("/trending?region=US");
 
-          const data = JSON.parse(raw);
-          const items = data || [];
-
-          log(`DEBUG: YouTube trending returned ${items.length} items`);
-          setVideos(items);
-        }
-      } catch (err) {
-        log(`ERROR: Fetch failed: ${err}`);
-        setVideos([]);
+        items = data || [];
+        log(`DEBUG: Trending returned ${items.length} items`);
       }
 
+      setVideos(items);
       setLoading(false);
     }
 
     load();
   }, [searchQuery]);
 
-  // ---------------------------------------------------------
-  // Extract a clean video ID (string only)
-  // ---------------------------------------------------------
   const getId = (video) => {
     if (!video) return null;
-
     if (typeof video.id === "string") return video.id;
     if (typeof video.id?.videoId === "string") return video.id.videoId;
-
     return null;
   };
 
@@ -90,7 +92,6 @@ export default function Home({ searchQuery }) {
       >
         {videos.map((video) => {
           const vid = getId(video);
-
           if (!vid) {
             log("ERROR: Invalid video.id in Home list");
             return null;
