@@ -10,14 +10,11 @@ export default function GlobalPlayer() {
   const audioRef = useRef(null);
 
   const [audioSrc, setAudioSrc] = useState(null);
-  const [sourceType, setSourceType] = useState("none"); // "none" | "piped" | "youtube"
+  const [sourceType, setSourceType] = useState("none");
   const [loading, setLoading] = useState(false);
 
   const log = (msg) => window.debugLog?.(`GlobalPlayer: ${msg}`);
 
-  // ------------------------------
-  // Helpers
-  // ------------------------------
   const getVideoId = (video) => {
     if (!video) return null;
     if (typeof video.id === "string") return video.id;
@@ -27,9 +24,6 @@ export default function GlobalPlayer() {
 
   const videoId = getVideoId(currentVideo);
 
-  // ------------------------------
-  // Fetch Piped audio stream with YouTube fallback
-  // ------------------------------
   useEffect(() => {
     if (!videoId) {
       log("No currentVideo or invalid id -> stopping audio");
@@ -80,7 +74,6 @@ export default function GlobalPlayer() {
         log(`Piped streams fetch exception: ${err}`);
       }
 
-      // Fallback to YouTube iframe
       log("Falling back to YouTube iframe audio");
       setAudioSrc(null);
       setSourceType("youtube");
@@ -94,9 +87,6 @@ export default function GlobalPlayer() {
     };
   }, [videoId]);
 
-  // ------------------------------
-  // Sync play / pause with <audio> (Piped)
-  // ------------------------------
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) {
@@ -125,20 +115,13 @@ export default function GlobalPlayer() {
     }
   }, [playing, audioSrc, sourceType]);
 
-  // ------------------------------
-  // Auto-next when track ends
-  // ------------------------------
   const handleEnded = () => {
     log("Audio ended -> calling playNext()");
     playNext();
   };
 
-  // ------------------------------
-  // Render hidden playback engines
-  // ------------------------------
   return (
     <>
-      {/* PIPED AUDIO ENGINE */}
       {sourceType === "piped" && audioSrc && (
         <audio
           ref={audioRef}
@@ -154,10 +137,9 @@ export default function GlobalPlayer() {
         />
       )}
 
-      {/* YOUTUBE IFRAME FALLBACK ENGINE */}
       {sourceType === "youtube" && videoId && playing && (
         <iframe
-          key={`${videoId}-playing`} // force reload when video changes
+          key={`${videoId}-playing`}
           title="Global YouTube audio fallback"
           src={`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=0`}
           style={{
@@ -170,32 +152,6 @@ export default function GlobalPlayer() {
           }}
           allow="autoplay; encrypted-media"
         />
-      )}
-
-      {/* NOTE:
-        - When playing=false and sourceType='youtube', we render nothing,
-          which effectively "pauses" by destroying the iframe.
-        - When playing=true, we remount the iframe with autoplay=1.
-      */}
-
-      {/* OPTIONAL INLINE DEBUG */}
-      {false && (
-        <div
-          style={{
-            position: "fixed",
-            bottom: 0,
-            right: 0,
-            fontSize: 10,
-            color: "#fff",
-            background: "rgba(0,0,0,0.7)",
-            padding: 4,
-            zIndex: 9999,
-          }}
-        >
-          srcType={sourceType}, loading={String(loading)}, playing={String(
-            playing
-          )}
-        </div>
       )}
     </>
   );
