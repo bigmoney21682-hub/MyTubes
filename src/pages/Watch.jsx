@@ -2,13 +2,20 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import DebugOverlay from "../components/DebugOverlay";
 import { API_KEY } from "../config";
-import { useGlobalPlayer } from "../context/GlobalPlayerContext";
+import { usePlayer } from "../contexts/PlayerContext";
 
 export default function Watch() {
   const { id: videoId } = useParams();
   const [video, setVideo] = useState(null);
   const [related, setRelated] = useState([]);
-  const { setCurrentVideo, setIsPlaying } = useGlobalPlayer();
+
+  // Use your actual player context
+  const {
+    setCurrentVideo,
+    setPlaying,
+    setPlaylist,
+    setCurrentIndex,
+  } = usePlayer();
 
   const log = (msg) => window.debugLog?.(`Watch(${videoId}): ${msg}`);
 
@@ -47,8 +54,12 @@ export default function Watch() {
         }
 
         setVideo(item);
+
+        // Update global player state
         setCurrentVideo(item);
-        setIsPlaying(true);
+        setPlaylist([item]);
+        setCurrentIndex(0);
+        setPlaying(true);
 
         log("Video fetched and global currentVideo updated");
       } catch (err) {
@@ -57,7 +68,7 @@ export default function Watch() {
     }
 
     fetchVideo();
-  }, [videoId, setCurrentVideo, setIsPlaying]);
+  }, [videoId, setCurrentVideo, setPlaying, setPlaylist, setCurrentIndex]);
 
   // ---------------------------------------------------------
   // Related Videos — 3‑Layer Fallback System
