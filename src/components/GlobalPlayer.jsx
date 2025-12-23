@@ -1,5 +1,5 @@
 // File: src/components/GlobalPlayer.jsx
-// PCC v4.2 — Background audio engine with explicit route + video reactivation
+// PCC v4.2 — Background audio engine with route-aware reactivation
 
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
@@ -31,7 +31,7 @@ export default function GlobalPlayer() {
   // Compute audioEnabled from global each render
   const audioEnabled = window.__GLOBAL_AUDIO_ENABLED !== false;
 
-  // Simple log when route changes so we know reactivation points
+  // Log route changes
   useEffect(() => {
     log(
       `Route changed -> pathname=${location.pathname}, audioEnabled=${audioEnabled}, videoId=${videoId}`
@@ -155,7 +155,6 @@ export default function GlobalPlayer() {
     return () => {
       cancelled = true;
     };
-    // depend on currentVideo (object), not just id
   }, [currentVideo, videoId, location.pathname, audioEnabled]);
 
   // -------------------------------
