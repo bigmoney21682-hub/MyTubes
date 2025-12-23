@@ -18,7 +18,6 @@ export default function Watch() {
 
   const log = (msg) => window.debugLog?.(`Watch: ${msg}`);
 
-  // Invidious video details
   async function fetchFromInvidious(id) {
     const url = `${INVIDIOUS_BASE}/api/v1/videos/${id}`;
     log(`Trying Invidious: ${url}`);
@@ -33,7 +32,6 @@ export default function Watch() {
     }
   }
 
-  // YouTube fallback
   async function fetchFromYouTube(id) {
     log("Fallback → YouTube API");
 
@@ -49,11 +47,9 @@ export default function Watch() {
     }
   }
 
-  // Thumbnail selection (mirror Home's logic)
   const getThumbnail = (v) => {
     if (!v) return null;
 
-    // Invidious: videoThumbnails array with .url
     if (Array.isArray(v.videoThumbnails) && v.videoThumbnails.length > 0) {
       const best = v.videoThumbnails[v.videoThumbnails.length - 1];
       if (best?.url) {
@@ -62,14 +58,12 @@ export default function Watch() {
       }
     }
 
-    // Invidious: single thumbnail string, often relative
     if (typeof v.thumbnail === "string") {
       if (v.thumbnail.startsWith("http")) return v.thumbnail;
       if (v.thumbnail.startsWith("/")) return `${INVIDIOUS_BASE}${v.thumbnail}`;
       return v.thumbnail;
     }
 
-    // YouTube: snippet.thumbnails
     const thumbs = v.snippet?.thumbnails;
     if (thumbs?.medium?.url) return thumbs.medium.url;
     if (thumbs?.high?.url) return thumbs.high.url;
@@ -78,11 +72,9 @@ export default function Watch() {
     return null;
   };
 
-  // Normalize into a shape GlobalPlayer + MiniPlayer understand
   const normalizeVideo = (v) => {
     if (!v) return null;
 
-    // Invidious shape
     if (v.videoId || v.formatStreams || v.adaptiveFormats) {
       return {
         id: v.videoId || id,
@@ -90,12 +82,10 @@ export default function Watch() {
         author: v.author,
         description: v.description,
         thumbnail: getThumbnail(v),
-        // Keep raw invidious payload in case we want deeper access later
         invidious: v,
       };
     }
 
-    // YouTube API shape
     if (v.id && v.snippet) {
       return {
         id: typeof v.id === "string" ? v.id : v.id.videoId,
