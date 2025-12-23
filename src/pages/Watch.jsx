@@ -1,5 +1,5 @@
 // File: src/pages/Watch.jsx
-// PCC v13.0 — YouTube API only, UI-only Player, global iframe controls + related-fed autonext
+// PCC v14.0 — YouTube API only + in-memory caching + global player
 
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
@@ -7,6 +7,7 @@ import DebugOverlay from "../components/DebugOverlay";
 import Player from "../components/Player";
 import RelatedVideos from "../components/RelatedVideos";
 import { usePlayer } from "../contexts/PlayerContext";
+import { getCached, setCached } from "../utils/youtubeCache";
 
 export default function Watch() {
   const { id } = useParams();
@@ -27,13 +28,17 @@ export default function Watch() {
   const log = (msg) => window.debugLog?.(`Watch: ${msg}`);
 
   // -------------------------------
-  // YouTube fetcher
+  // YouTube fetcher (with caching)
   // -------------------------------
   async function fetchFromYouTube(videoId) {
     const apiKey = window.YT_API_KEY;
-    if (!apiKey) {
-      log("ERROR: No YT_API_KEY on window for Watch");
-      return null;
+    const cacheKey = `video_${videoId}`;
+
+    const cached = getCached(cacheKey);
+    if (cached) {
+      log("DEBUG: Using cached video details");
+      setSourceUsed("CACHE");
+      return cached;
     }
 
     log("DEBUG: Fetching video details via YouTube API");
@@ -47,14 +52,17 @@ export default function Watch() {
 
       const res = await fetch(url);
       const data = await res.json();
+
       if (!data.items || !data.items.length) {
         log("ERROR: YouTube returned no items for this id");
         log("RAW: " + JSON.stringify(data).slice(0, 300));
         return null;
       }
 
+      const item = data.items[0];
+      setCached(cacheKey, item);
       setSourceUsed("YOUTUBE_API");
-      return data.items[0];
+      return item;
     } catch (err) {
       log(`ERROR: YouTube failed: ${err}`);
       return null;
@@ -65,13 +73,14 @@ export default function Watch() {
   // Thumbnail resolver
   // -------------------------------
   const getThumbnail = (v) => {
-    if (!v) return null;
-    const thumbs = v.snippet?.thumbnails;
-    if (thumbs?.maxres?.url) return thumbs.maxres.url;
-    if (thumbs?.high?.url) return thumbs.high.url;
-    if (thumbs?.medium?.url) return thumbs.medium.url;
-    if (thumbs?.default?.url) return thumbs.default.url;
-    return null;
+    const t = v.snippet?.thumbnails;
+    return (
+      t?.maxres?.url ||
+      t?.high?.url ||
+      t?.medium?.url ||
+      t?.default?.url ||
+      null
+    );
   };
 
   // -------------------------------
@@ -81,15 +90,13 @@ export default function Watch() {
     if (!v || !v.id || !v.snippet) return null;
 
     const vid = typeof v.id === "string" ? v.id : v.id.videoId;
-    const thumb = getThumbnail(v);
-    log(`Resolved YouTube thumbnail: ${thumb}`);
 
     return {
       id: vid,
       title: v.snippet.title,
       author: v.snippet.channelTitle,
       description: v.snippet.description,
-      thumbnail: thumb,
+      thumbnail: getThumbnail(v),
       youtube: v,
     };
   };
@@ -119,10 +126,9 @@ export default function Watch() {
 
       if (normalized) {
         log(`Calling playVideo for id=${normalized.id}`);
-        // Single-video context: let autonext use "related" by default
         setPlaylist([normalized]);
         setCurrentIndex(0);
-        setAutonextMode("related"); // Discovery mode
+        setAutonextMode("related");
         playVideo(normalized);
       } else {
         log("No video data available after YouTube fetch");
@@ -160,12 +166,12 @@ export default function Watch() {
       <DebugOverlay pageName="Watch" sourceUsed={sourceUsed} />
 
       <div style={{ padding: 16, color: "#fff" }}>
-        {/* Hero Player (UI-only, uses global iframe for audio/video) */}
+        {/* Hero Player */}
         <div
           style={{
             position: "relative",
             width: "100%",
-            paddingTop: "56.25%", // 16:9
+            paddingTop: "56.25%",
             borderRadius: 12,
             overflow: "hidden",
             background: "#000",
@@ -173,7 +179,6 @@ export default function Watch() {
           }}
         >
           <div style={{ position: "absolute", inset: 0 }}>
-            {/* Player no longer takes embedUrl; it just controls global state */}
             <Player embedUrl={null} playing={playing} />
           </div>
         </div>
@@ -181,7 +186,6 @@ export default function Watch() {
         <h2>{video.title}</h2>
         <p style={{ opacity: 0.7 }}>{video.author}</p>
 
-        {/* Related Videos */}
         <RelatedVideos
           videoId={video.id}
           title={video.title}
@@ -189,7 +193,6 @@ export default function Watch() {
           onLoaded={(list) => {
             const count = Array.isArray(list) ? list.length : 0;
             log(`RelatedVideos loaded ${count} items for autonext`);
-            // For related-mode autonext, we store the raw list in PlayerContext
             setRelatedList(Array.isArray(list) ? list : []);
           }}
         />
