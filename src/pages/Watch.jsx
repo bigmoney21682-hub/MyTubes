@@ -1,5 +1,5 @@
 // File: src/pages/Watch.jsx
-// PCC v11.1 — GitHub Pages–safe Watch page + RelatedVideos integration
+// PCC v12.0 — GitHub Pages–safe Watch page + RelatedVideos-fed autonext
 
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
@@ -12,7 +12,14 @@ const INVIDIOUS_BASE = "https://yewtu.be";
 
 export default function Watch() {
   const { id } = useParams();
-  const { playVideo, playing } = usePlayer();
+  const {
+    playVideo,
+    playing,
+    setAutonextMode,
+    setRelatedList,
+    setPlaylist,
+    setCurrentIndex,
+  } = usePlayer();
 
   const [video, setVideo] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -153,6 +160,10 @@ export default function Watch() {
 
       if (normalized) {
         log(`Calling playVideo for id=${normalized.id}`);
+        // Single-video context: let autonext use "related" by default
+        setPlaylist([normalized]);
+        setCurrentIndex(0);
+        setAutonextMode("related"); // Discovery mode
         playVideo(normalized);
       } else {
         log("No video data available after all fallbacks");
@@ -223,6 +234,11 @@ export default function Watch() {
           videoId={video.id}
           title={video.title}
           onDebugLog={(msg) => log(msg)}
+          onLoaded={(list) => {
+            log(`RelatedVideos loaded ${list?.length || 0} items for autonext`);
+            // Feed discovery-mode autonext
+            setRelatedList(Array.isArray(list) ? list : []);
+          }}
         />
       </div>
     </>
