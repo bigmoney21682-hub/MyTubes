@@ -1,5 +1,5 @@
 // File: src/components/MiniPlayer.jsx
-// PCC v2.5 — Sits below DebugOverlay, above footer
+// PCC v3.0 — Visual miniplayer, now controlling GlobalPlayer audio
 
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
@@ -61,7 +61,7 @@ export default function MiniPlayer({ onTogglePlay, onClose }) {
         display: "flex",
         alignItems: "center",
         padding: "0 12px",
-        zIndex: 9998, // ⬇ now below DebugOverlay
+        zIndex: 9998, // below DebugOverlay
         boxShadow: "0 -4px 12px rgba(0,0,0,0.5)",
       }}
       onClick={handleClick}
