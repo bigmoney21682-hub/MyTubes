@@ -1,5 +1,5 @@
 // File: src/components/GlobalPlayer.jsx
-// PCC v5.0 — Background audio engine with autonext (playlist + related)
+// PCC v5.1 — Background audio engine with autonext, route-agnostic loading
 
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
@@ -31,7 +31,7 @@ export default function GlobalPlayer() {
   // Compute audioEnabled from global each render
   const audioEnabled = window.__GLOBAL_AUDIO_ENABLED !== false;
 
-  // Log route changes
+  // Log route changes (for visibility only)
   useEffect(() => {
     log(
       `Route changed -> pathname=${location.pathname}, audioEnabled=${audioEnabled}, videoId=${videoId}`
@@ -103,11 +103,12 @@ export default function GlobalPlayer() {
   }
 
   // -------------------------------
-  // Load stream when video/route changes
+  // Load stream when video or audioEnabled changes
+  // (NOT when route changes)
   // -------------------------------
   useEffect(() => {
     log(
-      `Loader effect fired -> audioEnabled=${audioEnabled}, videoId=${videoId}, pathname=${location.pathname}`
+      `Loader effect fired -> audioEnabled=${audioEnabled}, videoId=${videoId}`
     );
 
     if (!audioEnabled) {
@@ -152,7 +153,7 @@ export default function GlobalPlayer() {
     return () => {
       cancelled = true;
     };
-  }, [currentVideo, videoId, location.pathname, audioEnabled]);
+  }, [currentVideo, videoId, audioEnabled]); // <-- pathname removed
 
   // -------------------------------
   // Sync play/pause with context
@@ -215,13 +216,11 @@ export default function GlobalPlayer() {
       return;
     }
 
-    // If user is on a /watch route, navigate to the next watch page
     if (window.location.pathname.startsWith("/watch")) {
       log(`Autonext navigating to /watch/${nextId}`);
       window.location.href = `/watch/${nextId}`;
     } else {
       log("Autonext in background mode (not on /watch) -> audio only");
-      // Audio already updated via context; no navigation needed
     }
   };
 
