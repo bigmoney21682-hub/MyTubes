@@ -1,191 +1,168 @@
-// File: src/pages/Watch.jsx
-// PCC v2.2 — Uses PlayerContext, clean layout, related videos fix
-
-import React, { useState, useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import RelatedVideos from "../components/RelatedVideos";
-import Spinner from "../components/Spinner";
-import Player from "../components/Player";
 import DebugOverlay from "../components/DebugOverlay";
 import { API_KEY } from "../config";
-import { usePlayer } from "../contexts/PlayerContext";
+import { useGlobalPlayer } from "../context/GlobalPlayerContext";
 
 export default function Watch() {
-  const { id } = useParams();
-  const {
-    currentVideo,
-    playing,
-    playVideo,
-    setCurrentVideo,
-    setPlaying,
-    setPlaylist,
-    setCurrentIndex,
-  } = usePlayer();
+  const { id: videoId } = useParams();
+  const [video, setVideo] = useState(null);
+  const [related, setRelated] = useState([]);
+  const { setCurrentVideo, setIsPlaying } = useGlobalPlayer();
 
-  const [video, setVideo] = useState(currentVideo || null);
-  const [loading, setLoading] = useState(!currentVideo);
-  const [playlist, setLocalPlaylist] = useState([]);
-  const [currentIndex, setLocalIndex] = useState(0);
-  const playerRef = useRef(null);
+  const log = (msg) => window.debugLog?.(`Watch(${videoId}): ${msg}`);
 
-  const log = (msg) => window.debugLog?.(`Watch(${id}): ${msg}`);
-
+  // -----------------------------
+  // Fetch main video metadata
+  // -----------------------------
   useEffect(() => {
-    if (!id) return;
+    async function fetchVideo() {
+      log(`Fetching video metadata for id: ${videoId}`);
 
-    if (
-      currentVideo &&
-      (currentVideo.id === id || currentVideo.id?.videoId === id)
-    ) {
-      log("Using existing currentVideo from global state");
-      setVideo(currentVideo);
-      setLoading(false);
-      return;
-    }
+      const url = `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,statistics&id=${videoId}&key=${API_KEY}`;
+      log(`DEBUG: Video metadata URL: ${url}`);
 
-    setLoading(true);
-    log(`Fetching video metadata for id: ${id}`);
-
-    (async () => {
       try {
-        const res = await fetch(
-          `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,statistics&id=${id}&key=${API_KEY}`
-        );
-        const data = await res.json();
+        const res = await fetch(url);
+        const raw = await res.text();
+        log(`DEBUG: Video metadata raw response: ${raw}`);
 
-        if (data.items?.length > 0) {
-          const fetchedVideo = data.items[0];
-          setVideo(fetchedVideo);
-          playVideo(fetchedVideo); // sync to global
-          log("Video fetched and global currentVideo updated");
-        } else {
-          setVideo(null);
-          log("No video returned from API");
+        let data;
+        try {
+          data = JSON.parse(raw);
+        } catch (err) {
+          log(`DEBUG: JSON parse error (video metadata): ${err}`);
+          return;
         }
+
+        if (data.error) {
+          log(`DEBUG: Video metadata API error: ${JSON.stringify(data.error)}`);
+          return;
+        }
+
+        const item = data.items?.[0];
+        if (!item) {
+          log("DEBUG: No video metadata returned");
+          return;
+        }
+
+        setVideo(item);
+        setCurrentVideo(item);
+        setIsPlaying(true);
+
+        log("Video fetched and global currentVideo updated");
       } catch (err) {
-        log(`Video fetch error: ${err}`);
-        setVideo(null);
-      } finally {
-        setLoading(false);
+        log(`DEBUG: Video metadata fetch exception: ${err}`);
       }
-    })();
-  }, [id, currentVideo, playVideo]);
+    }
 
+    fetchVideo();
+  }, [videoId, setCurrentVideo, setIsPlaying]);
+
+  // -----------------------------
+  // Fetch related videos (DEEP DEBUG)
+  // -----------------------------
   useEffect(() => {
-    if (video) {
-      setLocalPlaylist([video]);
-      setLocalIndex(0);
-      setPlaylist([video]);
-      setCurrentIndex(0);
-      log("Playlist set to single current video");
+    async function fetchRelated() {
+      log(`DEBUG: Fetching related videos for id: ${videoId}`);
+
+      const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&relatedToVideoId=${videoId}&type=video&maxResults=5&key=${API_KEY}`;
+      log(`DEBUG: RelatedVideos request URL: ${url}`);
+
+      try {
+        const res = await fetch(url);
+        log(`DEBUG: RelatedVideos HTTP status: ${res.status}`);
+
+        const raw = await res.text();
+        log(`DEBUG: RelatedVideos raw response: ${raw}`);
+
+        let data;
+        try {
+          data = JSON.parse(raw);
+        } catch (err) {
+          log(`DEBUG: JSON parse error (related videos): ${err}`);
+          return;
+        }
+
+        if (data.error) {
+          log(`DEBUG: RelatedVideos API error: ${JSON.stringify(data.error)}`);
+          return;
+        }
+
+        log(`DEBUG: RelatedVideos items count: ${data.items?.length || 0}`);
+        setRelated(data.items || []);
+      } catch (err) {
+        log(`DEBUG: RelatedVideos fetch exception: ${err}`);
+      }
     }
-  }, [video, setPlaylist, setCurrentIndex]);
 
-  const handleEnded = () => {
-    log("Video ended");
-    setPlaying(false);
-    // future: use playNext() from context
-  };
+    fetchRelated();
+  }, [videoId]);
 
-  const currentTrack = playlist[currentIndex] || video;
-  const snippet = currentTrack?.snippet || {};
-
-  // Normalized videoId
-  let videoIdForApi = "";
-  if (typeof currentTrack?.id === "string") {
-    videoIdForApi = currentTrack.id;
-  } else if (currentTrack?.id?.videoId) {
-    videoIdForApi = currentTrack.id.videoId;
-  }
-  videoIdForApi = String(videoIdForApi || "").trim();
-
-  const embedUrl = videoIdForApi
-    ? `https://www.youtube-nocookie.com/embed/${videoIdForApi}`
-    : "";
-
-  const handleSeekRelative = (secs) => {
-    const player = playerRef.current;
-    if (!player) return;
-    try {
-      const current = player.getCurrentTime?.() || 0;
-      player.seekTo(current + secs, "seconds");
-      log(`Seeked ${secs} seconds (${current} -> ${current + secs})`);
-    } catch (e) {
-      log(`Seek error: ${e}`);
-    }
-  };
-
-  const handlePrev = () => {
-    log("Prev video requested (no previous in single-item playlist)");
-  };
-
-  const handleNext = () => {
-    log("Next video requested (no next in single-item playlist)");
-  };
-
+  // -----------------------------
+  // UI
+  // -----------------------------
   return (
     <div
       style={{
         paddingTop: "var(--header-height)",
         paddingBottom: "var(--footer-height)",
+        minHeight: "100vh",
         background: "var(--app-bg)",
         color: "#fff",
       }}
     >
       <DebugOverlay pageName="Watch" />
 
-      {loading && <Spinner message="Loading video…" />}
+      {!video && <p style={{ padding: 16 }}>Loading video…</p>}
 
-      {!loading && !currentTrack && (
-        <div style={{ padding: 16 }}>
-          <p>Video not found or unavailable.</p>
-        </div>
-      )}
-
-      {!loading && currentTrack && (
+      {video && (
         <>
-          {/* Player container: full width, 16:9 from viewport width */}
-          {embedUrl && (
-            <div
-              style={{
-                width: "100%",
-                background: "#000",
-                position: "relative",
-                height: "calc((100vw) * 9 / 16)",
-                overflow: "hidden",
-              }}
-            >
-              <Player
-                ref={playerRef}
-                embedUrl={embedUrl}
-                playing={playing}
-                onEnded={handleEnded}
-                pipMode={false}
-                draggable={false}
-                trackTitle={snippet.title}
-                onSeekRelative={handleSeekRelative}
-                onPrev={handlePrev}
-                onNext={handleNext}
-              />
-            </div>
-          )}
+          <div style={{ width: "100%", maxWidth: 1280, margin: "0 auto" }}>
+            <iframe
+              width="100%"
+              height="720"
+              src={`https://www.youtube-nocookie.com/embed/${videoId}`}
+              allow="autoplay; encrypted-media"
+              allowFullScreen
+              style={{ border: "none" }}
+            ></iframe>
 
-          {/* Title/description BELOW player */}
-          <div style={{ padding: "12px 16px 8px 16px" }}>
-            <h2 style={{ margin: 0 }}>{snippet.title}</h2>
-            <p style={{ margin: "4px 0 0 0", opacity: 0.7 }}>
-              by {snippet.channelTitle}
-            </p>
+            <h2 style={{ padding: "16px" }}>{video.snippet.title}</h2>
           </div>
 
-          {/* Related videos BELOW description */}
-          {videoIdForApi.length > 0 && (
-            <RelatedVideos
-              videoId={videoIdForApi}
-              apiKey={API_KEY}
-              onDebugLog={log}
-            />
-          )}
+          <h3 style={{ padding: "16px 16px 0" }}>Related Videos</h3>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
+              gap: 16,
+              padding: "16px",
+            }}
+          >
+            {related.map((v) => (
+              <div
+                key={v.id.videoId}
+                style={{
+                  background: "#222",
+                  padding: 12,
+                  borderRadius: 8,
+                }}
+              >
+                <img
+                  src={v.snippet.thumbnails.medium.url}
+                  alt={v.snippet.title}
+                  style={{ width: "100%", borderRadius: 6 }}
+                />
+                <p style={{ marginTop: 8 }}>{v.snippet.title}</p>
+              </div>
+            ))}
+
+            {related.length === 0 && (
+              <p style={{ padding: 16 }}>No related videos found.</p>
+            )}
+          </div>
         </>
       )}
     </div>
