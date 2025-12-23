@@ -36,7 +36,7 @@ export default function BootJosh({ onDone }) {
         style={{
           width: 180,
           height: "auto",
-          marginBottom: 20,
+          marginBottom: 40,
         }}
       />
 
@@ -48,7 +48,7 @@ export default function BootJosh({ onDone }) {
           letterSpacing: 1,
         }}
       >
-        BootJosh
+        This Shit is FIRE!!!
       </div>
     </div>
   );
