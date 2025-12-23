@@ -1,10 +1,11 @@
 // File: src/pages/Watch.jsx
-// PCC v11.0 — GitHub Pages–safe Watch page (no .env, no crashes)
+// PCC v11.1 — GitHub Pages–safe Watch page + RelatedVideos integration
 
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import DebugOverlay from "../components/DebugOverlay";
 import Player from "../components/Player";
+import RelatedVideos from "../components/RelatedVideos";
 import { usePlayer } from "../contexts/PlayerContext";
 
 const INVIDIOUS_BASE = "https://yewtu.be";
@@ -209,18 +210,20 @@ export default function Watch() {
             marginBottom: 16,
           }}
         >
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-            }}
-          >
+          <div style={{ position: "absolute", inset: 0 }}>
             <Player embedUrl={embedUrl} playing={playing} />
           </div>
         </div>
 
         <h2>{video.title}</h2>
         <p style={{ opacity: 0.7 }}>{video.author}</p>
+
+        {/* Related Videos */}
+        <RelatedVideos
+          videoId={video.id}
+          title={video.title}
+          onDebugLog={(msg) => log(msg)}
+        />
       </div>
     </>
   );
