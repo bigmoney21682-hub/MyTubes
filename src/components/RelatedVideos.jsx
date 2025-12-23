@@ -1,8 +1,9 @@
 // File: src/components/RelatedVideos.jsx
-// PCC v5.0 — YouTube API only, relatedToVideoId + title fallback, feeds autonext
+// PCC v6.0 — YouTube API only + in-memory caching + autonext feed
 
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { getCached, setCached } from "../utils/youtubeCache";
 
 export default function RelatedVideos({
   videoId,
@@ -36,18 +37,18 @@ export default function RelatedVideos({
       setError(null);
       setVideos([]);
 
-      const applied = (mapped, rawForAutonext, sourceLabel) => {
-        setVideos(mapped);
-        if (typeof onLoaded === "function") {
-          onLoaded(rawForAutonext || mapped);
-        }
-        log(
-          `Applied ${mapped.length} items from ${sourceLabel} (and fed autonext)`
-        );
-      };
+      const cacheKey = `related_${cleanId}`;
+      const cached = getCached(cacheKey);
+
+      if (cached) {
+        log("Using cached related videos");
+        setVideos(cached);
+        onLoaded?.(cached);
+        return;
+      }
 
       // -----------------------------------------
-      // 1. Try relatedToVideoId (best signal)
+      // 1. Try relatedToVideoId
       // -----------------------------------------
       try {
         const url =
@@ -74,7 +75,10 @@ export default function RelatedVideos({
             }));
 
           if (mapped.length > 0) {
-            applied(mapped, data.items, "YouTube relatedToVideoId");
+            setCached(cacheKey, mapped);
+            setVideos(mapped);
+            onLoaded?.(mapped);
+            log(`Applied ${mapped.length} items from YouTube relatedToVideoId`);
             return;
           }
         }
@@ -113,7 +117,10 @@ export default function RelatedVideos({
                 v.snippet.thumbnails?.high?.url,
             }));
 
-          applied(mapped, data.items, "YouTube title fallback");
+          setCached(cacheKey, mapped);
+          setVideos(mapped);
+          onLoaded?.(mapped);
+          log(`Applied ${mapped.length} items from YouTube title fallback`);
         }
       } catch (err) {
         log(`YouTube fallback failed → ${err}`);
