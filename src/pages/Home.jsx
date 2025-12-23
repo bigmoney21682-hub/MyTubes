@@ -1,7 +1,8 @@
+// File: src/pages/Home.jsx
+// PCC v4.0 — Correct ID extraction + debug logging + stable navigation
+
 import { useEffect, useState } from "react";
 import VideoCard from "../components/VideoCard";
-import DebugOverlay from "../components/DebugOverlay";
-import { API_KEY } from "../config";
 
 export default function Home({ searchQuery }) {
   const [videos, setVideos] = useState([]);
@@ -10,311 +11,107 @@ export default function Home({ searchQuery }) {
   const log = (msg) => window.debugLog?.(`Home: ${msg}`);
 
   // ---------------------------------------------------------
-  // Trending + Search with 3‑Layer Fallback System
+  // Fetch trending or search results
   // ---------------------------------------------------------
   useEffect(() => {
-    async function fetchVideos() {
+    async function load() {
       setLoading(true);
 
-      // -----------------------------
-      // 1) PIPED TRENDING
-      // -----------------------------
-      async function tryPipedTrending() {
-        const url = "https://pipedapi.kavin.rocks/trending";
-        log(`DEBUG: Trying Piped trending: ${url}`);
-
-        try {
-          const res = await fetch(url);
-          const raw = await res.text();
-          log(`DEBUG: Piped trending raw: ${raw}`);
-
-          let data;
-          try {
-            data = JSON.parse(raw);
-          } catch (err) {
-            log(`DEBUG: Piped trending JSON parse error: ${err}`);
-            return null;
-          }
-
-          if (!Array.isArray(data)) {
-            log("DEBUG: Piped trending returned non-array");
-            return null;
-          }
-
-          log(`DEBUG: Piped trending returned ${data.length} items`);
-
-          return data.map((v) => ({
-            id: v.id,
-            snippet: {
-              title: v.title,
-              channelTitle: v.uploader,
-              thumbnails: { high: { url: v.thumbnail } },
-            },
-            contentDetails: { duration: v.duration },
-            statistics: { viewCount: v.views },
-          }));
-        } catch (err) {
-          log(`DEBUG: Piped trending fetch exception: ${err}`);
-          return null;
-        }
-      }
-
-      // -----------------------------
-      // 2) INVIDIOUS TRENDING
-      // -----------------------------
-      async function tryInvidiousTrending() {
-        const url = "https://invidious.snopyta.org/api/v1/trending";
-        log(`DEBUG: Trying Invidious trending: ${url}`);
-
-        try {
-          const res = await fetch(url);
-          const raw = await res.text();
-          log(`DEBUG: Invidious trending raw: ${raw}`);
-
-          let data;
-          try {
-            data = JSON.parse(raw);
-          } catch (err) {
-            log(`DEBUG: Invidious trending JSON parse error: ${err}`);
-            return null;
-          }
-
-          if (!Array.isArray(data)) {
-            log("DEBUG: Invidious trending returned non-array");
-            return null;
-          }
-
-          log(`DEBUG: Invidious trending returned ${data.length} items`);
-
-          return data.map((v) => ({
-            id: v.videoId,
-            snippet: {
-              title: v.title,
-              channelTitle: v.author,
-              thumbnails: { high: { url: v.videoThumbnails?.[2]?.url } },
-            },
-            contentDetails: { duration: v.lengthSeconds },
-            statistics: { viewCount: v.viewCount },
-          }));
-        } catch (err) {
-          log(`DEBUG: Invidious trending fetch exception: ${err}`);
-          return null;
-        }
-      }
-
-      // -----------------------------
-      // 3) YOUTUBE TRENDING (Guaranteed)
-      // -----------------------------
-      async function tryYouTubeTrending() {
-        const url = `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,statistics&chart=mostPopular&maxResults=30&regionCode=US&key=${API_KEY}`;
-        log(`DEBUG: Trying YouTube trending: ${url}`);
-
-        try {
-          const res = await fetch(url);
-          const raw = await res.text();
-          log(`DEBUG: YouTube trending raw: ${raw}`);
-
-          let data;
-          try {
-            data = JSON.parse(raw);
-          } catch (err) {
-            log(`DEBUG: YouTube trending JSON parse error: ${err}`);
-            return null;
-          }
-
-          if (!data.items) {
-            log("DEBUG: YouTube trending returned no items");
-            return null;
-          }
-
-          log(`DEBUG: YouTube trending returned ${data.items.length} items`);
-          return data.items;
-        } catch (err) {
-          log(`DEBUG: YouTube trending fetch exception: ${err}`);
-          return null;
-        }
-      }
-
-      // -----------------------------
-      // SEARCH FALLBACKS
-      // -----------------------------
-      async function tryPipedSearch(query) {
-        const url = `https://pipedapi.kavin.rocks/search?q=${encodeURIComponent(query)}`;
-        log(`DEBUG: Trying Piped search: ${url}`);
-
-        try {
-          const res = await fetch(url);
-          const raw = await res.text();
-          log(`DEBUG: Piped search raw: ${raw}`);
-
-          let data;
-          try {
-            data = JSON.parse(raw);
-          } catch (err) {
-            log(`DEBUG: Piped search JSON parse error: ${err}`);
-            return null;
-          }
-
-          if (!Array.isArray(data.items)) {
-            log("DEBUG: Piped search returned no items");
-            return null;
-          }
-
-          log(`DEBUG: Piped search returned ${data.items.length} items`);
-
-          return data.items.map((v) => ({
-            id: v.id,
-            snippet: {
-              title: v.title,
-              channelTitle: v.uploader,
-              thumbnails: { high: { url: v.thumbnail } },
-            },
-          }));
-        } catch (err) {
-          log(`DEBUG: Piped search fetch exception: ${err}`);
-          return null;
-        }
-      }
-
-      async function tryYouTubeSearch(query) {
-        const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=30&q=${encodeURIComponent(
-          query
-        )}&key=${API_KEY}`;
-
-        log(`DEBUG: Trying YouTube search: ${url}`);
-
-        try {
-          const res = await fetch(url);
-          const raw = await res.text();
-          log(`DEBUG: YouTube search raw: ${raw}`);
-
-          let data;
-          try {
-            data = JSON.parse(raw);
-          } catch (err) {
-            log(`DEBUG: YouTube search JSON parse error: ${err}`);
-            return null;
-          }
-
-          if (!data.items) {
-            log("DEBUG: YouTube search returned no items");
-            return null;
-          }
-
-          log(`DEBUG: YouTube search returned ${data.items.length} items`);
-          return data.items;
-        } catch (err) {
-          log(`DEBUG: YouTube search fetch exception: ${err}`);
-          return null;
-        }
-      }
-
-      // ---------------------------------------------------------
-      // EXECUTION
-      // ---------------------------------------------------------
       try {
-        if (!searchQuery) {
-          // TRENDING
-          log("DEBUG: Fetching trending videos");
+        if (searchQuery && searchQuery.trim().length > 0) {
+          log(`DEBUG: Searching for "${searchQuery}"`);
 
-          let results = await tryPipedTrending();
-          if (results) {
-            log("DEBUG: Trending source = PIPED");
-            setVideos(results);
-            return;
-          }
+          const res = await fetch(
+            `https://pipedapi.kavin.rocks/search?q=${encodeURIComponent(
+              searchQuery
+            )}&filter=videos`
+          );
+          const raw = await res.text();
+          log(`DEBUG: Search raw: ${raw.slice(0, 200)}...`);
 
-          results = await tryInvidiousTrending();
-          if (results) {
-            log("DEBUG: Trending source = INVIDIOUS");
-            setVideos(results);
-            return;
-          }
+          const data = JSON.parse(raw);
+          const items = data?.items || [];
 
-          results = await tryYouTubeTrending();
-          if (results) {
-            log("DEBUG: Trending source = YOUTUBE");
-            setVideos(results);
-            return;
-          }
-
-          log("DEBUG: All trending fallbacks failed");
-          setVideos([]);
+          log(`DEBUG: Search returned ${items.length} items`);
+          setVideos(items);
         } else {
-          // SEARCH
-          log(`DEBUG: Fetching search results for: ${searchQuery}`);
+          log("DEBUG: Fetching YouTube trending");
 
-          let results = await tryPipedSearch(searchQuery);
-          if (results) {
-            log("DEBUG: Search source = PIPED");
-            setVideos(results);
-            return;
-          }
+          const res = await fetch(
+            "https://pipedapi.kavin.rocks/trending?region=US"
+          );
+          const raw = await res.text();
+          log(`DEBUG: Trending raw: ${raw.slice(0, 200)}...`);
 
-          results = await tryYouTubeSearch(searchQuery);
-          if (results) {
-            log("DEBUG: Search source = YOUTUBE");
-            setVideos(results);
-            return;
-          }
+          const data = JSON.parse(raw);
+          const items = data || [];
 
-          log("DEBUG: All search fallbacks failed");
-          setVideos([]);
+          log(`DEBUG: YouTube trending returned ${items.length} items`);
+          setVideos(items);
         }
       } catch (err) {
-        log(`DEBUG: Home fetch error: ${err}`);
-      } finally {
-        setLoading(false);
+        log(`ERROR: Fetch failed: ${err}`);
+        setVideos([]);
       }
+
+      setLoading(false);
     }
 
-    fetchVideos();
+    load();
   }, [searchQuery]);
 
   // ---------------------------------------------------------
-  // UI
+  // Extract a clean video ID (string only)
   // ---------------------------------------------------------
+  const getId = (video) => {
+    if (!video) return null;
+
+    if (typeof video.id === "string") return video.id;
+    if (typeof video.id?.videoId === "string") return video.id.videoId;
+
+    return null;
+  };
+
+  if (loading)
+    return <p style={{ color: "#fff", padding: 16 }}>Loading…</p>;
+
   return (
-    <div
-      style={{
-        paddingTop: "var(--header-height)",
-        paddingBottom: "var(--footer-height)",
-        minHeight: "100vh",
-        background: "var(--app-bg)",
-        color: "#fff",
-      }}
-    >
-      <DebugOverlay pageName="Home" />
-
-      <h2 style={{ padding: "0 16px", marginBottom: "8px" }}>
-        {searchQuery ? `Search Results for "${searchQuery}"` : "Trending Videos"}
-      </h2>
-
-      {loading && <p style={{ textAlign: "center" }}>Loading videos…</p>}
+    <div style={{ padding: 16 }}>
+      {videos.length === 0 && (
+        <p style={{ color: "#fff" }}>No results found.</p>
+      )}
 
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
+          gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
           gap: 16,
-          padding: "0 8px",
         }}
       >
-        {videos.map((v) => (
-          <VideoCard
-            key={v.id?.videoId || v.id}
-            video={{
-              id: v.id?.videoId || v.id,
-              title: v.snippet.title,
-              thumbnail:
-                v.snippet.thumbnails.high?.url ||
-                v.snippet.thumbnails.medium?.url,
-              author: v.snippet.channelTitle,
-              duration: v.contentDetails?.duration,
-              viewCount: v.statistics?.viewCount,
-            }}
-          />
-        ))}
+        {videos.map((video) => {
+          const vid = getId(video);
+
+          if (!vid) {
+            log("ERROR: Invalid video.id in Home list");
+            return null;
+          }
+
+          return (
+            <VideoCard
+              key={vid}
+              video={{
+                id: vid,
+                title: video.title || video.snippet?.title,
+                author: video.uploader || video.snippet?.channelTitle,
+                thumbnail:
+                  video.thumbnail ||
+                  video.thumbnails?.medium?.url ||
+                  video.thumbnails?.default?.url,
+                duration: video.duration,
+              }}
+            />
+          );
+        })}
       </div>
     </div>
   );
