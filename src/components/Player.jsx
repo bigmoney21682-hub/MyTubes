@@ -1,112 +1,178 @@
 // File: src/components/Player.jsx
-// PCC v3.1 — Video player with working tap overlay controls (MyTube-orange), fixed aspect ratio
+// PCC v4.0 — YouTube-style gestures + MyTube gradient UI + PlayerContext integration
 
-import React, { forwardRef, useEffect, useRef, useState } from "react";
+import React, {
+  forwardRef,
+  useEffect,
+  useRef,
+  useState,
+  useCallback,
+} from "react";
 import ReactPlayer from "react-player";
+import { usePlayer } from "../contexts/PlayerContext";
 
-const Player = forwardRef(
-  (
-    {
-      embedUrl,
-      playing,
-      onEnded,
-      pipMode,
-      draggable,
-      trackTitle,
-      onSeekRelative,
-      onPrev,
-      onNext,
-    },
-    ref
-  ) => {
-    const [isAdPlaying, setIsAdPlaying] = useState(false);
-    const [videoVolume, setVideoVolume] = useState(1);
-    const [adOverlayVisible, setAdOverlayVisible] = useState(false);
+const Player = forwardRef(({ embedUrl, playing, onEnded }, ref) => {
+  const { playPrev, playNext, seekRelative } = usePlayer();
 
-    // Tap-to-show overlay controls
-    const [tapOverlayVisible, setTapOverlayVisible] = useState(false);
-    const tapOverlayTimeoutRef = useRef(null);
+  const [hasStarted, setHasStarted] = useState(false);
+  const [tapOverlayVisible, setTapOverlayVisible] = useState(false);
+  const [bubble, setBubble] = useState(null); // { x, y, direction }
+  const tapTimeoutRef = useRef(null);
+  const lastTapRef = useRef(0);
 
-    useEffect(() => {
-      window.debugLog?.(
-        `DEBUG: Player mounted - embedUrl: ${embedUrl}, playing: ${playing}`
-      );
-      return () => {
-        window.debugLog?.("DEBUG: Player unmounted");
-        if (tapOverlayTimeoutRef.current) {
-          clearTimeout(tapOverlayTimeoutRef.current);
-        }
-      };
-    }, [embedUrl, playing]);
+  const log = (msg) => window.debugLog?.(`Player: ${msg}`);
 
-    if (!embedUrl) {
-      window.debugLog?.("DEBUG: Player embedUrl is empty");
-      return null;
+  useEffect(() => {
+    log(`Mounted - embedUrl=${embedUrl}, playing=${playing}`);
+    return () => log("Unmounted");
+  }, [embedUrl, playing]);
+
+  if (!embedUrl) return null;
+
+  // -----------------------------
+  // Autoplay-safe start detection
+  // -----------------------------
+  const handleStart = () => {
+    if (!hasStarted) {
+      setHasStarted(true);
+      log("Playback started (onStart)");
+    }
+  };
+
+  const handlePlay = () => {
+    if (!hasStarted) {
+      setHasStarted(true);
+      log("Playback started (onPlay)");
+    }
+  };
+
+  // -----------------------------
+  // Single tap overlay
+  // -----------------------------
+  const showTapOverlay = () => {
+    setTapOverlayVisible(true);
+    if (tapTimeoutRef.current) clearTimeout(tapTimeoutRef.current);
+    tapTimeoutRef.current = setTimeout(() => {
+      setTapOverlayVisible(false);
+    }, 2000);
+  };
+
+  // -----------------------------
+  // Double-tap detection
+  // -----------------------------
+  const handleTapAreaClick = (e) => {
+    if (!hasStarted) {
+      log("Tap ignored (video not started yet)");
+      return;
     }
 
-    const handleProgress = (state) => {
-      if (state?.playingAd || state?.ad) {
-        setIsAdPlaying(true);
-        setAdOverlayVisible(true);
-        setVideoVolume(0);
-      } else if (isAdPlaying) {
-        setIsAdPlaying(false);
-        setAdOverlayVisible(false);
-        setVideoVolume(1);
+    const now = Date.now();
+    const tapX = e.nativeEvent.offsetX;
+    const tapY = e.nativeEvent.offsetY;
+    const width = e.currentTarget.clientWidth;
+
+    const isDoubleTap = now - lastTapRef.current < 300;
+    lastTapRef.current = now;
+
+    if (isDoubleTap) {
+      const isLeft = tapX < width / 2;
+      const direction = isLeft ? -15 : 15;
+
+      // Skip
+      seekRelative(direction);
+
+      // Bubble animation at tap location
+      setBubble({
+        x: tapX,
+        y: tapY,
+        direction,
+      });
+
+      setTimeout(() => setBubble(null), 500);
+      return;
+    }
+
+    // Single tap → show overlay
+    showTapOverlay();
+  };
+
+  // -----------------------------
+  // Overlay button actions
+  // -----------------------------
+  const handleRestartOrPrev = useCallback(() => {
+    const player = ref?.current?.getInternalPlayer();
+    if (!player) return;
+
+    player.getCurrentTime().then((t) => {
+      if (t > 2) {
+        // Restart video
+        seekRelative(-t);
+      } else {
+        // Previous video
+        playPrev();
       }
-    };
+    });
+  }, [ref, playPrev, seekRelative]);
 
-    const handleStart = () => {
-      setIsAdPlaying(false);
-      setAdOverlayVisible(false);
-      setVideoVolume(1);
-    };
+  const handlePlayPause = () => {
+    // Center button toggles play/pause
+    const { setPlaying } = usePlayer.getState
+      ? usePlayer.getState()
+      : { setPlaying: null };
+    if (setPlaying) setPlaying((p) => !p);
+  };
 
-    // Show overlay controls when user taps anywhere on the video
-    const handleTap = () => {
-      if (adOverlayVisible) return;
+  const handleNext = () => playNext();
 
-      setTapOverlayVisible(true);
-      if (tapOverlayTimeoutRef.current) {
-        clearTimeout(tapOverlayTimeoutRef.current);
-      }
-      tapOverlayTimeoutRef.current = setTimeout(() => {
-        setTapOverlayVisible(false);
-      }, 2000);
-    };
+  // -----------------------------
+  // Styles
+  // -----------------------------
+  const circleStyle = {
+    width: 48,
+    height: 48,
+    borderRadius: "50%",
+    background: "linear-gradient(90deg, #ff8c00, #ff4500, #ff0000)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    color: "#fff",
+    fontSize: 20,
+    fontWeight: 700,
+    cursor: "pointer",
+    boxShadow: "0 3px 8px rgba(0,0,0,0.5)",
+  };
 
-    const handleSeekBack = (e) => {
-      e.stopPropagation();
-      onSeekRelative?.(-15);
-    };
+  const bubbleStyle = (x, y) => ({
+    position: "absolute",
+    left: x - 24,
+    top: y - 24,
+    width: 48,
+    height: 48,
+    borderRadius: "50%",
+    background: "linear-gradient(90deg, #ff8c00, #ff4500, #ff0000)",
+    color: "#fff",
+    fontSize: 20,
+    fontWeight: 700,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    pointerEvents: "none",
+    animation: "bubblePop 0.5s ease-out forwards",
+  });
 
-    const handleSeekForward = (e) => {
-      e.stopPropagation();
-      onSeekRelative?.(15);
-    };
-
-    const handlePrev = (e) => {
-      e.stopPropagation();
-      onPrev?.();
-    };
-
-    const handleNext = (e) => {
-      e.stopPropagation();
-      onNext?.();
-    };
-
-    return (
-      <div
-        style={{
-          position: "relative",
-          width: "100%",
-          height: "100%", // important so ReactPlayer can fill the container
-          background: "#000",
-        }}
-      >
-        {/* Invisible tap layer ABOVE iframe so taps work (iframe eats click events) */}
+  return (
+    <div
+      style={{
+        position: "relative",
+        width: "100%",
+        height: "100%",
+        background: "#000",
+      }}
+    >
+      {/* Tap/double-tap area (only active after playback starts) */}
+      {hasStarted && (
         <div
-          onClick={handleTap}
+          onClick={handleTapAreaClick}
           style={{
             position: "absolute",
             inset: 0,
@@ -114,189 +180,76 @@ const Player = forwardRef(
             background: "transparent",
           }}
         />
+      )}
 
-        {/* Ad overlay */}
-        {adOverlayVisible && (
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              background: "#000",
-              zIndex: 10,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <p style={{ color: "#555", fontSize: 18 }}>Loading video...</p>
-          </div>
-        )}
+      {/* Double-tap bubble */}
+      {bubble && (
+        <div style={bubbleStyle(bubble.x, bubble.y)}>
+          {Math.abs(bubble.direction)}
+        </div>
+      )}
 
-        {/* Existing pause overlay controls (unchanged behavior) */}
-        {!playing && !adOverlayVisible && (
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              zIndex: 9,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 16,
-              background: "rgba(0,0,0,0.35)",
-            }}
-          >
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onSeekRelative?.(-15);
-              }}
-              style={controlButtonStyleOld}
-            >
-              ⏪ 15s
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onPrev?.();
-              }}
-              style={controlButtonStyleOld}
-            >
-              ⏮ Prev
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onSeekRelative?.(15);
-              }}
-              style={controlButtonStyleOld}
-            >
-              15s ⏩
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onNext?.();
-              }}
-              style={controlButtonStyleOld}
-            >
-              ⏭ Next
-            </button>
-          </div>
-        )}
-
-        {/* Tap overlay controls (MyTube-orange, centered, does NOT pause video) */}
-        {tapOverlayVisible && !adOverlayVisible && (
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              zIndex: 11,
-              display: "flex",
-              alignItems: "center", // vertically centered
-              justifyContent: "center",
-              pointerEvents: "none",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                gap: 16,
-                pointerEvents: "auto",
-              }}
-            >
-              {/* 15s back */}
-              <button onClick={handleSeekBack} style={circleControlStyle}>
-                <span style={circleTextStyle}>15</span>
-              </button>
-
-              {/* Prev */}
-              <button onClick={handlePrev} style={circleControlStyle}>
-                <span style={circleTextStyle}>⏮</span>
-              </button>
-
-              {/* Next */}
-              <button onClick={handleNext} style={circleControlStyle}>
-                <span style={circleTextStyle}>⏭</span>
-              </button>
-
-              {/* 15s forward */}
-              <button onClick={handleSeekForward} style={circleControlStyle}>
-                <span style={circleTextStyle}>15</span>
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ReactPlayer fills the container (no zoom/crop when parent is 16:9) */}
-        <ReactPlayer
-          ref={ref}
-          url={embedUrl}
-          width="100%"
-          height="100%"
-          playing={playing}
-          onEnded={onEnded}
-          controls={false}
-          volume={videoVolume}
-          muted={false}
-          playsinline={true}
+      {/* Single-tap overlay (3 buttons) */}
+      {tapOverlayVisible && hasStarted && (
+        <div
           style={{
             position: "absolute",
             inset: 0,
-            borderRadius: pipMode ? 8 : 0,
+            zIndex: 10,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 24,
+            pointerEvents: "auto",
           }}
-          progressInterval={500}
-          onProgress={handleProgress}
-          onStart={handleStart}
-          config={{
-            youtube: {
-              playerVars: {
-                autoplay: 1,
-                controls: 0,
-                rel: 0,
-                modestbranding: 1,
-                playsinline: 1,
-              },
+        >
+          {/* Restart / Prev */}
+          <div style={circleStyle} onClick={handleRestartOrPrev}>
+            ⏮
+          </div>
+
+          {/* Play / Pause */}
+          <div style={circleStyle} onClick={handlePlayPause}>
+            {playing ? "⏸" : "▶️"}
+          </div>
+
+          {/* Next */}
+          <div style={circleStyle} onClick={handleNext}>
+            ⏭
+          </div>
+        </div>
+      )}
+
+      {/* ReactPlayer */}
+      <ReactPlayer
+        ref={ref}
+        url={embedUrl}
+        width="100%"
+        height="100%"
+        playing={playing}
+        onEnded={onEnded}
+        controls={false}
+        playsinline
+        onStart={handleStart}
+        onPlay={handlePlay}
+        style={{
+          position: "absolute",
+          inset: 0,
+        }}
+        config={{
+          youtube: {
+            playerVars: {
+              autoplay: 1,
+              controls: 0,
+              rel: 0,
+              modestbranding: 1,
+              playsinline: 1,
             },
-          }}
-        />
-      </div>
-    );
-  }
-);
-
-// Old pause-overlay button style (preserved)
-const controlButtonStyleOld = {
-  background: "rgba(0,0,0,0.7)",
-  border: "1px solid #fff",
-  color: "#fff",
-  padding: "8px 12px",
-  borderRadius: 999,
-  fontSize: 14,
-  cursor: "pointer",
-};
-
-// New tap-overlay circular controls (C2 + S1)
-const circleControlStyle = {
-  width: 48,
-  height: 48,
-  borderRadius: "50%",
-  border: "none",
-  background:
-    "linear-gradient(90deg, #ff8c00, #ff4500, #ff0000)", // MyTube-orange gradient
-  boxShadow: "0 3px 8px rgba(0,0,0,0.5)",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  cursor: "pointer",
-  transition: "transform 0.12s ease, opacity 0.12s ease",
-  opacity: 0.96,
-};
-
-const circleTextStyle = {
-  color: "#fff",
-  fontSize: 16,
-  fontWeight: 700,
-};
+          },
+        }}
+      />
+    </div>
+  );
+});
 
 export default Player;
