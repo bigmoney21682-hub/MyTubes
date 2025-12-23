@@ -1,5 +1,5 @@
 // File: src/pages/Watch.jsx
-// PCC v12.0 — GitHub Pages–safe Watch page + RelatedVideos-fed autonext
+// PCC v12.1 — Watch page + RelatedVideos-fed autonext, GlobalPlayer always enabled
 
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
@@ -27,16 +27,8 @@ export default function Watch() {
 
   const log = (msg) => window.debugLog?.(`Watch: ${msg}`);
 
-  // Disable GlobalPlayer while Watch is active
-  useEffect(() => {
-    window.__GLOBAL_AUDIO_ENABLED = false;
-    log("Global audio engine disabled for Watch page");
-
-    return () => {
-      window.__GLOBAL_AUDIO_ENABLED = true;
-      log("Global audio engine re-enabled after leaving Watch page");
-    };
-  }, []);
+  // NOTE: GlobalPlayer is no longer disabled on Watch.
+  // We will manage "double audio" behavior separately later.
 
   // -------------------------------
   // Fetchers
@@ -236,7 +228,6 @@ export default function Watch() {
           onDebugLog={(msg) => log(msg)}
           onLoaded={(list) => {
             log(`RelatedVideos loaded ${list?.length || 0} items for autonext`);
-            // Feed discovery-mode autonext
             setRelatedList(Array.isArray(list) ? list : []);
           }}
         />
