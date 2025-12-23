@@ -1,178 +1,118 @@
 // File: src/pages/Watch.jsx
-// PCC v5.0 — Fully restored fetch logic + deep debug + global audio integration
+// PCC v6.1 — Adds sourceUsed debug tag + unified fallback chain
 
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+import DebugOverlay from "../components/DebugOverlay";
 import { usePlayer } from "../contexts/PlayerContext";
-import Player from "../components/Player";
 
 export default function Watch() {
   const { id } = useParams();
-  const {
-    playVideo,
-    currentVideo,
-    playing,
-    playlist,
-    currentIndex,
-  } = usePlayer();
+  const { playVideo } = usePlayer();
 
   const [video, setVideo] = useState(null);
   const [related, setRelated] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [sourceUsed, setSourceUsed] = useState(null);
 
-  const log = (msg) => window.debugLog?.(`Watch(${id}): ${msg}`);
+  const log = (msg) => window.debugLog?.(`Watch: ${msg}`);
 
-  // ---------------------------------------------------------
-  // Fetch video + related (Piped → Invidious → YouTube fallback)
-  // ---------------------------------------------------------
+  async function fetchFromPiped(path) {
+    const url = `https://pipedapi.kavin.rocks${path}`;
+    log(`Trying Piped: ${url}`);
+
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return await res.json();
+    } catch (err) {
+      log(`Piped failed: ${err}`);
+      return null;
+    }
+  }
+
+  async function fetchFromInvidious(path) {
+    const url = `https://yewtu.be${path}`;
+    log(`Trying Invidious: ${url}`);
+
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return await res.json();
+    } catch (err) {
+      log(`Invidious failed: ${err}`);
+      return null;
+    }
+  }
+
+  async function fetchFromYouTube(id) {
+    log("Fallback → YouTube API");
+
+    try {
+      const res = await fetch(
+        `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&id=${id}&key=${window.YT_API_KEY}`
+      );
+      const data = await res.json();
+      return data.items?.[0] || null;
+    } catch (err) {
+      log(`YouTube failed: ${err}`);
+      return null;
+    }
+  }
+
   useEffect(() => {
     async function load() {
-      log("DEBUG: Fetching video + related");
+      setLoading(true);
 
-      let fetchedVideo = null;
-      let fetchedRelated = [];
+      let v = null;
 
-      // -----------------------------
-      // 1) Try Piped video details
-      // -----------------------------
-      try {
-        const res = await fetch(`https://pipedapi.kavin.rocks/videos/${id}`);
-        const raw = await res.text();
-        log(`DEBUG: Piped video raw: ${raw.slice(0, 200)}...`);
-
-        fetchedVideo = JSON.parse(raw);
-      } catch (err) {
-        log(`DEBUG: Piped video fetch error: ${err}`);
+      // 1) Piped
+      const piped = await fetchFromPiped(`/streams/${id}`);
+      if (piped?.title) {
+        setSourceUsed("PIPED");
+        v = piped;
       }
 
-      // -----------------------------
-      // 2) Try Piped related
-      // -----------------------------
-      try {
-        const res = await fetch(
-          `https://pipedapi.kavin.rocks/related/${id}`
-        );
-        const raw = await res.text();
-        log(`DEBUG: Piped related raw: ${raw.slice(0, 200)}...`);
-
-        fetchedRelated = JSON.parse(raw)?.relatedStreams || [];
-      } catch (err) {
-        log(`DEBUG: Piped related fetch error: ${err}`);
+      // 2) Invidious
+      if (!v) {
+        const inv = await fetchFromInvidious(`/api/v1/videos/${id}`);
+        if (inv?.title) {
+          setSourceUsed("INVIDIOUS");
+          v = inv;
+        }
       }
 
-      // -----------------------------
-      // 3) If Piped failed → YouTube fallback
-      // -----------------------------
-      if (!fetchedVideo?.title) {
-        log("DEBUG: Piped failed → YouTube fallback");
-
-        const ytRes = await fetch(
-          `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${id}&key=${window.YT_API_KEY}`
-        );
-        const ytData = await ytRes.json();
-
-        fetchedVideo = ytData.items?.[0] || null;
+      // 3) YouTube API
+      if (!v) {
+        setSourceUsed("YOUTUBE_API");
+        v = await fetchFromYouTube(id);
       }
 
-      if (!fetchedRelated?.length) {
-        log("DEBUG: Related fallback → YouTube keyword search");
+      setVideo(v);
+      if (v) playVideo(v);
 
-        const keyword = fetchedVideo?.title || "music";
-        const ytRes = await fetch(
-          `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=10&q=${encodeURIComponent(
-            keyword
-          )}&key=${window.YT_API_KEY}`
-        );
-        const ytData = await ytRes.json();
-
-        fetchedRelated = ytData.items || [];
-      }
-
-      // -----------------------------
-      // Store results
-      // -----------------------------
-      setVideo(fetchedVideo);
-      setRelated(fetchedRelated);
-
-      log(
-        `DEBUG: Video fetched -> title="${fetchedVideo?.title ||
-          fetchedVideo?.snippet?.title}", related=${fetchedRelated.length}`
-      );
-
-      // -----------------------------
-      // Call playVideo
-      // -----------------------------
-      playVideo(fetchedVideo, fetchedRelated);
-      log("DEBUG: playVideo() called from Watch");
+      setLoading(false);
     }
 
     load();
-  }, [id, playVideo]);
+  }, [id]);
 
-  // ---------------------------------------------------------
-  // DEBUG: Track playVideo input
-  // ---------------------------------------------------------
-  useEffect(() => {
-    if (!video) return;
-
-    const vid =
-      typeof video.id === "string"
-        ? video.id
-        : video.id?.videoId;
-
-    log(`DEBUG: playVideo() invoked with video.id=${vid}`);
-  }, [video]);
-
-  // ---------------------------------------------------------
-  // DEBUG: Track PlayerContext state
-  // ---------------------------------------------------------
-  useEffect(() => {
-    const vid =
-      typeof currentVideo?.id === "string"
-        ? currentVideo.id
-        : currentVideo?.id?.videoId;
-
-    log(
-      `DEBUG: PlayerContext -> currentVideo=${vid}, playing=${playing}, index=${currentIndex}, playlistLen=${playlist.length}`
+  if (loading)
+    return (
+      <>
+        <DebugOverlay pageName="Watch" sourceUsed={sourceUsed} />
+        <p style={{ color: "#fff", padding: 16 }}>Loading…</p>
+      </>
     );
-  }, [currentVideo, playing, currentIndex, playlist]);
-
-  if (!video) return <p style={{ color: "#fff" }}>Loading…</p>;
-
-  const embedUrl = `https://www.youtube.com/watch?v=${id}`;
 
   return (
-    <div style={{ paddingBottom: 120 }}>
-      <Player
-        embedUrl={embedUrl}
-        playing={playing}
-        onEnded={() => {
-          log("DEBUG: Player onEnded fired");
-        }}
-        pipMode={false}
-        draggable={false}
-        trackTitle={video?.title || video?.snippet?.title}
-        onPrev={() => {
-          log("DEBUG: Prev clicked in Player");
-        }}
-        onNext={() => {
-          log("DEBUG: Next clicked in Player");
-        }}
-      />
+    <>
+      <DebugOverlay pageName="Watch" sourceUsed={sourceUsed} />
 
-      <h2 style={{ color: "#fff", marginTop: 16 }}>
-        {video.title || video.snippet?.title}
-      </h2>
-
-      <p style={{ color: "#aaa", marginTop: 8 }}>
-        {video.description || video.snippet?.description}
-      </p>
-
-      <h3 style={{ color: "#fff", marginTop: 24 }}>Related Videos</h3>
-      {related.map((r) => (
-        <div key={r.id?.videoId || r.id} style={{ color: "#ccc", marginTop: 8 }}>
-          {r.title || r.snippet?.title}
-        </div>
-      ))}
-    </div>
+      <div style={{ padding: 16, color: "#fff" }}>
+        <h2>{video?.title}</h2>
+        <p>{video?.author}</p>
+      </div>
+    </>
   );
 }
