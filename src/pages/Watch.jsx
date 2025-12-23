@@ -1,5 +1,5 @@
 // File: src/pages/Watch.jsx
-// PCC v9.1 — Immediate player (no thumbnail), iOS-safe, sourceUsed debug
+// PCC v10.0 — Immediate player, fixed 16:9, stable GlobalPlayer reactivation
 
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
