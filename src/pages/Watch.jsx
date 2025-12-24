@@ -1,13 +1,16 @@
 // File: src/pages/Watch.jsx
-// PCC v14.0 — YouTube API only + in-memory caching + global player
+// PCC v15.0 — Added Subscribe button + caching + global player
 
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+
 import DebugOverlay from "../components/DebugOverlay";
 import Player from "../components/Player";
 import RelatedVideos from "../components/RelatedVideos";
+
 import { usePlayer } from "../contexts/PlayerContext";
 import { getCached, setCached } from "../utils/youtubeCache";
+import { useSubscriptions } from "../hooks/useSubscriptions";
 
 export default function Watch() {
   const { id } = useParams();
@@ -20,6 +23,8 @@ export default function Watch() {
     setPlaylist,
     setCurrentIndex,
   } = usePlayer();
+
+  const { subscribe, unsubscribe, isSubscribed } = useSubscriptions();
 
   const [video, setVideo] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -89,12 +94,11 @@ export default function Watch() {
   const normalizeVideo = (v) => {
     if (!v || !v.id || !v.snippet) return null;
 
-    const vid = typeof v.id === "string" ? v.id : v.id.videoId;
-
     return {
-      id: vid,
+      id: typeof v.id === "string" ? v.id : v.id.videoId,
       title: v.snippet.title,
       author: v.snippet.channelTitle,
+      channelId: v.snippet.channelId,
       description: v.snippet.description,
       thumbnail: getThumbnail(v),
       youtube: v,
@@ -161,6 +165,8 @@ export default function Watch() {
     );
   }
 
+  const subscribed = isSubscribed(video.channelId);
+
   return (
     <>
       <DebugOverlay pageName="Watch" sourceUsed={sourceUsed} />
@@ -186,6 +192,37 @@ export default function Watch() {
         <h2>{video.title}</h2>
         <p style={{ opacity: 0.7 }}>{video.author}</p>
 
+        {/* Subscribe Button */}
+        <button
+          onClick={() => {
+            if (subscribed) {
+              unsubscribe(video.channelId);
+              window.debugLog?.("Unsubscribed");
+            } else {
+              subscribe({
+                channelId: video.channelId,
+                title: video.author,
+                thumbnail: video.thumbnail,
+              });
+              window.debugLog?.("Subscribed");
+            }
+          }}
+          style={{
+            marginTop: 8,
+            padding: "8px 14px",
+            background: subscribed ? "#444" : "#ff0000",
+            border: "none",
+            borderRadius: 6,
+            color: "#fff",
+            cursor: "pointer",
+            fontWeight: "bold",
+            marginBottom: 16,
+          }}
+        >
+          {subscribed ? "Unsubscribe" : "Subscribe"}
+        </button>
+
+        {/* Related Videos */}
         <RelatedVideos
           videoId={video.id}
           title={video.title}
