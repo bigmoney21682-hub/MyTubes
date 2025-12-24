@@ -75,3 +75,35 @@ body,
   gap: 12px;
   padding: 12px;
 }
+
+/* ============================================================
+   PCC Overlay Kill Switch
+   Purpose:
+     - Removes ALL YouTube iframe overlays:
+         • "Watch on YouTube"
+         • Share button
+         • Title overlay
+         • Channel link
+         • Cards / annotations
+         • Watermark
+         • End-screen suggestions
+     - Keeps the duration in the bottom-right (YouTube renders
+       that as part of the video UI, not as an overlay element)
+   ============================================================ */
+
+#yt-global-player a,
+#yt-global-player button,
+#yt-global-player .ytp-button,
+#yt-global-player .ytp-chrome-top,
+#yt-global-player .ytp-chrome-bottom,
+#yt-global-player .ytp-show-cards-title,
+#yt-global-player .ytp-cards-button-icon,
+#yt-global-player .ytp-watermark,
+#yt-global-player .ytp-pause-overlay,
+#yt-global-player .ytp-ce-element,
+#yt-global-player .ytp-ce-covering-overlay,
+#yt-global-player .ytp-suggestion-set,
+#yt-global-player .ytp-suggestion-overlay {
+  pointer-events: none !important;
+  opacity: 0 !important;
+}
