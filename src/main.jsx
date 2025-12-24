@@ -1,5 +1,6 @@
 // File: src/main.jsx
-// PCC v6.0 — HashRouter + Global crash logger + ErrorBoundary + PlayerProvider
+// PCC v7.0 — Safe Router Boot + Global Crash Logger + Providers
+// rebuild-router-1
 
 import React from "react";
 import ReactDOM from "react-dom/client";
@@ -43,6 +44,33 @@ window.onunhandledrejection = function (event) {
   persistError("unhandledrejection", event.reason, "");
 };
 
+// ------------------------------------------------------------
+// SAFETY: Prevent React Router from booting with corrupted hash
+// ------------------------------------------------------------
+(function ensureCleanHash() {
+  try {
+    const h = window.location.hash || "";
+
+    // These corrupted states are the exact cause of:
+    // "Right side of assignment cannot be destructured"
+    if (
+      h.includes("undefined") ||
+      h.includes("[object") ||
+      h.endsWith("/watch/") ||
+      h === "#/watch" ||
+      h === "#/watch/"
+    ) {
+      console.warn("[main] Detected corrupted hash route, resetting to root");
+      window.location.replace("#/");
+    }
+  } catch (err) {
+    console.warn("[main] Hash safety check failed:", err);
+  }
+})();
+
+// ------------------------------------------------------------
+// ROOT MOUNT
+// ------------------------------------------------------------
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <HashRouter>
