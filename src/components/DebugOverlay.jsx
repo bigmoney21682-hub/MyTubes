@@ -1,99 +1,159 @@
 // File: src/components/DebugOverlay.jsx
-// PCC v5.0 — Inline debug panel (non-floating) placed in content flow above footer.
-// Tracks API key usage, endpoints, player state, video ID, and global logs.
+// PCC v20.0 — Full debug console with minimize button (Top‑Left, Style C)
 
 import React, { useEffect, useState } from "react";
-import { usePlayer } from "../contexts/PlayerContext";
 
-export default function DebugOverlay() {
-  const { current, playerState } = usePlayer();
-
+export default function DebugOverlay({ pageName = "Unknown", sourceUsed = null }) {
   const [logs, setLogs] = useState([]);
-  const [apiKeyUsed, setApiKeyUsed] = useState(null);
-  const [lastEndpoint, setLastEndpoint] = useState(null);
-  const [apiCallCount, setApiCallCount] = useState(0);
+  const [minimized, setMinimized] = useState(false);
 
+  // ------------------------------------------------------------
   // Hook into global debugLog()
+  // ------------------------------------------------------------
   useEffect(() => {
-    window.debugLog = (msg) => {
-      setLogs((prev) => [...prev.slice(-40), msg]); // keep last 40 logs
+    if (!window.debugLog) {
+      window.debugLog = (msg) => {
+        const entry = `[${new Date().toLocaleTimeString()}] ${msg}`;
+        window.__debugBuffer = window.__debugBuffer || [];
+        window.__debugBuffer.push(entry);
+      };
+    }
 
-      // Detect key usage
-      if (msg.startsWith("API KEY USED")) {
-        const key = msg.split("→")[1]?.trim();
-        setApiKeyUsed(key);
-        setApiCallCount((c) => c + 1);
+    const interval = setInterval(() => {
+      if (window.__debugBuffer && window.__debugBuffer.length > 0) {
+        setLogs((prev) => [...prev, ...window.__debugBuffer]);
+        window.__debugBuffer = [];
       }
+    }, 200);
 
-      // Detect endpoint
-      if (msg.startsWith("URL")) {
-        const url = msg.split("→")[1]?.trim();
-        setLastEndpoint(url);
-      }
-    };
+    return () => clearInterval(interval);
   }, []);
 
+  // ------------------------------------------------------------
+  // Clear logs
+  // ------------------------------------------------------------
+  const clearLogs = () => {
+    setLogs([]);
+    window.__debugBuffer = [];
+  };
+
+  // ------------------------------------------------------------
+  // Minimize toggle
+  // ------------------------------------------------------------
+  const toggleMinimize = () => setMinimized((m) => !m);
+
+  // ------------------------------------------------------------
+  // Render
+  // ------------------------------------------------------------
   return (
     <div
       style={{
-        width: "100%",
-        background: "rgba(0,0,0,0.85)",
+        position: "fixed",
+        top: 0,
+        left: 0,
+        width: minimized ? 60 : "100%",
+        height: minimized ? 40 : "40%",
+        background: minimized ? "rgba(0,0,0,0.6)" : "rgba(0,0,0,0.85)",
         color: "#0f0",
         fontFamily: "monospace",
         fontSize: 12,
-        padding: "12px 16px",
-        borderTop: "1px solid #333",
-        borderBottom: "1px solid #333",
-        boxSizing: "border-box",
-        marginTop: 16,
+        zIndex: 999999,
+        borderBottom: minimized ? "none" : "2px solid #0f0",
+        borderRight: minimized ? "none" : "2px solid #0f0",
+        overflow: "hidden",
+        transition: "all 0.25s ease",
       }}
     >
-      {/* Header */}
-      <div
+      {/* Minimize Button (Top‑Left) */}
+      <button
+        onClick={toggleMinimize}
         style={{
-          display: "flex",
-          justifyContent: "space-between",
-          marginBottom: 8,
+          position: "absolute",
+          top: 4,
+          left: 4,
+          width: 28,
+          height: 28,
+          borderRadius: 4,
+          background: "#111",
+          border: "1px solid #0f0",
+          color: "#0f0",
+          fontSize: 16,
+          cursor: "pointer",
+          zIndex: 1000000,
         }}
       >
-        <strong style={{ color: "#fff" }}>Debug Panel</strong>
-      </div>
+        {minimized ? "▣" : "–"}
+      </button>
 
-      {/* Key Info */}
-      <div style={{ marginBottom: 8 }}>
-        <div>
-          API Key Used: <span style={{ color: "#fff" }}>{apiKeyUsed || "—"}</span>
+      {/* Minimized mode stops here */}
+      {minimized && (
+        <div
+          style={{
+            position: "absolute",
+            top: 4,
+            left: 40,
+            color: "#0f0",
+            fontSize: 12,
+            opacity: 0.8,
+          }}
+        >
+          Debug
         </div>
-        <div>
-          API Calls: <span style={{ color: "#fff" }}>{apiCallCount}</span>
-        </div>
-        <div style={{ marginTop: 4 }}>
-          Last Endpoint:
-          <div style={{ color: "#fff", fontSize: 11, wordBreak: "break-all" }}>
-            {lastEndpoint || "—"}
+      )}
+
+      {!minimized && (
+        <>
+          {/* Header */}
+          <div
+            style={{
+              padding: "6px 40px 6px 40px",
+              borderBottom: "1px solid #0f0",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              background: "rgba(0,0,0,0.9)",
+            }}
+          >
+            <div>
+              <strong>{pageName}</strong>
+              {sourceUsed && <span> — {sourceUsed}</span>}
+            </div>
+
+            <button
+              onClick={clearLogs}
+              style={{
+                padding: "4px 8px",
+                background: "#111",
+                border: "1px solid #0f0",
+                color: "#0f0",
+                borderRadius: 4,
+                cursor: "pointer",
+                fontSize: 12,
+              }}
+            >
+              Clear
+            </button>
           </div>
-        </div>
-      </div>
 
-      {/* Player Info */}
-      <div style={{ marginBottom: 8 }}>
-        <div>
-          Player State: <span style={{ color: "#fff" }}>{playerState}</span>
-        </div>
-        <div>
-          Current Video:{" "}
-          <span style={{ color: "#fff" }}>{current?.id || "—"}</span>
-        </div>
-      </div>
+          {/* Log Window */}
+          <div
+            style={{
+              padding: 8,
+              height: "calc(100% - 40px)",
+              overflowY: "auto",
+              whiteSpace: "pre-wrap",
+            }}
+          >
+            {logs.length === 0 && (
+              <div style={{ opacity: 0.6 }}>No logs yet…</div>
+            )}
 
-      {/* Log Stream */}
-      <div style={{ borderTop: "1px solid #333", paddingTop: 8 }}>
-        {logs.map((l, i) => (
-          <div key={i} style={{ marginBottom: 2 }}>
-            {l}
+            {logs.map((line, i) => (
+              <div key={i}>{line}</div>
+            ))}
           </div>
-        ))}
-      </div>
+        </>
+      )}
     </div>
   );
 }
