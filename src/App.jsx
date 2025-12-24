@@ -1,6 +1,6 @@
 // File: src/App.jsx
-// PCC v10.0 — BootSplash + BootJosh + Global DebugOverlay + Subscriptions route
-// DebugOverlay now mounts INSIDE the app shell, directly above the footer.
+// PCC v11.0 — Full app shell with DebugEnv route, DebugOverlay, GlobalPlayer,
+// MiniPlayer, BootSplash, BootJosh, and complete logging.
 
 import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useState, useRef } from "react";
@@ -11,6 +11,7 @@ import Playlist from "./pages/Playlist";
 import SettingsPage from "./pages/SettingsPage";
 import Watch from "./pages/Watch";
 import SubscriptionsPage from "./pages/Subscriptions";
+import DebugEnv from "./pages/DebugEnv";
 
 import BootSplash from "./components/BootSplash";
 import BootJosh from "./components/BootJosh";
@@ -38,13 +39,14 @@ export default function App() {
   const prevVideoRef = useRef(null);
   const prevPlayingRef = useRef(null);
 
-  // Track current page for DebugOverlay
+  // Determine page name for DebugOverlay
   const getPageName = () => {
     if (location.pathname.startsWith("/watch")) return "Watch";
     if (location.pathname.startsWith("/playlist")) return "Playlist";
     if (location.pathname.startsWith("/playlists")) return "Playlists";
     if (location.pathname.startsWith("/settings")) return "Settings";
     if (location.pathname.startsWith("/subs")) return "Subscriptions";
+    if (location.pathname.startsWith("/debug-env")) return "DebugEnv";
     return "Home";
   };
 
@@ -54,12 +56,10 @@ export default function App() {
   useEffect(() => {
     if (prevVideoRef.current !== currentVideo) {
       if (!currentVideo) log("currentVideo changed -> null");
-      else
-        log(
-          `currentVideo changed -> id=${
-            currentVideo.id || currentVideo.id?.videoId
-          }`
-        );
+      else {
+        const id = currentVideo.id || currentVideo.id?.videoId;
+        log(`currentVideo changed -> id=${id}`);
+      }
       prevVideoRef.current = currentVideo;
     }
   }, [currentVideo]);
@@ -72,7 +72,7 @@ export default function App() {
     }
   }, [playing]);
 
-  // BootSplash + BootJosh
+  // BootSplash + BootJosh sequence
   useEffect(() => {
     const t = setTimeout(() => setReady(true), 2000);
 
@@ -124,8 +124,12 @@ export default function App() {
               <Route path="/watch/:id" element={<Watch />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/subs" element={<SubscriptionsPage />} />
+              <Route path="/debug-env" element={<DebugEnv />} />
             </Routes>
           </div>
+
+          {/* DebugOverlay inside layout, above footer */}
+          <DebugOverlay pageName={pageName} />
 
           <MiniPlayer onTogglePlay={togglePlay} onClose={closePlayer} />
           <Footer />
