@@ -1,7 +1,8 @@
 // File: src/pages/Subscriptions.jsx
-// PCC v2.0 — Local subscriptions + channel strip + merged feed
+// PCC v3.0 — Local subscriptions + channel strip + merged feed + channel page support
 
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import DebugOverlay from "../components/DebugOverlay";
 import VideoCard from "../components/VideoCard";
 import { getCached, setCached } from "../utils/youtubeCache";
@@ -12,6 +13,7 @@ export default function SubscriptionsPage() {
   const [videos, setVideos] = useState([]);
   const [loadingFeed, setLoadingFeed] = useState(true);
 
+  const navigate = useNavigate();
   const log = (msg) => window.debugLog?.(`Subscriptions: ${msg}`);
 
   // Load subscriptions from localStorage
@@ -69,7 +71,6 @@ export default function SubscriptionsPage() {
         return;
       }
 
-      // Decide which channels to fetch: all or a single one
       const activeSubs =
         selectedChannelId === "ALL"
           ? subs
@@ -147,7 +148,6 @@ export default function SubscriptionsPage() {
     buildFeed();
   }, [subs, selectedChannelId]);
 
-  // Render horizontal channel strip
   const renderChannelStrip = () => {
     if (!subs.length) return null;
 
@@ -202,6 +202,15 @@ export default function SubscriptionsPage() {
               }}
             >
               <div
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/channel/${encodeURIComponent(ch.channelId)}`, {
+                    state: {
+                      channelTitle: ch.title,
+                      channelThumb: ch.thumbnail,
+                    },
+                  });
+                }}
                 style={{
                   width: 28,
                   height: 28,
@@ -237,7 +246,6 @@ export default function SubscriptionsPage() {
     );
   };
 
-  // Render
   return (
     <>
       <DebugOverlay pageName="Subscriptions" sourceUsed="YOUTUBE_API+CACHE" />
