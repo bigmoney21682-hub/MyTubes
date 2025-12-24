@@ -1,186 +1,230 @@
 // File: src/components/MiniPlayer.jsx
-// PCC v4.2 — Mini controller wired to global YouTube iframe engine
+// PCC v7.0 — YouTube-style MiniPlayer (H1 height, draggable on press+hold)
 
+import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
 import { usePlayer } from "../contexts/PlayerContext";
 
-export default function MiniPlayer({ onTogglePlay, onClose }) {
+export default function MiniPlayer() {
+  const { current, playing, togglePlay, playNext } = usePlayer();
   const navigate = useNavigate();
-  const { currentVideo, playing, playNext, playPrev } = usePlayer();
 
-  const [title, setTitle] = useState("");
-  const [channel, setChannel] = useState("");
-  const [thumbnail, setThumbnail] = useState("");
+  const [position, setPosition] = useState({ x: 8, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [isPressing, setIsPressing] = useState(false);
 
-  const log = (msg) => window.debugLog?.(`MiniPlayer: ${msg}`);
+  const pressTimerRef = useRef(null);
+  const dragStartRef = useRef({ x: 0, y: 0, pointerX: 0, pointerY: 0 });
+  const containerRef = useRef(null);
 
+  // Initialize position near bottom
   useEffect(() => {
-    if (!currentVideo) return;
+    const h = window.innerHeight || 800;
+    setPosition({ x: 8, y: h - 72 });
+  }, []);
 
-    if (currentVideo.snippet) {
-      setTitle(currentVideo.snippet.title || "Unknown Video");
-      setChannel(currentVideo.snippet.channelTitle || "");
-      setThumbnail(
-        currentVideo.snippet.thumbnails?.default?.url ||
-          currentVideo.snippet.thumbnails?.medium?.url ||
-          ""
-      );
-    } else {
-      setTitle(currentVideo.title || "Unknown Video");
-      setChannel(currentVideo.author || "");
-      setThumbnail(currentVideo.thumbnail || "");
+  if (!current) return null;
+
+  const handleNavigate = () => {
+    if (isDragging) return;
+    if (!current.id) return;
+    navigate(`/watch/${current.id}`);
+  };
+
+  const clearPressTimer = () => {
+    if (pressTimerRef.current) {
+      clearTimeout(pressTimerRef.current);
+      pressTimerRef.current = null;
     }
-  }, [currentVideo]);
+  };
 
-  if (!currentVideo) return null;
+  const handlePointerDown = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
 
-  const handleClick = () => {
-    const id =
-      typeof currentVideo.id === "string"
-        ? currentVideo.id
-        : currentVideo.id?.videoId;
+    setIsPressing(true);
+    const pointerX = e.clientX;
+    const pointerY = e.clientY;
 
-    if (!id) {
-      log("No valid id on currentVideo, cannot navigate to watch");
+    dragStartRef.current = {
+      x: position.x,
+      y: position.y,
+      pointerX,
+      pointerY,
+    };
+
+    // Long press (250ms) to enter drag mode
+    pressTimerRef.current = setTimeout(() => {
+      setIsDragging(true);
+    }, 250);
+
+    containerRef.current?.setPointerCapture?.(e.pointerId);
+  };
+
+  const handlePointerMove = (e) => {
+    if (!isDragging) return;
+    e.preventDefault();
+
+    const { x, y, pointerX, pointerY } = dragStartRef.current;
+    const dx = e.clientX - pointerX;
+    const dy = e.clientY - pointerY;
+
+    const newX = x + dx;
+    const newY = y + dy;
+
+    const viewportWidth = window.innerWidth || 375;
+    const viewportHeight = window.innerHeight || 812;
+    const cardWidth = Math.min(480, viewportWidth - 16);
+    const cardHeight = 56;
+
+    const clampedX = Math.max(8, Math.min(newX, viewportWidth - cardWidth - 8));
+    const clampedY = Math.max(8, Math.min(newY, viewportHeight - cardHeight - 8));
+
+    setPosition({ x: clampedX, y: clampedY });
+  };
+
+  const handlePointerUp = (e) => {
+    clearPressTimer();
+    setIsPressing(false);
+    setIsDragging(false);
+    containerRef.current?.releasePointerCapture?.(e.pointerId);
+  };
+
+  const handleClick = (e) => {
+    // If we were dragging or long-pressing, ignore click
+    if (isDragging || pressTimerRef.current) {
+      e.stopPropagation();
+      clearPressTimer();
       return;
     }
-
-    log(`Navigating back to /watch/${id} from miniplayer`);
-    navigate(`/watch/${id}`);
+    handleNavigate();
   };
+
+  const title = current.title || "Unknown Title";
+  const author = current.author || "Unknown Channel";
+  const thumb = current.thumbnail;
 
   return (
     <div
+      ref={containerRef}
       style={{
         position: "fixed",
-        bottom: "calc(var(--footer-height) + 84px)",
-        left: 0,
-        right: 0,
-        height: "68px",
+        left: position.x,
+        top: position.y,
+        width: `min(480px, calc(100% - 16px))`,
+        height: 56,
+        borderRadius: 12,
         background: "#111",
-        borderTop: "1px solid #333",
+        boxShadow: "0 4px 10px rgba(0,0,0,0.6)",
         display: "flex",
         alignItems: "center",
-        padding: "0 12px",
-        zIndex: 9998,
-        boxShadow: "0 -4px 12px rgba(0,0,0,0.5)",
+        padding: "0 8px",
+        zIndex: 50,
+        cursor: isDragging ? "grabbing" : "pointer",
+        userSelect: "none",
       }}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
+      onPointerLeave={handlePointerUp}
       onClick={handleClick}
     >
-      <img
-        src={thumbnail}
-        alt=""
+      {/* Thumbnail */}
+      <div
         style={{
-          width: 48,
-          height: 48,
-          borderRadius: 6,
-          marginRight: 12,
-          objectFit: "cover",
+          width: 56,
+          height: 40,
+          borderRadius: 8,
+          overflow: "hidden",
           background: "#000",
+          flexShrink: 0,
         }}
-      />
+      >
+        {thumb && (
+          <img
+            src={thumb}
+            alt={title}
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+            }}
+          />
+        )}
+      </div>
 
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <p
+      {/* Title + channel */}
+      <div
+        style={{
+          flex: 1,
+          minWidth: 0,
+          marginLeft: 8,
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+        }}
+      >
+        <div
           style={{
-            margin: 0,
-            fontSize: 15,
-            fontWeight: 600,
+            fontSize: 14,
+            color: "#fff",
             whiteSpace: "nowrap",
             overflow: "hidden",
             textOverflow: "ellipsis",
           }}
         >
           {title}
-        </p>
-        <p
+        </div>
+        <div
           style={{
-            margin: "4px 0 0 0",
-            fontSize: 13,
-            opacity: 0.7,
+            fontSize: 12,
+            color: "rgba(255,255,255,0.7)",
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
           }}
         >
-          {channel}
-        </p>
+          {author}
+        </div>
       </div>
 
-      {/* PREVIOUS BUTTON */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          log("Prev clicked");
-          playPrev();
-        }}
+      {/* Controls */}
+      <div
         style={{
-          background: "none",
-          border: "none",
-          color: "#fff",
-          fontSize: 26,
-          cursor: "pointer",
-          padding: "8px 10px",
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          marginLeft: 8,
         }}
+        onClick={(e) => e.stopPropagation()}
       >
-        ⏮
-      </button>
-
-      {/* PLAY / PAUSE */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          const newState = !playing;
-          log(`Toggle play clicked -> newPlaying=${newState}`);
-          onTogglePlay(); // App -> setPlaying(prev => !prev), which syncs to GlobalPlayer
-        }}
-        style={{
-          background: "none",
-          border: "none",
-          color: "#fff",
-          fontSize: 32,
-          cursor: "pointer",
-          padding: "8px 16px",
-        }}
-      >
-        {playing ? "⏸" : "▶"}
-      </button>
-
-      {/* NEXT BUTTON */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          log("Next clicked");
-          playNext();
-        }}
-        style={{
-          background: "none",
-          border: "none",
-          color: "#fff",
-          fontSize: 26,
-          cursor: "pointer",
-          padding: "8px 10px",
-        }}
-      >
-        ⏭
-      </button>
-
-      {/* CLOSE */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          log("Close clicked");
-          onClose();
-        }}
-        style={{
-          background: "none",
-          border: "none",
-          color: "#fff",
-          fontSize: 24,
-          cursor: "pointer",
-          padding: "8px",
-        }}
-      >
-        ✕
-      </button>
+        <button
+          onClick={() => togglePlay()}
+          style={iconButtonStyle}
+        >
+          {playing ? "⏸" : "▶"}
+        </button>
+        <button
+          onClick={() => playNext()}
+          style={iconButtonStyle}
+        >
+          ⏭
+        </button>
+      </div>
     </div>
   );
 }
+
+const iconButtonStyle = {
+  background: "none",
+  border: "none",
+  color: "#fff",
+  fontSize: 22, // C2 weight feeling
+  fontWeight: 500,
+  cursor: "pointer",
+  padding: 4,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+};
