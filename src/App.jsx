@@ -1,5 +1,6 @@
 // File: src/App.jsx
-// PCC v9.0 — BootSplash + BootJosh + Global DebugOverlay + Subscriptions route
+// PCC v10.0 — BootSplash + BootJosh + Global DebugOverlay + Subscriptions route
+// DebugOverlay now mounts INSIDE the app shell, directly above the footer.
 
 import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useState, useRef } from "react";
@@ -101,16 +102,13 @@ export default function App() {
 
   return (
     <>
-      {/* ⭐ DebugOverlay ALWAYS mounted so BootJosh logs appear */}
-      <DebugOverlay pageName={pageName} />
-
-      {/* First splash */}
+      {/* BootSplash always renders first */}
       <BootSplash ready={ready} />
 
-      {/* Second splash */}
+      {/* BootJosh renders second */}
       {ready && !joshDone && <BootJosh onDone={() => setJoshDone(true)} />}
 
-      {/* Main app */}
+      {/* Main app shell */}
       {ready && joshDone && (
         <div className="app-root">
           <Header onSearch={handleSearch} />
@@ -125,11 +123,12 @@ export default function App() {
               <Route path="/playlist/:id" element={<Playlist />} />
               <Route path="/watch/:id" element={<Watch />} />
               <Route path="/settings" element={<SettingsPage />} />
-
-              {/* ⭐ NEW SUBSCRIPTIONS PAGE */}
               <Route path="/subs" element={<SubscriptionsPage />} />
             </Routes>
           </div>
+
+          {/* ⭐ DebugOverlay now sits ABOVE the footer, inside the layout */}
+          <DebugOverlay pageName={pageName} />
 
           <MiniPlayer onTogglePlay={togglePlay} onClose={closePlayer} />
           <Footer />
