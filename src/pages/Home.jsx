@@ -1,162 +1,181 @@
 // File: src/pages/Home.jsx
-// PCC v14.0 — Full-width 1-column Trending + Quota detection + Test Player fallback
+// PCC v9.0 — Crash‑proof Home with safe search + fallback UI
 
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import DebugOverlay from "../components/DebugOverlay";
-import VideoCard from "../components/VideoCard";
-import { getCached, setCached } from "../utils/youtubeCache";
 
-export default function Home() {
-  const [videos, setVideos] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [sourceUsed, setSourceUsed] = useState(null);
-  const [quotaExceeded, setQuotaExceeded] = useState(false);
-
+export default function Home({ searchQuery }) {
   const navigate = useNavigate();
+
+  const [loading, setLoading] = useState(false);
+  const [videos, setVideos] = useState([]);
+  const [error, setError] = useState("");
+
   const log = (msg) => window.debugLog?.(`Home: ${msg}`);
 
+  // ------------------------------------------------------------
+  // Fetch videos (safe, crash‑proof)
+  // ------------------------------------------------------------
   useEffect(() => {
-    async function loadTrending() {
-      const apiKey = window.YT_API_KEY;
-      const cacheKey = "trending_v1";
-
-      const cached = getCached(cacheKey);
-      if (cached) {
-        log("DEBUG: Using cached trending");
-        setVideos(cached);
-        setSourceUsed("CACHE");
-        setLoading(false);
-        return;
-      }
-
-      log("DEBUG: Fetching trending via YouTube API");
-
-      try {
-        const url =
-          "https://www.googleapis.com/youtube/v3/videos" +
-          `?part=snippet,contentDetails&chart=mostPopular&regionCode=US&maxResults=20&key=${apiKey}`;
-
-        log(`DEBUG: Trending URL → ${url}`);
-
-        const res = await fetch(url);
-        const data = await res.json();
-
-        // Detect quota exceeded
-        if (data?.error?.errors?.[0]?.reason === "quotaExceeded") {
-          log("ERROR: Quota exceeded detected");
-          setQuotaExceeded(true);
-          setVideos([]);
-          setLoading(false);
-          return;
-        }
-
-        if (!data.items || !Array.isArray(data.items)) {
-          log("ERROR: Trending returned no items or invalid format");
-          log("RAW: " + JSON.stringify(data).slice(0, 200));
-          setVideos([]);
-          setLoading(false);
-          return;
-        }
-
-        log(`DEBUG: Raw items = ${data.items.length}`);
-
-        const normalized = data.items.map((item) => {
-          const t = item.snippet?.thumbnails;
-          const thumbnail =
-            t?.maxres?.url ||
-            t?.high?.url ||
-            t?.medium?.url ||
-            t?.default?.url ||
-            null;
-
-          return {
-            id: item.id,
-            title: item.snippet.title,
-            author: item.snippet.channelTitle,
-            thumbnail,
-            duration: item.contentDetails?.duration || null,
-          };
-        });
-
-        log(`DEBUG: Normalized to ${normalized.length} videos`);
-
-        setCached(cacheKey, normalized);
-        setVideos(normalized);
-        setSourceUsed("YOUTUBE_API");
-      } catch (err) {
-        log("ERROR: Trending fetch failed: " + err);
-        setVideos([]);
-      }
-
-      setLoading(false);
+    const q = searchQuery?.trim();
+    if (!q) {
+      log("No search query — clearing results");
+      setVideos([]);
+      setError("");
+      return;
     }
 
-    loadTrending();
-  }, []);
+    const fetchVideos = async () => {
+      try {
+        setLoading(true);
+        setError("");
 
-  return (
-    <>
-      <DebugOverlay pageName="Home" sourceUsed={sourceUsed} />
+        log(`Fetching videos for query="${q}"`);
 
-      <div style={{ padding: 16, color: "#fff" }}>
-        <h2 style={{ marginBottom: 12 }}>Trending</h2>
+        const key = window.__ytKey;
+        if (!key) {
+          log("ERROR: No API key found");
+          setError("Missing API key");
+          setVideos([]);
+          return;
+        }
 
-        {/* QUOTA TITLE */}
-        {quotaExceeded && (
-          <div
-            style={{
-              padding: "12px 14px",
-              background: "#331111",
-              border: "1px solid #552222",
-              borderRadius: 8,
-              color: "#ff7777",
-              marginBottom: 16,
-              fontSize: 14,
-              fontWeight: 500,
-            }}
-          >
-            YouTube Data API v3 quota reached — Trending unavailable
-          </div>
-        )}
+        const url =
+          "https://www.googleapis.com/youtube/v3/search" +
+          `?part=snippet&type=video&maxResults=20&q=${encodeURIComponent(q)}` +
+          `&key=${key}`;
 
-        {/* TEST PLAYER BUTTON */}
-        {videos.length === 0 && (
-          <button
-            onClick={() => navigate("/watch/dQw4w9WgXcQ")}
-            style={{
-              padding: "10px 16px",
-              background: "#222",
-              border: "1px solid #444",
-              borderRadius: 8,
-              color: "#fff",
-              marginBottom: 16,
-              cursor: "pointer",
-            }}
-          >
-            ▶ Test Player (Play Video)
-          </button>
-        )}
+        const res = await fetch(url);
+        if (!res.ok) {
+          const text = await res.text();
+          log(`Fetch failed: ${res.status} ${text}`);
+          setError("API error");
+          setVideos([]);
+          return;
+        }
 
-        {loading && <p style={{ opacity: 0.7 }}>Loading…</p>}
+        const data = await res.json();
+        if (!Array.isArray(data.items)) {
+          log("Invalid API response");
+          setError("Invalid API response");
+          setVideos([]);
+          return;
+        }
 
-        {!loading && videos.length === 0 && !quotaExceeded && (
-          <p style={{ opacity: 0.7 }}>No trending videos available.</p>
-        )}
+        const mapped = data.items.map((item) => ({
+          id: item.id?.videoId || null,
+          title: item.snippet?.title || "",
+          author: item.snippet?.channelTitle || "",
+          thumbnail:
+            item.snippet?.thumbnails?.medium?.url ||
+            item.snippet?.thumbnails?.default?.url ||
+            "",
+        }));
 
-        {/* FULL-WIDTH 1-COLUMN GRID */}
-        <div
+        log(`Loaded ${mapped.length} videos`);
+        setVideos(mapped);
+      } catch (err) {
+        log(`Exception: ${err.message}`);
+        setError("Network error");
+        setVideos([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchVideos();
+  }, [searchQuery]);
+
+  // ------------------------------------------------------------
+  // Navigation helper
+  // ------------------------------------------------------------
+  const openVideo = (id) => {
+    if (!id) {
+      log("INVALID VIDEO ID");
+      setError("Invalid video ID");
+      return;
+    }
+    navigate(`/watch/${id}`);
+  };
+
+  // ------------------------------------------------------------
+  // UI
+  // ------------------------------------------------------------
+  if (loading) {
+    return (
+      <div style={{ padding: 20, color: "#fff" }}>
+        Loading…
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{ padding: 20, color: "#fff" }}>
+        <div>Error: {error}</div>
+        <button
+          onClick={() => openVideo("dQw4w9WgXcQ")}
           style={{
-            display: "grid",
-            gridTemplateColumns: "1fr",
-            gap: 16,
+            marginTop: 12,
+            padding: "8px 12px",
+            background: "#ff0000",
+            border: "none",
+            borderRadius: 6,
+            color: "#fff",
           }}
         >
-          {videos.map((v) => (
-            <VideoCard key={v.id} video={v} />
-          ))}
-        </div>
+          Play Test Video
+        </button>
       </div>
-    </>
+    );
+  }
+
+  if (!videos.length) {
+    return (
+      <div style={{ padding: 20, color: "#fff" }}>
+        <div>No results</div>
+        <button
+          onClick={() => openVideo("dQw4w9WgXcQ")}
+          style={{
+            marginTop: 12,
+            padding: "8px 12px",
+            background: "#ff0000",
+            border: "none",
+            borderRadius: 6,
+            color: "#fff",
+          }}
+        >
+          Play Test Video
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ padding: 16 }}>
+      {videos.map((v) => (
+        <div
+          key={v.id}
+          onClick={() => openVideo(v.id)}
+          style={{
+            display: "flex",
+            gap: 12,
+            marginBottom: 16,
+            cursor: "pointer",
+            color: "#fff",
+          }}
+        >
+          <img
+            src={v.thumbnail}
+            alt=""
+            style={{ width: 160, height: 90, borderRadius: 6 }}
+          />
+          <div>
+            <div style={{ fontWeight: "bold" }}>{v.title}</div>
+            <div style={{ opacity: 0.7 }}>{v.author}</div>
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
