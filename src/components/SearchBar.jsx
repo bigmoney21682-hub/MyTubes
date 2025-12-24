@@ -1,5 +1,5 @@
 // File: src/components/SearchBar.jsx
-// PCC v4.0 — Crash‑proof SearchBar with safe dropdown + safe submit
+// PCC v5.0 — Fully optimized, crash‑proof, YouTube‑style SearchBar
 
 import { useState, useEffect, useRef } from "react";
 
@@ -12,9 +12,10 @@ export default function SearchBar({ onSearch }) {
 
   const inputRef = useRef(null);
   const dropdownRef = useRef(null);
+  const abortRef = useRef(null);
 
   // ------------------------------------------------------------
-  // Load search history on mount
+  // Load search history
   // ------------------------------------------------------------
   useEffect(() => {
     try {
@@ -37,7 +38,7 @@ export default function SearchBar({ onSearch }) {
   };
 
   // ------------------------------------------------------------
-  // Debounce autocomplete suggestions
+  // Debounced autocomplete with stale request cancellation
   // ------------------------------------------------------------
   useEffect(() => {
     if (!q.trim()) {
@@ -45,19 +46,24 @@ export default function SearchBar({ onSearch }) {
       return;
     }
 
+    if (abortRef.current) abortRef.current.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     const t = setTimeout(async () => {
       try {
         const res = await fetch(
           `https://suggestqueries.google.com/complete/search?client=firefox&ds=yt&q=${encodeURIComponent(
             q
-          )}`
+          )}`,
+          { signal: controller.signal }
         );
         const data = await res.json();
         setSuggestions(Array.isArray(data[1]) ? data[1] : []);
       } catch (err) {
-        console.error("Autocomplete error:", err);
+        if (err.name !== "AbortError") console.error("Autocomplete error:", err);
       }
-    }, 300);
+    }, 250);
 
     return () => clearTimeout(t);
   }, [q]);
@@ -66,7 +72,6 @@ export default function SearchBar({ onSearch }) {
   // Safe submit — ignores accidental event objects
   // ------------------------------------------------------------
   const submit = (term) => {
-    // If React passed a synthetic event, ignore it
     if (term && typeof term === "object") return;
 
     const query = term || q.trim();
@@ -83,10 +88,15 @@ export default function SearchBar({ onSearch }) {
   // Keyboard navigation
   // ------------------------------------------------------------
   const handleKeyDown = (e) => {
-    if (!showDropdown) return;
-
     const list = [...history, ...suggestions];
-    if (list.length === 0) return;
+    const hasItems = list.length > 0;
+
+    if (e.key === "Escape") {
+      setShowDropdown(false);
+      return;
+    }
+
+    if (!showDropdown || !hasItems) return;
 
     if (e.key === "ArrowDown") {
       e.preventDefault();
@@ -128,6 +138,8 @@ export default function SearchBar({ onSearch }) {
   // ------------------------------------------------------------
   // Render
   // ------------------------------------------------------------
+  const list = [...history, ...suggestions];
+
   return (
     <div style={{ width: "80%", maxWidth: 520, position: "relative" }}>
       <form
@@ -180,8 +192,7 @@ export default function SearchBar({ onSearch }) {
         </button>
       </form>
 
-      {/* Dropdown */}
-      {showDropdown && (history.length > 0 || suggestions.length > 0) && (
+      {showDropdown && list.length > 0 && (
         <div
           ref={dropdownRef}
           style={{
@@ -197,18 +208,20 @@ export default function SearchBar({ onSearch }) {
             overflowY: "auto",
           }}
         >
-          {[...history, ...suggestions].map((item, i) => (
+          {list.map((item, i) => (
             <div
               key={i}
               onMouseDown={(e) => {
-                e.preventDefault(); // prevent blur
-                submit(item);       // pass ONLY the string
+                e.preventDefault();
+                submit(item);
               }}
               style={{
-                padding: "10px 14px",
+                padding: "12px 14px",
                 cursor: "pointer",
                 background: i === highlightIndex ? "#222" : "transparent",
                 color: "#fff",
+                fontSize: 15,
+                userSelect: "none",
               }}
             >
               {item}
