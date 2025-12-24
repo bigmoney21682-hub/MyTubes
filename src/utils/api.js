@@ -1,17 +1,11 @@
 // File: src/utils/api.js
-// PCC v3.0 — YouTube API wrapper using automatic fallback key rotation
-// All requests use fetchWithFallback() to rotate between primary + fallback keys.
+// PCC v3.0 — YouTube API wrapper using fallback key rotation.
 
 import { fetchWithFallback } from "./getApiKey";
 
 const YT_BASE_URL = "https://www.googleapis.com/youtube/v3";
 const MAX_RESULTS = 20;
 
-/**
- * Search videos by query string
- * @param {string} query
- * @returns {Promise<Array>} video items
- */
 export async function searchVideos(query) {
   if (!query) return [];
 
@@ -26,9 +20,6 @@ export async function searchVideos(query) {
   return data?.items || [];
 }
 
-/**
- * Fetch trending videos (US)
- */
 export async function getTrending() {
   const { data, keyUsed } = await fetchWithFallback(
     (key) =>
@@ -41,10 +32,6 @@ export async function getTrending() {
   return data?.items || [];
 }
 
-/**
- * Fetch related videos by video ID
- * @param {string} videoId
- */
 export async function getRelated(videoId) {
   const { data, keyUsed } = await fetchWithFallback(
     (key) =>
