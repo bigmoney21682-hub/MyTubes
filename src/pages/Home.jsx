@@ -1,196 +1,160 @@
 // File: src/pages/Home.jsx
-// PCC v9.0 — YouTube API only + in-memory caching
+// PCC v13.0 — Trending + Quota detection + Test Player fallback
 
 import { useEffect, useState } from "react";
-import VideoCard from "../components/VideoCard";
+import { useNavigate } from "react-router-dom";
 import DebugOverlay from "../components/DebugOverlay";
+import VideoCard from "../components/VideoCard";
 import { getCached, setCached } from "../utils/youtubeCache";
 
-export default function Home({ searchQuery }) {
+export default function Home() {
   const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sourceUsed, setSourceUsed] = useState(null);
+  const [quotaExceeded, setQuotaExceeded] = useState(false);
 
+  const navigate = useNavigate();
   const log = (msg) => window.debugLog?.(`Home: ${msg}`);
 
-  // -------------------------------
-  // Normalization helpers
-  // -------------------------------
-  const getId = (item) => {
-    if (!item) return null;
-    if (typeof item.id === "string") return item.id;
-    if (typeof item.id?.videoId === "string") return item.id.videoId;
-    return null;
-  };
-
-  const getThumbnail = (item) => {
-    const t = item.snippet?.thumbnails;
-    return (
-      t?.maxres?.url ||
-      t?.high?.url ||
-      t?.medium?.url ||
-      t?.default?.url ||
-      null
-    );
-  };
-
-  const normalizeItem = (item) => {
-    const id = getId(item);
-    if (!id) return null;
-
-    return {
-      id,
-      title: item.snippet?.title || "Untitled",
-      author: item.snippet?.channelTitle || "Unknown",
-      thumbnail: getThumbnail(item),
-      duration: item.contentDetails?.duration,
-    };
-  };
-
-  // -------------------------------
-  // YouTube API fetchers (with caching)
-  // -------------------------------
-  async function fetchFromYouTubeTrending() {
-    const apiKey = window.YT_API_KEY;
-    const cacheKey = "trending_US";
-
-    const cached = getCached(cacheKey);
-    if (cached) {
-      log("DEBUG: Using cached trending");
-      setSourceUsed("CACHE");
-      return cached;
-    }
-
-    log("DEBUG: Fetching trending via YouTube API");
-
-    try {
-      const url =
-        "https://www.googleapis.com/youtube/v3/videos" +
-        `?part=snippet,contentDetails&chart=mostPopular&regionCode=US&maxResults=20&key=${apiKey}`;
-
-      log(`DEBUG: Trending URL → ${url}`);
-
-      const res = await fetch(url);
-      const data = await res.json();
-
-      if (!data.items || !Array.isArray(data.items)) {
-        log("ERROR: YouTube trending returned no items or invalid format");
-        log("RAW: " + JSON.stringify(data).slice(0, 300));
-        return [];
-      }
-
-      setCached(cacheKey, data.items);
-      setSourceUsed("YOUTUBE_API");
-      return data.items;
-    } catch (err) {
-      log(`ERROR: YouTube trending failed: ${err}`);
-      return [];
-    }
-  }
-
-  async function fetchFromYouTubeSearch(query) {
-    const apiKey = window.YT_API_KEY;
-    const q = query.trim();
-    const cacheKey = `search_${q.toLowerCase()}`;
-
-    const cached = getCached(cacheKey);
-    if (cached) {
-      log(`DEBUG: Using cached search for "${q}"`);
-      setSourceUsed("CACHE");
-      return cached;
-    }
-
-    log(`DEBUG: Searching via YouTube API for "${q}"`);
-
-    try {
-      const url =
-        "https://www.googleapis.com/youtube/v3/search" +
-        `?part=snippet&type=video&maxResults=20&q=${encodeURIComponent(
-          q
-        )}&key=${apiKey}`;
-
-      log(`DEBUG: Search URL → ${url}`);
-
-      const res = await fetch(url);
-      const data = await res.json();
-
-      if (!data.items || !Array.isArray(data.items)) {
-        log("ERROR: YouTube search returned no items or invalid format");
-        log("RAW: " + JSON.stringify(data).slice(0, 300));
-        return [];
-      }
-
-      setCached(cacheKey, data.items);
-      setSourceUsed("YOUTUBE_API");
-      return data.items;
-    } catch (err) {
-      log(`ERROR: YouTube search failed: ${err}`);
-      return [];
-    }
-  }
-
-  // -------------------------------
-  // Main loader
-  // -------------------------------
   useEffect(() => {
-    async function load() {
-      setLoading(true);
-      setSourceUsed(null);
-      setVideos([]);
+    async function loadTrending() {
+      const apiKey = window.YT_API_KEY;
+      const cacheKey = "trending_v1";
 
-      let items = [];
-
-      if (searchQuery && searchQuery.trim().length > 0) {
-        const q = searchQuery.trim();
-        log(`DEBUG: Searching for "${q}"`);
-        items = await fetchFromYouTubeSearch(q);
-      } else {
-        log("DEBUG: Fetching trending");
-        items = await fetchFromYouTubeTrending();
+      const cached = getCached(cacheKey);
+      if (cached) {
+        log("DEBUG: Using cached trending");
+        setVideos(cached);
+        setSourceUsed("CACHE");
+        setLoading(false);
+        return;
       }
 
-      log(`DEBUG: Raw items = ${items.length}`);
+      log("DEBUG: Fetching trending via YouTube API");
 
-      const normalized = items.map(normalizeItem).filter(Boolean);
-      log(`DEBUG: Normalized to ${normalized.length} videos`);
+      try {
+        const url =
+          "https://www.googleapis.com/youtube/v3/videos" +
+          `?part=snippet,contentDetails&chart=mostPopular&regionCode=US&maxResults=20&key=${apiKey}`;
 
-      setVideos(normalized);
+        log(`DEBUG: Trending URL → ${url}`);
+
+        const res = await fetch(url);
+        const data = await res.json();
+
+        // Detect quota exceeded
+        if (data?.error?.errors?.[0]?.reason === "quotaExceeded") {
+          log("ERROR: Quota exceeded detected");
+          setQuotaExceeded(true);
+          setVideos([]);
+          setLoading(false);
+          return;
+        }
+
+        if (!data.items || !Array.isArray(data.items)) {
+          log("ERROR: Trending returned no items or invalid format");
+          log("RAW: " + JSON.stringify(data).slice(0, 200));
+          setVideos([]);
+          setLoading(false);
+          return;
+        }
+
+        log(`DEBUG: Raw items = ${data.items.length}`);
+
+        const normalized = data.items.map((item) => {
+          const t = item.snippet?.thumbnails;
+          const thumbnail =
+            t?.maxres?.url ||
+            t?.high?.url ||
+            t?.medium?.url ||
+            t?.default?.url ||
+            null;
+
+          return {
+            id: item.id,
+            title: item.snippet.title,
+            author: item.snippet.channelTitle,
+            thumbnail,
+            duration: null,
+          };
+        });
+
+        log(`DEBUG: Normalized to ${normalized.length} videos`);
+
+        setCached(cacheKey, normalized);
+        setVideos(normalized);
+        setSourceUsed("YOUTUBE_API");
+      } catch (err) {
+        log("ERROR: Trending fetch failed: " + err);
+        setVideos([]);
+      }
+
       setLoading(false);
     }
 
-    load();
-  }, [searchQuery]);
-
-  // -------------------------------
-  // Render
-  // -------------------------------
-  if (loading) {
-    return (
-      <>
-        <DebugOverlay pageName="Home" sourceUsed={sourceUsed} />
-        <p style={{ color: "#fff", padding: 16 }}>Loading…</p>
-      </>
-    );
-  }
+    loadTrending();
+  }, []);
 
   return (
     <>
       <DebugOverlay pageName="Home" sourceUsed={sourceUsed} />
 
-      <div style={{ padding: 16 }}>
+      <div style={{ padding: 16, color: "#fff" }}>
+        <h2 style={{ marginBottom: 12 }}>Trending</h2>
+
+        {/* QUOTA TITLE */}
+        {quotaExceeded && (
+          <div
+            style={{
+              padding: "12px 14px",
+              background: "#331111",
+              border: "1px solid #552222",
+              borderRadius: 8,
+              color: "#ff7777",
+              marginBottom: 16,
+              fontSize: 14,
+              fontWeight: 500,
+            }}
+          >
+            YouTube Data API v3 quota reached — Trending unavailable
+          </div>
+        )}
+
+        {/* TEST PLAYER BUTTON */}
         {videos.length === 0 && (
-          <p style={{ color: "#fff" }}>No results found.</p>
+          <button
+            onClick={() => navigate("/watch/dQw4w9WgXcQ")}
+            style={{
+              padding: "10px 16px",
+              background: "#222",
+              border: "1px solid #444",
+              borderRadius: 8,
+              color: "#fff",
+              marginBottom: 16,
+              cursor: "pointer",
+            }}
+          >
+            ▶ Test Player (Play Video)
+          </button>
+        )}
+
+        {loading && <p style={{ opacity: 0.7 }}>Loading…</p>}
+
+        {!loading && videos.length === 0 && !quotaExceeded && (
+          <p style={{ opacity: 0.7 }}>
+            No trending videos available.
+          </p>
         )}
 
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
-            gap: 16,
+            gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
+            gap: 12,
           }}
         >
-          {videos.map((video) => (
-            <VideoCard key={video.id} video={video} />
+          {videos.map((v) => (
+            <VideoCard key={v.id} video={v} />
           ))}
         </div>
       </div>
