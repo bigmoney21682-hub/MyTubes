@@ -1,5 +1,5 @@
 // File: src/pages/Watch.jsx
-// PCC v17.0 — Fallback metadata + Subscribe inline + global player
+// PCC v18.0 — Crash-proof fallback metadata + Subscribe inline + global player
 
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
@@ -30,9 +30,27 @@ export default function Watch() {
   const [video, setVideo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [sourceUsed, setSourceUsed] = useState(null);
+  const [metadataFailed, setMetadataFailed] = useState(false);
 
   const log = (msg) => window.debugLog?.(`Watch: ${msg}`);
 
+  // ------------------------------------------------------------
+  // SAFE FALLBACK METADATA OBJECT
+  // ------------------------------------------------------------
+  const buildFallback = (videoId) => ({
+    id: videoId,
+    snippet: {
+      title: "Unknown Title",
+      channelTitle: "Unknown Channel",
+      channelId: "unknown",
+      description: "",
+      thumbnails: {},
+    },
+  });
+
+  // ------------------------------------------------------------
+  // Fetch metadata (with fallback)
+  // ------------------------------------------------------------
   async function fetchFromYouTube(videoId) {
     const apiKey = window.YT_API_KEY;
     const cacheKey = `video_${videoId}`;
@@ -51,18 +69,11 @@ export default function Watch() {
       const res = await fetch(url);
       const data = await res.json();
 
+      // QUOTA OR METADATA FAILURE
       if (!data.items || !data.items.length) {
-        log("Metadata failed — using fallback object");
-        return {
-          id: videoId,
-          snippet: {
-            title: "Unknown Title",
-            channelTitle: "Unknown Channel",
-            channelId: "unknown",
-            description: "",
-            thumbnails: {},
-          },
-        };
+        log("Metadata unavailable — using fallback");
+        setMetadataFailed(true);
+        return buildFallback(videoId);
       }
 
       const item = data.items[0];
@@ -71,31 +82,31 @@ export default function Watch() {
       return item;
     } catch (err) {
       log("Metadata fetch error — using fallback");
-      return {
-        id: videoId,
-        snippet: {
-          title: "Unknown Title",
-          channelTitle: "Unknown Channel",
-          channelId: "unknown",
-          description: "",
-          thumbnails: {},
-        },
-      };
+      setMetadataFailed(true);
+      return buildFallback(videoId);
     }
   }
 
+  // ------------------------------------------------------------
+  // Normalize video safely
+  // ------------------------------------------------------------
   const normalizeVideo = (v) => {
+    const snippet = v.snippet || {};
+
     return {
-      id: typeof v.id === "string" ? v.id : v.id.videoId,
-      title: v.snippet.title,
-      author: v.snippet.channelTitle,
-      channelId: v.snippet.channelId,
-      description: v.snippet.description,
+      id: typeof v.id === "string" ? v.id : v.id?.videoId || "unknown",
+      title: snippet.title || "Unknown Title",
+      author: snippet.channelTitle || "Unknown Channel",
+      channelId: snippet.channelId || "unknown",
+      description: snippet.description || "",
       thumbnail: null,
       youtube: v,
     };
   };
 
+  // ------------------------------------------------------------
+  // Load video
+  // ------------------------------------------------------------
   useEffect(() => {
     async function load() {
       const cleanId = String(id || "").trim();
@@ -106,11 +117,14 @@ export default function Watch() {
       }
 
       setLoading(true);
+      setMetadataFailed(false);
+
       const raw = await fetchFromYouTube(cleanId);
       const normalized = normalizeVideo(raw);
 
       setVideo(normalized);
 
+      // Prepare PlayerContext
       setPlaylist([normalized]);
       setCurrentIndex(0);
       setAutonextMode("related");
@@ -122,6 +136,9 @@ export default function Watch() {
     load();
   }, [id]);
 
+  // ------------------------------------------------------------
+  // Render
+  // ------------------------------------------------------------
   if (loading) {
     return (
       <>
@@ -147,6 +164,25 @@ export default function Watch() {
       <DebugOverlay pageName="Watch" sourceUsed={sourceUsed} />
 
       <div style={{ padding: 16, color: "#fff" }}>
+        {/* FALLBACK BANNER */}
+        {metadataFailed && (
+          <div
+            style={{
+              padding: "12px 14px",
+              background: "#331111",
+              border: "1px solid #552222",
+              borderRadius: 8,
+              color: "#ff7777",
+              marginBottom: 16,
+              fontSize: 14,
+              fontWeight: 500,
+            }}
+          >
+            Metadata unavailable — playing video anyway
+          </div>
+        )}
+
+        {/* Player */}
         <div
           style={{
             position: "relative",
@@ -163,8 +199,10 @@ export default function Watch() {
           </div>
         </div>
 
+        {/* Title */}
         <h2 style={{ marginBottom: 8 }}>{video.title}</h2>
 
+        {/* Metadata row */}
         <div
           style={{
             display: "flex",
@@ -174,6 +212,7 @@ export default function Watch() {
             marginBottom: 12,
           }}
         >
+          {/* Channel */}
           <div style={{ display: "flex", flexDirection: "column" }}>
             <button
               onClick={() =>
@@ -200,6 +239,7 @@ export default function Watch() {
             </button>
           </div>
 
+          {/* Actions */}
           <div style={{ display: "flex", gap: 8 }}>
             <button
               onClick={() => navigate("/playlists")}
@@ -244,6 +284,7 @@ export default function Watch() {
           </div>
         </div>
 
+        {/* Related Videos */}
         <RelatedVideos
           videoId={video.id}
           title={video.title}
