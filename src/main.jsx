@@ -1,5 +1,5 @@
 // File: src/main.jsx
-// PCC v7.0 — Safe Router Boot + Global Crash Logger + Providers
+// PCC v8.0 — Adds global YT API key injection + preserves Safe Router Boot + Global Crash Logger + Providers
 // rebuild-router-1
 
 import React from "react";
@@ -9,6 +9,11 @@ import { HashRouter } from "react-router-dom";
 import App from "./App";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { PlayerProvider } from "./contexts/PlayerContext";
+
+// ------------------------------------------------------------
+// GLOBAL YT API KEY INJECTION
+// ------------------------------------------------------------
+window.YT_API_KEY = import.meta.env.VITE_YT_API_PRIMARY;
 
 // ------------------------------------------------------------
 // GLOBAL CRASH LOGGER (PERSISTENT)
