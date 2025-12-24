@@ -1,8 +1,8 @@
 // File: src/pages/Watch.jsx
-// PCC v15.0 — Added Subscribe button + caching + global player
+// PCC v16.0 — Subscribe inline with +Playlist row + caching + global player
 
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 
 import DebugOverlay from "../components/DebugOverlay";
 import Player from "../components/Player";
@@ -14,6 +14,7 @@ import { useSubscriptions } from "../hooks/useSubscriptions";
 
 export default function Watch() {
   const { id } = useParams();
+  const navigate = useNavigate();
 
   const {
     playVideo,
@@ -185,42 +186,126 @@ export default function Watch() {
           }}
         >
           <div style={{ position: "absolute", inset: 0 }}>
-            <Player embedUrl={null} playing={playing} />
+            <Player playing={playing} />
           </div>
         </div>
 
-        <h2>{video.title}</h2>
-        <p style={{ opacity: 0.7 }}>{video.author}</p>
+        {/* Title */}
+        <h2 style={{ marginBottom: 8 }}>{video.title}</h2>
 
-        {/* Subscribe Button */}
-        <button
-          onClick={() => {
-            if (subscribed) {
-              unsubscribe(video.channelId);
-              window.debugLog?.("Unsubscribed");
-            } else {
-              subscribe({
-                channelId: video.channelId,
-                title: video.author,
-                thumbnail: video.thumbnail,
-              });
-              window.debugLog?.("Subscribed");
-            }
-          }}
+        {/* Metadata row: channel + actions */}
+        <div
           style={{
-            marginTop: 8,
-            padding: "8px 14px",
-            background: subscribed ? "#444" : "#ff0000",
-            border: "none",
-            borderRadius: 6,
-            color: "#fff",
-            cursor: "pointer",
-            fontWeight: "bold",
-            marginBottom: 16,
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            justifyContent: "space-between",
+            marginBottom: 12,
           }}
         >
-          {subscribed ? "Unsubscribe" : "Subscribe"}
-        </button>
+          {/* Left: channel name */}
+          <div
+            style={{ display: "flex", flexDirection: "column", minWidth: 0 }}
+          >
+            <button
+              onClick={() =>
+                navigate(`/channel/${encodeURIComponent(video.channelId)}`, {
+                  state: {
+                    channelTitle: video.author,
+                    channelThumb: video.thumbnail,
+                  },
+                })
+              }
+              style={{
+                background: "none",
+                border: "none",
+                padding: 0,
+                margin: 0,
+                color: "#fff",
+                cursor: "pointer",
+                textAlign: "left",
+                fontSize: 15,
+                fontWeight: 500,
+              }}
+            >
+              {video.author}
+            </button>
+          </div>
+
+          {/* Right: +Playlist and Subscribe buttons */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              flexShrink: 0,
+            }}
+          >
+            {/* +Playlist (UI + navigation to playlists) */}
+            <button
+              onClick={() => {
+                window.debugLog?.("Watch: +Playlist clicked");
+                navigate("/playlists");
+              }}
+              style={{
+                padding: "6px 10px",
+                background: "#222",
+                borderRadius: 999,
+                border: "1px solid #444",
+                color: "#fff",
+                fontSize: 13,
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+              }}
+            >
+              + Playlist
+            </button>
+
+            {/* Subscribe */}
+            <button
+              onClick={() => {
+                if (subscribed) {
+                  unsubscribe(video.channelId);
+                  window.debugLog?.("Unsubscribed");
+                } else {
+                  subscribe({
+                    channelId: video.channelId,
+                    title: video.author,
+                    thumbnail: video.thumbnail,
+                  });
+                  window.debugLog?.("Subscribed");
+                }
+              }}
+              style={{
+                padding: "6px 12px",
+                background: subscribed ? "#444" : "#ff0000",
+                border: "none",
+                borderRadius: 999,
+                color: "#fff",
+                cursor: "pointer",
+                fontWeight: "bold",
+                fontSize: 13,
+                whiteSpace: "nowrap",
+              }}
+            >
+              {subscribed ? "Subscribed" : "Subscribe"}
+            </button>
+          </div>
+        </div>
+
+        {/* Description (collapsed style optional later) */}
+        {video.description && (
+          <p
+            style={{
+              fontSize: 14,
+              opacity: 0.8,
+              marginBottom: 16,
+              whiteSpace: "pre-wrap",
+            }}
+          >
+            {video.description}
+          </p>
+        )}
 
         {/* Related Videos */}
         <RelatedVideos
