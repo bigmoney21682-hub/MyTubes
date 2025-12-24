@@ -1,26 +1,41 @@
+<!-- File: 404.html -->
+<!-- PCC v5.0 — GitHub Pages SPA fallback with SW terminator -->
+
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
-    <meta charset="utf-8">
-    <title>Single Page Apps for GitHub Pages</title>
-    <script type="text/javascript">
-      // Single Page Apps for GitHub Pages
-      // https://github.com/rafgraph/spa-github-pages
-      // Released under MIT License
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1"
+    />
+    <title>MyTube — Redirecting…</title>
 
-      // For Project Pages sites (username.github.io/repo-name)
-      var pathSegmentsToKeep = 1;
+    <!-- Base path for GitHub Pages -->
+    <base href="/MyTube-Piped-Frontend/" />
 
-      var l = window.location;
-      l.replace(
-        l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
-        l.pathname.split('/').slice(0, 1 + pathSegmentsToKeep).join('/') + '/?/' +
-        l.pathname.slice(1).split('/').slice(pathSegmentsToKeep).join('/').split('?')[0].split('#')[0] +
-        l.search +
-        '#' + l.hash
-      );
+    <!-- Register SW Terminator -->
+    <script>
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register(
+          "/MyTube-Piped-Frontend/sw.js",
+          { scope: "/MyTube-Piped-Frontend/" }
+        );
+      }
+    </script>
+
+    <!-- GitHub Pages SPA redirect -->
+    <script>
+      // Redirect to index.html for React Router
+      const redirectUrl = "/MyTube-Piped-Frontend/" + window.location.hash;
+      window.location.replace(redirectUrl);
     </script>
   </head>
+
   <body>
+    <div id="root"></div>
+
+    <!-- Vite entry point -->
+    <script type="module" src="/MyTube-Piped-Frontend/src/main.jsx"></script>
   </body>
 </html>
