@@ -1,314 +1,212 @@
 // File: src/pages/Watch.jsx
-// Diagnostic v2 — safe hooks destructuring + render logging + RelatedVideos disabled
+// PCC v10.0 — Crash‑proof, ID‑safe, metadata‑safe Watch page
 
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-
-import DebugOverlay from "../components/DebugOverlay";
-import Player from "../components/Player";
-// import RelatedVideos from "../components/RelatedVideos"; // DISABLED
-
+import { useParams } from "react-router-dom";
 import { usePlayer } from "../contexts/PlayerContext";
-import { getCached, setCached } from "../utils/youtubeCache";
-import { useSubscriptions } from "../hooks/useSubscriptions";
 
 export default function Watch() {
-  const { id } = useParams();
-  const navigate = useNavigate();
+  const { id: rawId } = useParams();
 
   // ------------------------------------------------------------
-  // SAFE HOOK DESTRUCTURING (prevents "right side cannot be destructured")
+  // SAFELY normalize the ID
   // ------------------------------------------------------------
+  const cleanId =
+    typeof rawId === "string" && rawId.trim().length > 0
+      ? rawId.trim()
+      : null;
+
+  const log = (msg) => window.debugLog?.(`Watch(${cleanId}): ${msg}`);
+
   const playerCtx = usePlayer() || {};
-  const {
-    playVideo,
-    playing,
-    setAutonextMode,
-    setRelatedList,
-    setPlaylist,
-    setCurrentIndex,
-  } = playerCtx;
-
-  const subsCtx = useSubscriptions() || {};
-  const {
-    subscribe = () => {},
-    unsubscribe = () => {},
-    isSubscribed = () => false,
-  } = subsCtx;
+  const { playVideo = () => {}, setRelatedList = () => {} } = playerCtx;
 
   const [video, setVideo] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [sourceUsed, setSourceUsed] = useState(null);
-  const [metadataFailed, setMetadataFailed] = useState(false);
-
-  const log = (msg) => window.debugLog?.(`Watch: ${msg}`);
+  const [related, setRelated] = useState([]);
+  const [error, setError] = useState("");
 
   // ------------------------------------------------------------
-  // SAFE FALLBACK METADATA OBJECT
-  // ------------------------------------------------------------
-  const buildFallback = (videoId) => ({
-    id: videoId,
-    snippet: {
-      title: "Unknown Title",
-      channelTitle: "Unknown Channel",
-      channelId: "unknown",
-      description: "",
-      thumbnails: {},
-    },
-  });
-
-  // ------------------------------------------------------------
-  // Fetch metadata (with fallback)
-  // ------------------------------------------------------------
-  async function fetchFromYouTube(videoId) {
-    const apiKey = window.YT_API_KEY;
-    const cacheKey = `video_${videoId}`;
-
-    const cached = getCached(cacheKey);
-    if (cached) {
-      setSourceUsed("CACHE");
-      return cached;
-    }
-
-    try {
-      const url =
-        "https://www.googleapis.com/youtube/v3/videos" +
-        `?part=snippet,contentDetails&id=${videoId}&key=${apiKey}`;
-
-      const res = await fetch(url);
-      const data = await res.json();
-
-      if (!data.items || !data.items.length) {
-        log("Metadata unavailable — using fallback");
-        setMetadataFailed(true);
-        return buildFallback(videoId);
-      }
-
-      const item = data.items[0];
-      setCached(cacheKey, item);
-      setSourceUsed("YOUTUBE_API");
-      return item;
-    } catch (err) {
-      log("Metadata fetch error — using fallback");
-      setMetadataFailed(true);
-      return buildFallback(videoId);
-    }
-  }
-
-  // ------------------------------------------------------------
-  // Normalize video safely
-  // ------------------------------------------------------------
-  const normalizeVideo = (v) => {
-    if (!v) return buildFallback(id);
-
-    const snippet = v.snippet || {};
-
-    return {
-      id: typeof v.id === "string" ? v.id : v.id?.videoId || "unknown",
-      title: snippet.title || "Unknown Title",
-      author: snippet.channelTitle || "Unknown Channel",
-      channelId: snippet.channelId || "unknown",
-      description: snippet.description || "",
-      thumbnail: null,
-      youtube: v,
-    };
-  };
-
-  // ------------------------------------------------------------
-  // Load video
+  // Fetch main video metadata
   // ------------------------------------------------------------
   useEffect(() => {
-    async function load() {
-      const cleanId = String(id || "").trim();
-      if (!cleanId) {
-        setVideo(null);
-        setLoading(false);
-        return;
-      }
-
-      setLoading(true);
-      setMetadataFailed(false);
-
-      const raw = await fetchFromYouTube(cleanId);
-      const normalized = normalizeVideo(raw);
-
-      setVideo(normalized);
-
-      // Prepare PlayerContext (guard in case context is not ready)
-      if (setPlaylist && setCurrentIndex && setAutonextMode && playVideo) {
-        setPlaylist([normalized]);
-        setCurrentIndex(0);
-        setAutonextMode("related");
-        playVideo(normalized);
-      } else {
-        log("PlayerContext not ready — skipped playlist wiring");
-      }
-
-      setLoading(false);
+    if (!cleanId) {
+      log("INVALID VIDEO ID");
+      setError("Invalid video ID");
+      return;
     }
 
-    load();
-  }, [id]);
+    const key = window.__ytKey;
+    if (!key) {
+      log("Missing API key");
+      setError("Missing API key");
+      return;
+    }
+
+    const fetchVideo = async () => {
+      try {
+        log("Fetching video metadata…");
+
+        const url =
+          "https://www.googleapis.com/youtube/v3/videos" +
+          `?part=snippet,contentDetails,statistics&id=${cleanId}` +
+          `&key=${key}`;
+
+        const res = await fetch(url);
+        if (!res.ok) {
+          const text = await res.text();
+          log(`Metadata fetch failed: ${res.status} ${text}`);
+          setError("Metadata fetch failed");
+          return;
+        }
+
+        const data = await res.json();
+        const item = data.items?.[0];
+
+        if (!item) {
+          log("No metadata found — using fallback");
+          setVideo({
+            id: cleanId,
+            title: "Unknown Video",
+            author: "Unknown",
+            description: "",
+          });
+          return;
+        }
+
+        const mapped = {
+          id: cleanId,
+          title: item.snippet?.title || "Untitled",
+          author: item.snippet?.channelTitle || "Unknown",
+          description: item.snippet?.description || "",
+        };
+
+        log("Metadata loaded");
+        setVideo(mapped);
+      } catch (err) {
+        log(`Exception: ${err.message}`);
+        setError("Network error");
+      }
+    };
+
+    fetchVideo();
+  }, [cleanId]);
 
   // ------------------------------------------------------------
-  // Render
+  // Fetch related videos
   // ------------------------------------------------------------
-  log(`render start — id=${id}, loading=${loading}`);
+  useEffect(() => {
+    if (!cleanId) return;
 
-  if (loading) {
+    const key = window.__ytKey;
+    if (!key) return;
+
+    const fetchRelated = async () => {
+      try {
+        log("Fetching related videos…");
+
+        const url =
+          "https://www.googleapis.com/youtube/v3/search" +
+          `?part=snippet&type=video&maxResults=20&relatedToVideoId=${cleanId}` +
+          `&key=${key}`;
+
+        const res = await fetch(url);
+        if (!res.ok) {
+          log("Related fetch failed");
+          return;
+        }
+
+        const data = await res.json();
+        const items = Array.isArray(data.items) ? data.items : [];
+
+        const mapped = items.map((item) => ({
+          id: item.id?.videoId || null,
+          title: item.snippet?.title || "",
+          author: item.snippet?.channelTitle || "",
+          thumbnail:
+            item.snippet?.thumbnails?.medium?.url ||
+            item.snippet?.thumbnails?.default?.url ||
+            "",
+        }));
+
+        log(`Loaded ${mapped.length} related videos`);
+        setRelated(mapped);
+        setRelatedList(mapped);
+      } catch (err) {
+        log(`Related exception: ${err.message}`);
+      }
+    };
+
+    fetchRelated();
+  }, [cleanId]);
+
+  // ------------------------------------------------------------
+  // Auto‑play when metadata is ready
+  // ------------------------------------------------------------
+  useEffect(() => {
+    if (!cleanId) return;
+    if (!video) return;
+
+    log("Calling playVideo()");
+    playVideo(video);
+  }, [video]);
+
+  // ------------------------------------------------------------
+  // UI
+  // ------------------------------------------------------------
+  if (!cleanId) {
     return (
-      <>
-        <DebugOverlay pageName="Watch" sourceUsed={sourceUsed} />
-        <p style={{ color: "#fff", padding: 16 }}>Loading…</p>
-      </>
+      <div style={{ padding: 20, color: "#fff" }}>
+        INVALID VIDEO ID
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{ padding: 20, color: "#fff" }}>
+        Error: {error}
+      </div>
     );
   }
 
   if (!video) {
     return (
-      <>
-        <DebugOverlay pageName="Watch" sourceUsed={sourceUsed} />
-        <p style={{ color: "#fff", padding: 16 }}>Unable to load this video.</p>
-      </>
+      <div style={{ padding: 20, color: "#fff" }}>
+        Loading video…
+      </div>
     );
   }
 
-  const subscribed = isSubscribed(video.channelId);
-
   return (
-    <>
-      <DebugOverlay pageName="Watch" sourceUsed={sourceUsed} />
+    <div style={{ padding: 16, color: "#fff" }}>
+      <h2>{video.title}</h2>
+      <div style={{ opacity: 0.7 }}>{video.author}</div>
 
-      <div style={{ padding: 16, color: "#fff" }}>
-        {/* FALLBACK BANNER */}
-        {metadataFailed && (
+      <div style={{ marginTop: 20 }}>
+        <h3>Related Videos</h3>
+        {related.map((v) => (
           <div
+            key={v.id}
+            onClick={() => (v.id ? playVideo(v) : null)}
             style={{
-              padding: "12px 14px",
-              background: "#331111",
-              border: "1px solid #552222",
-              borderRadius: 8,
-              color: "#ff7777",
+              display: "flex",
+              gap: 12,
               marginBottom: 16,
-              fontSize: 14,
-              fontWeight: 500,
+              cursor: "pointer",
             }}
           >
-            Metadata unavailable — playing video anyway
+            <img
+              src={v.thumbnail}
+              alt=""
+              style={{ width: 160, height: 90, borderRadius: 6 }}
+            />
+            <div>
+              <div style={{ fontWeight: "bold" }}>{v.title}</div>
+              <div style={{ opacity: 0.7 }}>{v.author}</div>
+            </div>
           </div>
-        )}
-
-        {/* Player */}
-        <div
-          style={{
-            position: "relative",
-            width: "100%",
-            paddingTop: "56.25%",
-            borderRadius: 12,
-            overflow: "hidden",
-            background: "#000",
-            marginBottom: 16,
-          }}
-        >
-          <div style={{ position: "absolute", inset: 0 }}>
-            <Player playing={playing} />
-          </div>
-        </div>
-
-        {/* Title */}
-        <h2 style={{ marginBottom: 8 }}>{video.title}</h2>
-
-        {/* Metadata row */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 12,
-            justifyContent: "space-between",
-            marginBottom: 12,
-          }}
-        >
-          {/* Channel */}
-          <div style={{ display: "flex", flexDirection: "column" }}>
-            <button
-              onClick={() =>
-                navigate(`/channel/${video.channelId}`, {
-                  state: {
-                    channelTitle: video.author,
-                    channelThumb: video.thumbnail,
-                  },
-                })
-              }
-              style={{
-                background: "none",
-                border: "none",
-                padding: 0,
-                margin: 0,
-                color: "#fff",
-                cursor: "pointer",
-                textAlign: "left",
-                fontSize: 15,
-                fontWeight: 500,
-              }}
-            >
-              {video.author}
-            </button>
-          </div>
-
-          {/* Actions */}
-          <div style={{ display: "flex", gap: 8 }}>
-            <button
-              onClick={() => navigate("/playlists")}
-              style={{
-                padding: "6px 10px",
-                background: "#222",
-                borderRadius: 999,
-                border: "1px solid #444",
-                color: "#fff",
-                fontSize: 13,
-                cursor: "pointer",
-              }}
-            >
-              + Playlist
-            </button>
-
-            <button
-              onClick={() => {
-                if (subscribed) {
-                  unsubscribe(video.channelId);
-                } else {
-                  subscribe({
-                    channelId: video.channelId,
-                    title: video.author,
-                    thumbnail: video.thumbnail,
-                  });
-                }
-              }}
-              style={{
-                padding: "6px 12px",
-                background: subscribed ? "#444" : "#ff0000",
-                borderRadius: 999,
-                border: "none",
-                color: "#fff",
-                cursor: "pointer",
-                fontWeight: "bold",
-                fontSize: 13,
-              }}
-            >
-              {subscribed ? "Subscribed" : "Subscribe"}
-            </button>
-          </div>
-        </div>
-
-        {/* Related Videos disabled for debugging */}
-        {/*
-        <RelatedVideos
-          videoId={video.id}
-          title={video.title}
-          onLoaded={(list) => setRelatedList(list || [])}
-        />
-        */}
+        ))}
       </div>
-    </>
+    </div>
   );
 }
