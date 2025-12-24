@@ -1,6 +1,5 @@
 // File: src/App.jsx
-// PCC v11.0 — Full app shell with DebugEnv route, DebugOverlay, GlobalPlayer,
-// MiniPlayer, BootSplash, BootJosh, and complete logging.
+// PCC v11.1 — Single DebugOverlay mount, no duplicates.
 
 import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useState, useRef } from "react";
@@ -39,7 +38,6 @@ export default function App() {
   const prevVideoRef = useRef(null);
   const prevPlayingRef = useRef(null);
 
-  // Determine page name for DebugOverlay
   const getPageName = () => {
     if (location.pathname.startsWith("/watch")) return "Watch";
     if (location.pathname.startsWith("/playlist")) return "Playlist";
@@ -52,19 +50,14 @@ export default function App() {
 
   const pageName = getPageName();
 
-  // Log video changes
   useEffect(() => {
     if (prevVideoRef.current !== currentVideo) {
-      if (!currentVideo) log("currentVideo changed -> null");
-      else {
-        const id = currentVideo.id || currentVideo.id?.videoId;
-        log(`currentVideo changed -> id=${id}`);
-      }
+      const id = currentVideo?.id || currentVideo?.id?.videoId || "null";
+      log(`currentVideo changed -> ${id}`);
       prevVideoRef.current = currentVideo;
     }
   }, [currentVideo]);
 
-  // Log playing changes
   useEffect(() => {
     if (prevPlayingRef.current !== playing) {
       log(`isPlaying changed -> ${playing}`);
@@ -72,7 +65,6 @@ export default function App() {
     }
   }, [playing]);
 
-  // BootSplash + BootJosh sequence
   useEffect(() => {
     const t = setTimeout(() => setReady(true), 2000);
 
@@ -91,10 +83,7 @@ export default function App() {
     navigate("/");
   };
 
-  const togglePlay = () => {
-    setPlaying((prev) => !prev);
-  };
-
+  const togglePlay = () => setPlaying((prev) => !prev);
   const closePlayer = () => {
     log("closePlayer -> stopVideo");
     stopVideo();
@@ -102,18 +91,13 @@ export default function App() {
 
   return (
     <>
-      {/* BootSplash always renders first */}
       <BootSplash ready={ready} />
-
-      {/* BootJosh renders second */}
       {ready && !joshDone && <BootJosh onDone={() => setJoshDone(true)} />}
 
-      {/* Main app shell */}
       {ready && joshDone && (
         <div className="app-root">
           <Header onSearch={handleSearch} />
 
-          {/* Global iframe player */}
           <GlobalPlayer />
 
           <div className="app-content">
@@ -128,7 +112,7 @@ export default function App() {
             </Routes>
           </div>
 
-          {/* DebugOverlay inside layout, above footer */}
+          {/* SINGLE DebugOverlay */}
           <DebugOverlay pageName={pageName} />
 
           <MiniPlayer onTogglePlay={togglePlay} onClose={closePlayer} />
