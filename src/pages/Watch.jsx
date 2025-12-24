@@ -1,12 +1,12 @@
 // File: src/pages/Watch.jsx
-// PCC v18.0 — Crash-proof fallback metadata + Subscribe inline + global player
+// Diagnostic v1 — render logging + RelatedVideos disabled
 
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 
 import DebugOverlay from "../components/DebugOverlay";
 import Player from "../components/Player";
-import RelatedVideos from "../components/RelatedVideos";
+// import RelatedVideos from "../components/RelatedVideos"; // DISABLED
 
 import { usePlayer } from "../contexts/PlayerContext";
 import { getCached, setCached } from "../utils/youtubeCache";
@@ -69,7 +69,6 @@ export default function Watch() {
       const res = await fetch(url);
       const data = await res.json();
 
-      // QUOTA OR METADATA FAILURE
       if (!data.items || !data.items.length) {
         log("Metadata unavailable — using fallback");
         setMetadataFailed(true);
@@ -139,6 +138,8 @@ export default function Watch() {
   // ------------------------------------------------------------
   // Render
   // ------------------------------------------------------------
+  log(`render start — id=${id}, loading=${loading}`);
+
   if (loading) {
     return (
       <>
@@ -284,12 +285,14 @@ export default function Watch() {
           </div>
         </div>
 
-        {/* Related Videos */}
+        {/* Related Videos disabled for debugging */}
+        {/* 
         <RelatedVideos
           videoId={video.id}
           title={video.title}
           onLoaded={(list) => setRelatedList(list || [])}
         />
+        */}
       </div>
     </>
   );
