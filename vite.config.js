@@ -1,5 +1,5 @@
 // File: vite.config.js
-// PCC v2.0 — Simple .env-based config for local + GitHub Pages.
+// PCC v5.0 — Ensures GitHub Actions secrets are embedded into the client bundle.
 
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
@@ -7,4 +7,8 @@ import react from "@vitejs/plugin-react";
 export default defineConfig({
   plugins: [react()],
   base: "/MyTube-Piped-Frontend/",
+  define: {
+    "import.meta.env.VITE_YT_API_PRIMARY": JSON.stringify(process.env.VITE_YT_API_PRIMARY),
+    "import.meta.env.VITE_YT_API_FALLBACK1": JSON.stringify(process.env.VITE_YT_API_FALLBACK1),
+  },
 });
