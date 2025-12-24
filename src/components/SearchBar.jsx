@@ -1,7 +1,18 @@
 // File: src/components/SearchBar.jsx
-// PCC v5.0 — Fully optimized, crash‑proof, YouTube‑style SearchBar
+// PCC v6.0 — YouTube‑style, optimized, crash‑proof SearchBar
 
 import { useState, useEffect, useRef } from "react";
+
+const TRENDING = [
+  "music",
+  "news",
+  "gaming",
+  "podcasts",
+  "lofi",
+  "sports highlights",
+  "tech reviews",
+  "funny videos",
+];
 
 export default function SearchBar({ onSearch }) {
   const [q, setQ] = useState("");
@@ -38,7 +49,7 @@ export default function SearchBar({ onSearch }) {
   };
 
   // ------------------------------------------------------------
-  // Debounced autocomplete with stale request cancellation
+  // Debounced autocomplete with cancellation
   // ------------------------------------------------------------
   useEffect(() => {
     if (!q.trim()) {
@@ -63,13 +74,13 @@ export default function SearchBar({ onSearch }) {
       } catch (err) {
         if (err.name !== "AbortError") console.error("Autocomplete error:", err);
       }
-    }, 250);
+    }, 200);
 
     return () => clearTimeout(t);
   }, [q]);
 
   // ------------------------------------------------------------
-  // Safe submit — ignores accidental event objects
+  // Safe submit
   // ------------------------------------------------------------
   const submit = (term) => {
     if (term && typeof term === "object") return;
@@ -88,8 +99,14 @@ export default function SearchBar({ onSearch }) {
   // Keyboard navigation
   // ------------------------------------------------------------
   const handleKeyDown = (e) => {
-    const list = [...history, ...suggestions];
+    const list = q.trim() ? [...history, ...suggestions] : TRENDING;
     const hasItems = list.length > 0;
+
+    if (e.key === "/") {
+      e.preventDefault();
+      inputRef.current?.focus();
+      return;
+    }
 
     if (e.key === "Escape") {
       setShowDropdown(false);
@@ -138,7 +155,9 @@ export default function SearchBar({ onSearch }) {
   // ------------------------------------------------------------
   // Render
   // ------------------------------------------------------------
-  const list = [...history, ...suggestions];
+  const list = q.trim()
+    ? [...history, ...suggestions]
+    : TRENDING;
 
   return (
     <div style={{ width: "80%", maxWidth: 520, position: "relative" }}>
@@ -153,8 +172,21 @@ export default function SearchBar({ onSearch }) {
           overflow: "hidden",
           border: "1px solid #333",
           background: "#000",
+          alignItems: "center",
         }}
       >
+        {/* Search Icon */}
+        <div
+          style={{
+            paddingLeft: 12,
+            paddingRight: 8,
+            color: "#888",
+            fontSize: 18,
+          }}
+        >
+          🔍
+        </div>
+
         <input
           ref={inputRef}
           value={q}
@@ -166,7 +198,7 @@ export default function SearchBar({ onSearch }) {
           placeholder="Search YouTube"
           style={{
             flex: 1,
-            padding: "10px 14px",
+            padding: "10px 8px",
             border: "none",
             outline: "none",
             background: "transparent",
@@ -175,7 +207,26 @@ export default function SearchBar({ onSearch }) {
           }}
         />
 
-        <div style={{ width: 1, background: "#333" }} />
+        {/* Clear button */}
+        {q.length > 0 && (
+          <div
+            onMouseDown={(e) => {
+              e.preventDefault();
+              setQ("");
+              setSuggestions([]);
+              setShowDropdown(false);
+            }}
+            style={{
+              padding: "0 12px",
+              cursor: "pointer",
+              color: "#aaa",
+              fontSize: 18,
+              userSelect: "none",
+            }}
+          >
+            ✕
+          </div>
+        )}
 
         <button
           type="submit"
@@ -192,6 +243,7 @@ export default function SearchBar({ onSearch }) {
         </button>
       </form>
 
+      {/* Dropdown */}
       {showDropdown && list.length > 0 && (
         <div
           ref={dropdownRef}
@@ -206,6 +258,7 @@ export default function SearchBar({ onSearch }) {
             zIndex: 999,
             maxHeight: 300,
             overflowY: "auto",
+            animation: "fadeIn 0.15s ease-out",
           }}
         >
           {list.map((item, i) => (
@@ -229,6 +282,13 @@ export default function SearchBar({ onSearch }) {
           ))}
         </div>
       )}
+
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(-4px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
     </div>
   );
 }
