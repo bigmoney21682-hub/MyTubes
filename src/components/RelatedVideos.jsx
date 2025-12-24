@@ -114,7 +114,6 @@ export default function RelatedVideos({
       } catch (err) {
         log(`YouTube relatedToVideoId failed → ${err}`, "ERROR");
       }
-
       // -----------------------------------------
       // 2. Fallback: keyword search by title
       // -----------------------------------------
