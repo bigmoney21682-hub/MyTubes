@@ -127,8 +127,6 @@ export default function App() {
             </Routes>
           </div>
 
-          {/* ⭐ DebugOverlay now sits ABOVE the footer, inside the layout */}
-          <DebugOverlay pageName={pageName} />
 
           <MiniPlayer onTogglePlay={togglePlay} onClose={closePlayer} />
           <Footer />
