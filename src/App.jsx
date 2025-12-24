@@ -1,5 +1,5 @@
 // File: src/App.jsx
-// PCC v8.0 — BootSplash + BootJosh + Global DebugOverlay + Correct pageName routing
+// PCC v9.0 — BootSplash + BootJosh + Global DebugOverlay + Subscriptions route
 
 import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useState, useRef } from "react";
@@ -9,6 +9,7 @@ import Playlists from "./pages/Playlists";
 import Playlist from "./pages/Playlist";
 import SettingsPage from "./pages/SettingsPage";
 import Watch from "./pages/Watch";
+import SubscriptionsPage from "./pages/Subscriptions";
 
 import BootSplash from "./components/BootSplash";
 import BootJosh from "./components/BootJosh";
@@ -42,11 +43,13 @@ export default function App() {
     if (location.pathname.startsWith("/playlist")) return "Playlist";
     if (location.pathname.startsWith("/playlists")) return "Playlists";
     if (location.pathname.startsWith("/settings")) return "Settings";
+    if (location.pathname.startsWith("/subs")) return "Subscriptions";
     return "Home";
   };
 
   const pageName = getPageName();
 
+  // Log video changes
   useEffect(() => {
     if (prevVideoRef.current !== currentVideo) {
       if (!currentVideo) log("currentVideo changed -> null");
@@ -60,6 +63,7 @@ export default function App() {
     }
   }, [currentVideo]);
 
+  // Log playing changes
   useEffect(() => {
     if (prevPlayingRef.current !== playing) {
       log(`isPlaying changed -> ${playing}`);
@@ -67,6 +71,7 @@ export default function App() {
     }
   }, [playing]);
 
+  // BootSplash + BootJosh
   useEffect(() => {
     const t = setTimeout(() => setReady(true), 2000);
 
@@ -110,6 +115,7 @@ export default function App() {
         <div className="app-root">
           <Header onSearch={handleSearch} />
 
+          {/* Global iframe player */}
           <GlobalPlayer />
 
           <div className="app-content">
@@ -119,6 +125,9 @@ export default function App() {
               <Route path="/playlist/:id" element={<Playlist />} />
               <Route path="/watch/:id" element={<Watch />} />
               <Route path="/settings" element={<SettingsPage />} />
+
+              {/* ⭐ NEW SUBSCRIPTIONS PAGE */}
+              <Route path="/subs" element={<SubscriptionsPage />} />
             </Routes>
           </div>
 
