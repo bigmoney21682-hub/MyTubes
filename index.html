@@ -1,29 +1,84 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
+    <!-- PCC v1.0 — Router & Cache Safe Index -->
+    <!-- rebuild-router-1 -->
+
     <meta charset="UTF-8" />
     <meta
       name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
     />
+    <meta name="theme-color" content="#000000" />
     <title>MyTube</title>
 
-    <base href="/MyTube-Piped-Frontend/" />
+    <!-- iOS / PWA friendliness (safe even if you don't fully PWA) -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="MyTube" />
 
+    <!-- Favicon / icons (optional, keep or adjust) -->
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+
+    <!-- 🔥 HARD SERVICE WORKER TERMINATOR + STALE CACHE GUARD -->
     <script>
-      if ("serviceWorker" in navigator) {
-        navigator.serviceWorker.register(
-          "/MyTube-Piped-Frontend/sw.js",
-          { scope: "/MyTube-Piped-Frontend/" }
-        );
-      }
+      (function () {
+        // Kill all service workers as early as possible
+        if ("serviceWorker" in navigator) {
+          navigator.serviceWorker
+            .getRegistrations()
+            .then(function (regs) {
+              for (var i = 0; i < regs.length; i++) {
+                regs[i].unregister();
+              }
+            })
+            .catch(function () {
+              // ignore
+            });
+        }
+
+        // One-time hard reload when this index version changes
+        // Bump this version string when you want to force all clients clean
+        var ROUTER_FIX_VERSION = "router_fix_1";
+
+        try {
+          var stored = localStorage.getItem("router_fix_version");
+          if (stored !== ROUTER_FIX_VERSION) {
+            localStorage.setItem("router_fix_version", ROUTER_FIX_VERSION);
+            // Force a full reload once to shake out stale JS/HTML
+            window.location.reload(true);
+          }
+        } catch (e) {
+          // If localStorage is blocked, just continue; app will still run
+        }
+      })();
     </script>
+
+    <!-- Basic reset to avoid unstyled flash on dark background -->
+    <style>
+      html,
+      body,
+      #root {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        background: #000;
+        color: #fff;
+      }
+
+      body {
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+    </style>
   </head>
 
   <body>
     <div id="root"></div>
 
-    <!-- FIXED: correct Vite entry path -->
+    <!-- Vite entry -->
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
