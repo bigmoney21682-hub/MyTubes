@@ -1,7 +1,6 @@
 // File: src/main.jsx
-// PCC v9.0 — Moves YT API key injection to the VERY TOP (Option A)
-// Ensures the key exists BEFORE React, Router, Watch, or GlobalPlayer run.
-// rebuild-router-1
+// PCC v10.0 — Bundle Hash Bump (no behavior change)
+// rebuild-bundle-1
 
 // ------------------------------------------------------------
 // GLOBAL YT API KEY INJECTION (runs before ANY imports)
