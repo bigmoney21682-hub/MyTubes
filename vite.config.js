@@ -1,5 +1,5 @@
 // File: vite.config.js
-// PCC v5.1 — Clean Vite config for GitHub Pages + env wiring
+// PCC v5.1 — Clean Vite config for GitHub Pages + React
 
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
@@ -7,8 +7,7 @@ import react from "@vitejs/plugin-react";
 export default defineConfig({
   plugins: [react()],
 
-  // IMPORTANT: This must match your GitHub Pages repo path:
-  // https://bigmoney21682-hub.github.io/MyTube-Piped-Frontend/
+  // Must match your GitHub Pages repo name exactly
   base: "/MyTube-Piped-Frontend/",
 
   define: {
