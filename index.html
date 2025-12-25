@@ -1,13 +1,11 @@
-<!-- rebuild-26 -->
-<!-- rebuild-27 -->
-
+<!-- File: index.html -->
+<!-- PCC v2.0 — Clean Vite Index + SW Terminator -->
+<!-- rebuild-28 -->
 
 <!doctype html>
 <html lang="en">
   <head>
-    <!-- PCC v1.0 — Router & Cache Safe Index -->
-    <!-- rebuild-router-2 -->
-
+    <!-- Basic meta -->
     <meta charset="UTF-8" />
     <meta
       name="viewport"
@@ -21,13 +19,12 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="MyTube" />
 
-    <!-- Favicon / icons (optional, keep or adjust) -->
+    <!-- Favicon / icons -->
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
 
-    <!-- 🔥 HARD SERVICE WORKER TERMINATOR + STALE CACHE GUARD -->
+    <!-- 🔥 HARD SERVICE WORKER TERMINATOR (HTML-level) -->
     <script>
       (function () {
-        // Kill all service workers as early as possible
         if ("serviceWorker" in navigator) {
           navigator.serviceWorker
             .getRegistrations()
@@ -39,21 +36,6 @@
             .catch(function () {
               // ignore
             });
-        }
-
-        // One-time hard reload when this index version changes
-        // Bump this version string when you want to force all clients clean
-        var ROUTER_FIX_VERSION = "router_fix_1";
-
-        try {
-          var stored = localStorage.getItem("router_fix_version");
-          if (stored !== ROUTER_FIX_VERSION) {
-            localStorage.setItem("router_fix_version", ROUTER_FIX_VERSION);
-            // Force a full reload once to shake out stale JS/HTML
-            window.location.reload(true);
-          }
-        } catch (e) {
-          // If localStorage is blocked, just continue; app will still run
         }
       })();
     </script>
@@ -82,7 +64,7 @@
   <body>
     <div id="root"></div>
 
-    <!-- Vite entry -->
+    <!-- Vite dev entry (Vite will rewrite this in dist) -->
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
