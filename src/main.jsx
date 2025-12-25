@@ -1,22 +1,9 @@
 // File: src/main.jsx
-// PCC v11.1 — React-first import ordering
+// PCC v12.0 — React-first, no pre-import execution
+// rebuild-main-12
 
 // ------------------------------------------------------------
-// Kill ALL service workers
-// ------------------------------------------------------------
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.getRegistrations().then((regs) => {
-    for (const reg of regs) reg.unregister();
-  });
-}
-
-// ------------------------------------------------------------
-// GLOBAL YT API KEY
-// ------------------------------------------------------------
-window.YT_API_KEY = import.meta.env.VITE_YT_API_PRIMARY;
-
-// ------------------------------------------------------------
-// IMPORTS — React MUST be first
+// IMPORTS — MUST BE FIRST
 // ------------------------------------------------------------
 import React from "react";
 import ReactDOM from "react-dom/client";
@@ -26,17 +13,26 @@ import App from "./App";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { PlayerProvider } from "./contexts/PlayerContext";
 
-// ------------------------------------------------------------
-// Global initializers (must run AFTER React is imported)
-// ------------------------------------------------------------
 import "./initApiKey";
 import "./initDebug";
 
 console.log("bundle rebuild", Date.now());
 
 // ------------------------------------------------------------
-// GLOBAL CRASH LOGGER
+// NOW SAFE TO EXECUTE TOP-LEVEL CODE
 // ------------------------------------------------------------
+
+// Kill ALL service workers
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.getRegistrations().then((regs) => {
+    for (const reg of regs) reg.unregister();
+  });
+}
+
+// Global YT API key
+window.YT_API_KEY = import.meta.env.VITE_YT_API_PRIMARY;
+
+// Global crash logger
 window.__fatalErrors = window.__fatalErrors || [];
 
 function persistError(type, message, extra) {
@@ -64,9 +60,7 @@ window.onunhandledrejection = function (event) {
   persistError("unhandledrejection", event.reason, "");
 };
 
-// ------------------------------------------------------------
-// HASH SAFETY
-// ------------------------------------------------------------
+// Hash safety
 (function ensureCleanHash() {
   try {
     const h = window.location.hash || "";
