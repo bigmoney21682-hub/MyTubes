@@ -1,11 +1,10 @@
 <!-- File: index.html -->
-<!-- PCC v2.0 — Clean Vite Index + SW Terminator -->
+<!-- PCC v3.0 — Clean Vite Index + SW Terminator -->
 <!-- rebuild-28 -->
 
 <!doctype html>
 <html lang="en">
   <head>
-    <!-- Basic meta -->
     <meta charset="UTF-8" />
     <meta
       name="viewport"
@@ -14,33 +13,22 @@
     <meta name="theme-color" content="#000000" />
     <title>MyTube</title>
 
-    <!-- iOS / PWA friendliness (safe even if you don't fully PWA) -->
+    <!-- iOS / PWA friendliness -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="MyTube" />
 
-    <!-- Favicon / icons -->
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
 
-    <!-- 🔥 HARD SERVICE WORKER TERMINATOR (HTML-level) -->
+    <!-- 🔥 HARD SERVICE WORKER TERMINATOR -->
     <script>
-      (function () {
-        if ("serviceWorker" in navigator) {
-          navigator.serviceWorker
-            .getRegistrations()
-            .then(function (regs) {
-              for (var i = 0; i < regs.length; i++) {
-                regs[i].unregister();
-              }
-            })
-            .catch(function () {
-              // ignore
-            });
-        }
-      })();
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.getRegistrations().then((regs) => {
+          for (const reg of regs) reg.unregister();
+        });
+      }
     </script>
 
-    <!-- Basic reset to avoid unstyled flash on dark background -->
     <style>
       html,
       body,
@@ -64,7 +52,7 @@
   <body>
     <div id="root"></div>
 
-    <!-- Vite dev entry (Vite will rewrite this in dist) -->
+    <!-- Vite dev entry (Vite rewrites this in dist) -->
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
