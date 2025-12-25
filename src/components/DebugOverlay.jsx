@@ -1,5 +1,5 @@
 // File: src/components/DebugOverlay.jsx
-// PCC v23.0 — Crash‑proof, touch‑safe, mouse‑safe debug console
+// PCC v24.0 — Color‑coded, crash‑proof, touch‑safe, mouse‑safe debug console
 
 import React, { useEffect, useRef, useState } from "react";
 
@@ -84,7 +84,7 @@ export default function DebugOverlay({ pageName = "Unknown", sourceUsed = null }
   };
 
   // ------------------------------------------------------------
-  // Drag handling — FIXED for touch + mouse
+  // Drag handling — touch + mouse safe
   // ------------------------------------------------------------
   const handleDragStart = (e) => {
     e.preventDefault();
@@ -191,7 +191,7 @@ export default function DebugOverlay({ pageName = "Unknown", sourceUsed = null }
             top: 0,
             width: "100%",
             height: "45%",
-            background: "rgba(0,0,0,0.88)",
+            background: "rgba(0,0,0,0.9)",
             color: "#0f0",
             fontFamily: "monospace",
             fontSize: 12,
@@ -210,7 +210,8 @@ export default function DebugOverlay({ pageName = "Unknown", sourceUsed = null }
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
-              background: "rgba(0,0,0,0.95)",
+              background:
+                "linear-gradient(90deg, rgba(0,0,0,0.95), rgba(0,40,0,0.95))",
             }}
           >
             <div>
@@ -326,26 +327,81 @@ function clamp(v, min, max) {
 // Log line renderer
 // ------------------------------------------------------------
 function LogLine({ entry }) {
-  const color = getColor(entry.category);
+  const { textColor, bgColor, badgeColor } = getColors(entry.category);
+
   return (
-    <div style={{ color }}>
-      [{entry.time}] [{entry.category}] {entry.text}
+    <div
+      style={{
+        display: "flex",
+        gap: 6,
+        alignItems: "flex-start",
+        marginBottom: 2,
+        color: textColor,
+      }}
+    >
+      {/* Timestamp */}
+      <span
+        style={{
+          opacity: 0.6,
+          minWidth: 80,
+        }}
+      >
+        [{entry.time}]
+      </span>
+
+      {/* Category badge */}
+      <span
+        style={{
+          padding: "0px 6px",
+          borderRadius: 999,
+          fontSize: 10,
+          backgroundColor: bgColor,
+          color: badgeColor,
+          border: "1px solid rgba(255,255,255,0.12)",
+          textTransform: "uppercase",
+        }}
+      >
+        {entry.category}
+      </span>
+
+      {/* Message */}
+      <span style={{ whiteSpace: "pre-wrap", flex: 1 }}>{entry.text}</span>
     </div>
   );
 }
 
-function getColor(category) {
+function getColors(category) {
   switch (category) {
     case "ERROR":
-      return "#ff5555";
+      return {
+        textColor: "#ff9999",
+        bgColor: "rgba(255, 85, 85, 0.2)",
+        badgeColor: "#ffdddd",
+      };
     case "API":
-      return "#55aaff";
+      return {
+        textColor: "#88cfff",
+        bgColor: "rgba(85, 170, 255, 0.18)",
+        badgeColor: "#e0f2ff",
+      };
     case "PLAYER":
-      return "#ffaa00";
+      return {
+        textColor: "#ffdd88",
+        bgColor: "rgba(255, 200, 100, 0.18)",
+        badgeColor: "#fff6d8",
+      };
     case "ROUTER":
-      return "#aaffaa";
+      return {
+        textColor: "#b4ffb4",
+        bgColor: "rgba(120, 255, 120, 0.18)",
+        badgeColor: "#e6ffe6",
+      };
     case "UI":
     default:
-      return "#0f0";
+      return {
+        textColor: "#b6ffb6",
+        bgColor: "rgba(0, 255, 0, 0.16)",
+        badgeColor: "#e4ffe4",
+      };
   }
 }
