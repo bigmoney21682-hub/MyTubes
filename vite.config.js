@@ -1,5 +1,6 @@
 // File: vite.config.js
 // PCC v5.0 — TEnsures GitHub Actions secrets are embedded into the client bundle.
+// cache-bust-001
 
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
