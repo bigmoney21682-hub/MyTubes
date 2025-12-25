@@ -1,6 +1,5 @@
 // File: src/components/DebugOverlay.jsx
-// PCC v22.0 — Multi-panel debug console with filters, persistence, draggable toggle,
-// and persistent fatal error loader (survives black-screen crashes)
+// PCC v23.0 — Crash‑proof, touch‑safe, mouse‑safe debug console
 
 import React, { useEffect, useRef, useState } from "react";
 
@@ -22,7 +21,7 @@ export default function DebugOverlay({ pageName = "Unknown", sourceUsed = null }
   const dragPosRef = useRef({ x: 8, y: 8 });
 
   // ------------------------------------------------------------
-  // Setup global debugLog with buffered writes
+  // Global debugLog with buffered writes
   // ------------------------------------------------------------
   useEffect(() => {
     if (!window.debugLog) {
@@ -45,7 +44,7 @@ export default function DebugOverlay({ pageName = "Unknown", sourceUsed = null }
   }, []);
 
   // ------------------------------------------------------------
-  // Load persistent fatal errors (from global crash logger / ErrorBoundary)
+  // Load persistent fatal errors
   // ------------------------------------------------------------
   useEffect(() => {
     try {
@@ -85,20 +84,27 @@ export default function DebugOverlay({ pageName = "Unknown", sourceUsed = null }
   };
 
   // ------------------------------------------------------------
-  // Drag handling for the toggle "handle"
+  // Drag handling — FIXED for touch + mouse
   // ------------------------------------------------------------
   const handleDragStart = (e) => {
     e.preventDefault();
     e.stopPropagation();
+
+    const point = e.touches ? e.touches[0] : e;
+
     setDragging(true);
-    dragStartRef.current = { x: e.clientX, y: e.clientY };
+    dragStartRef.current = { x: point.clientX, y: point.clientY };
     dragPosRef.current = { ...dragPos };
   };
 
   const handleDragMove = (e) => {
     if (!dragging) return;
-    const dx = e.clientX - dragStartRef.current.x;
-    const dy = e.clientY - dragStartRef.current.y;
+
+    const point = e.touches ? e.touches[0] : e;
+
+    const dx = point.clientX - dragStartRef.current.x;
+    const dy = point.clientY - dragStartRef.current.y;
+
     setDragPos({
       x: clamp(dragPosRef.current.x + dx, 0, window.innerWidth - 60),
       y: clamp(dragPosRef.current.y + dy, 0, window.innerHeight - 40),
@@ -145,10 +151,10 @@ export default function DebugOverlay({ pageName = "Unknown", sourceUsed = null }
   // ------------------------------------------------------------
   return (
     <>
-      {/* Draggable Toggle / Minimize Handle */}
+      {/* Draggable Toggle */}
       <div
         onMouseDown={handleDragStart}
-        onTouchStart={(e) => handleDragStart(e.touches[0])}
+        onTouchStart={handleDragStart}
         style={{
           position: "fixed",
           left: dragPos.x,
@@ -213,7 +219,6 @@ export default function DebugOverlay({ pageName = "Unknown", sourceUsed = null }
             </div>
 
             <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-              {/* Filter buttons */}
               <div style={{ display: "flex", gap: 4 }}>
                 {FILTERS.map((f) => (
                   <button
