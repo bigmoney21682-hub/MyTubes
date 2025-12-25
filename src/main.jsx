@@ -1,9 +1,8 @@
 // File: src/main.jsx
-// PCC v11.0 — Clean, crash‑proof main entry
-// rebuild-main-11
+// PCC v11.1 — React-first import ordering
 
 // ------------------------------------------------------------
-// Kill ALL service workers (safety for GitHub Pages)
+// Kill ALL service workers
 // ------------------------------------------------------------
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.getRegistrations().then((regs) => {
@@ -12,16 +11,13 @@ if ("serviceWorker" in navigator) {
 }
 
 // ------------------------------------------------------------
-// GLOBAL YT API KEY (runs before ANY imports)
+// GLOBAL YT API KEY
 // ------------------------------------------------------------
 window.YT_API_KEY = import.meta.env.VITE_YT_API_PRIMARY;
 
 // ------------------------------------------------------------
-// IMPORTS
+// IMPORTS — React MUST be first
 // ------------------------------------------------------------
-import "./initApiKey";
-import "./initDebug";
-
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { HashRouter } from "react-router-dom";
@@ -30,10 +26,16 @@ import App from "./App";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { PlayerProvider } from "./contexts/PlayerContext";
 
+// ------------------------------------------------------------
+// Global initializers (must run AFTER React is imported)
+// ------------------------------------------------------------
+import "./initApiKey";
+import "./initDebug";
+
 console.log("bundle rebuild", Date.now());
 
 // ------------------------------------------------------------
-// GLOBAL CRASH LOGGER (PERSISTENT)
+// GLOBAL CRASH LOGGER
 // ------------------------------------------------------------
 window.__fatalErrors = window.__fatalErrors || [];
 
@@ -63,7 +65,7 @@ window.onunhandledrejection = function (event) {
 };
 
 // ------------------------------------------------------------
-// SAFETY: Prevent React Router from booting with corrupted hash
+// HASH SAFETY
 // ------------------------------------------------------------
 (function ensureCleanHash() {
   try {
