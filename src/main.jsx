@@ -8,6 +8,9 @@
 // rebuild-bundle-7
 // rebuild-bundle-8
 // Kill ALL service workers
+// ------------------------------------------------------------
+// KILL ALL SERVICE WORKERS BEFORE ANYTHING ELSE RUNS
+// ------------------------------------------------------------
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.getRegistrations().then((regs) => {
     for (const reg of regs) {
@@ -15,6 +18,8 @@ if ("serviceWorker" in navigator) {
     }
   });
 }
+
+
 
 // ------------------------------------------------------------
 // GLOBAL YT API KEY INJECTION (runs before ANY imports)
@@ -24,15 +29,18 @@ window.YT_API_KEY = import.meta.env.VITE_YT_API_PRIMARY;
 // ------------------------------------------------------------
 // IMPORTS
 // ------------------------------------------------------------
+// ------------------------------------------------------------
+// IMPORTS
+// ------------------------------------------------------------
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { HashRouter } from "react-router-dom";
-
 import App from "./App";
-import ErrorBoundary from "./components/ErrorBoundary";
 import { PlayerProvider } from "./contexts/PlayerContext";
+import ErrorBoundary from "./components/ErrorBoundary";
+
 console.log("bundle rebuild", Date.now());
-import { API_KEYS } from "./config/keys";
+
 
 window.__ytKey = API_KEYS.primary || API_KEYS.fallback1;
 
