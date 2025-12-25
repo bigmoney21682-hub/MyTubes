@@ -1,8 +1,8 @@
 // File: src/App.jsx
-// PCC v7.0 — Stable Routes + Rebuild Marker + Safe Boot
-// rebuild-router-1
+// PCC v8.0 — Stable Routes + Rebuild Marker + Safe Boot + Router Instrumentation
+// rebuild-router-2
 
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 
 import Home from "./pages/Home";
 import Watch from "./pages/Watch";
@@ -24,11 +24,38 @@ function safeId(id) {
   return id;
 }
 
+// ------------------------------------------------------------
+// ROUTER LOGGER — logs every navigation event
+// ------------------------------------------------------------
+function RouteLogger() {
+  const location = useLocation();
+
+  React.useEffect(() => {
+    const path = location.pathname || "/";
+    const search = location.search || "";
+    const full = `${path}${search}`;
+
+    if (window.debugEvent) {
+      window.debugEvent(`ROUTE → ${full}`, "ROUTER");
+    } else {
+      window.debugLog?.(`ROUTE → ${full}`, "ROUTER");
+    }
+  }, [location.pathname, location.search]);
+
+  return null;
+}
+
+// ------------------------------------------------------------
+// MAIN APP
+// ------------------------------------------------------------
 export default function App() {
   return (
     <>
+      {/* Router instrumentation */}
+      <RouteLogger />
+
       <Header />
-      <DebugOverlay />
+      <DebugOverlay pageName="AppShell" />
 
       <div
         style={{
@@ -44,25 +71,16 @@ export default function App() {
           <Route path="/" element={<Home />} />
 
           {/* WATCH — safe param */}
-          <Route
-            path="/watch/:id"
-            element={<WatchWrapper />}
-          />
+          <Route path="/watch/:id" element={<WatchWrapper />} />
 
           {/* CHANNEL — safe param */}
-          <Route
-            path="/channel/:id"
-            element={<ChannelWrapper />}
-          />
+          <Route path="/channel/:id" element={<ChannelWrapper />} />
 
           {/* PLAYLISTS */}
           <Route path="/playlists" element={<Playlists />} />
 
           {/* SINGLE PLAYLIST */}
-          <Route
-            path="/playlist/:id"
-            element={<PlaylistWrapper />}
-          />
+          <Route path="/playlist/:id" element={<PlaylistWrapper />} />
 
           {/* SUBSCRIPTIONS */}
           <Route path="/subscriptions" element={<Subscriptions />} />
