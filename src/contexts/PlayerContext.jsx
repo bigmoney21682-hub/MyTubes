@@ -1,199 +1,201 @@
 // File: src/contexts/PlayerContext.jsx
-// PCC v4.0 — Global playback brain for YouTube-iframe-only architecture
+// PCC v12.0 — Global Player Engine + Deep Telemetry
+// rebuild-player-12
 
-import { createContext, useCallback, useContext, useState } from "react";
+import React, { createContext, useContext, useState, useRef, useEffect } from "react";
 
 const PlayerContext = createContext(null);
-export const usePlayer = () => useContext(PlayerContext);
+
+export function usePlayer() {
+  return useContext(PlayerContext);
+}
 
 export function PlayerProvider({ children }) {
+  // ------------------------------------------------------------
+  // CORE STATE
+  // ------------------------------------------------------------
   const [currentVideo, setCurrentVideo] = useState(null);
   const [playing, setPlaying] = useState(false);
 
-  // Playlist / queue
   const [playlist, setPlaylist] = useState([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [currentIndex, setCurrentIndex] = useState(-1);
 
-  // Autonext mode: "none" | "playlist" | "related"
-  const [autonextMode, setAutonextMode] = useState("none");
+  const [autonext, setAutonext] = useState(true);
+  const [relatedVideos, setRelatedVideos] = useState([]);
 
-  // Related-based autonext list (for discovery mode)
-  const [relatedList, setRelatedList] = useState([]);
+  const playerRef = useRef(null);
 
-  const log = (msg) => window.debugLog?.(`PlayerContext: ${msg}`);
-
-  const normalizeId = (video) => {
-    if (!video) return null;
-    if (typeof video.id === "string") return video.id;
-    if (typeof video.id?.videoId === "string") return video.id.videoId;
-    return null;
+  // ------------------------------------------------------------
+  // INTERNAL LOGGING HELPERS
+  // ------------------------------------------------------------
+  const log = (msg, category = "PLAYER") => {
+    if (window.debugEvent) window.debugEvent(msg, category);
+    else window.debugLog?.(msg, category);
   };
 
-  // -----------------------------------
-  // Core controls
-  // -----------------------------------
-  const playVideo = useCallback((video, list = null) => {
-    if (!video) return;
-    const id = normalizeId(video);
-    log(`playVideo called for id=${id}`);
+  const logState = () => {
+    log(
+      `STATE → playing=${playing}, index=${currentIndex}, playlist=${playlist.length}, currentVideo=${currentVideo?.id || "null"}`,
+      "PLAYER"
+    );
+  };
 
-    if (Array.isArray(list) && list.length > 0) {
-      // Playlist mode
-      setPlaylist(list);
-      const idx = list.findIndex(
-        (v) => normalizeId(v) === id
-      );
+  // ------------------------------------------------------------
+  // PLAY A SPECIFIC VIDEO
+  // ------------------------------------------------------------
+  const playVideo = (video, options = {}) => {
+    if (!video || !video.id) {
+      log(`playVideo() called with invalid video`, "ERROR");
+      return;
+    }
+
+    log(`playVideo(id=${video.id})`, "PLAYER");
+
+    // If caller wants to replace playlist
+    if (options.replacePlaylist && Array.isArray(options.playlist)) {
+      setPlaylist(options.playlist);
+      const idx = options.playlist.findIndex((v) => v.id === video.id);
       setCurrentIndex(idx >= 0 ? idx : 0);
-      setAutonextMode("playlist");
+      log(`Playlist replaced (${options.playlist.length} items)`, "PLAYER");
     } else {
-      // Single video
-      setPlaylist([video]);
-      setCurrentIndex(0);
-      // Leave autonextMode as-is; Watch may set "related"
+      // If video exists in current playlist, update index
+      const idx = playlist.findIndex((v) => v.id === video.id);
+      if (idx >= 0) {
+        setCurrentIndex(idx);
+        log(`Index updated to ${idx}`, "PLAYER");
+      }
     }
 
     setCurrentVideo(video);
     setPlaying(true);
-  }, []);
 
-  const pauseVideo = useCallback(() => {
-    log("pauseVideo");
-    setPlaying(false);
-  }, []);
+    logState();
+  };
 
-  const stopVideo = useCallback(() => {
-    log("stopVideo");
-    setPlaying(false);
-    setCurrentVideo(null);
-    setPlaylist([]);
-    setCurrentIndex(0);
-    setAutonextMode("none");
-    setRelatedList([]);
-  }, []);
+  // ------------------------------------------------------------
+  // PLAY NEXT
+  // ------------------------------------------------------------
+  const playNext = () => {
+    if (!playlist.length) {
+      log(`playNext() called but playlist empty`, "ERROR");
+      return;
+    }
 
-  const togglePlay = useCallback(() => {
-    setPlaying((prev) => !prev);
-  }, []);
+    const nextIndex = currentIndex + 1;
 
-  // -----------------------------------
-  // Playlist navigation
-  // -----------------------------------
-  const playNextInPlaylist = useCallback(() => {
-    if (!playlist || playlist.length === 0) return null;
+    if (nextIndex >= playlist.length) {
+      log(`Reached end of playlist`, "PLAYER");
+      return;
+    }
 
-    const nextIndex = (currentIndex + 1) % playlist.length;
     const nextVideo = playlist[nextIndex];
-
-    if (!nextVideo) return null;
-
-    log(
-      `playNextInPlaylist -> index ${currentIndex} -> ${nextIndex}, id=${normalizeId(
-        nextVideo
-      )}`
-    );
+    log(`playNext → id=${nextVideo.id}`, "PLAYER");
 
     setCurrentIndex(nextIndex);
     setCurrentVideo(nextVideo);
     setPlaying(true);
-    return nextVideo;
-  }, [playlist, currentIndex]);
 
-  const playPrev = useCallback(() => {
-    if (!playlist || playlist.length <= 1) return;
+    logState();
+  };
 
-    const prevIndex = (currentIndex - 1 + playlist.length) % playlist.length;
+  // ------------------------------------------------------------
+  // PLAY PREVIOUS
+  // ------------------------------------------------------------
+  const playPrev = () => {
+    if (!playlist.length) {
+      log(`playPrev() called but playlist empty`, "ERROR");
+      return;
+    }
+
+    const prevIndex = currentIndex - 1;
+
+    if (prevIndex < 0) {
+      log(`Already at start of playlist`, "PLAYER");
+      return;
+    }
+
     const prevVideo = playlist[prevIndex];
-
-    log(
-      `playPrev -> index ${currentIndex} -> ${prevIndex}, id=${normalizeId(
-        prevVideo
-      )}`
-    );
+    log(`playPrev → id=${prevVideo.id}`, "PLAYER");
 
     setCurrentIndex(prevIndex);
     setCurrentVideo(prevVideo);
     setPlaying(true);
-  }, [playlist, currentIndex]);
 
-  // -----------------------------------
-  // Autonext brain
-  // -----------------------------------
-  const playNext = useCallback(() => {
-    log(`playNext called, autonextMode=${autonextMode}`);
+    logState();
+  };
 
-    // Playlist mode: deterministic next from playlist
-    if (autonextMode === "playlist") {
-      return playNextInPlaylist();
-    }
+  // ------------------------------------------------------------
+  // SEEK RELATIVE (± seconds)
+  // ------------------------------------------------------------
+  const seekRelative = (seconds) => {
+    log(`seekRelative(${seconds})`, "PLAYER");
 
-    // Related mode: use first related item if present
-    if (autonextMode === "related") {
-      if (!relatedList || relatedList.length === 0) {
-        log("Related list empty, no autonext");
-        return null;
+    try {
+      const player = playerRef.current;
+      if (player && player.seekTo) {
+        player.seekTo(player.getCurrentTime() + seconds, true);
       }
+    } catch (err) {
+      log(`seekRelative error: ${err.message}`, "ERROR");
+    }
+  };
 
-      const next = relatedList[0];
-      if (!next) return null;
+  // ------------------------------------------------------------
+  // AUTONEXT HANDLER
+  // ------------------------------------------------------------
+  const handleEnded = () => {
+    log(`Video ended`, "PLAYER");
 
-      const nextId =
-        typeof next.id === "string"
-          ? next.id
-          : typeof next.id?.videoId === "string"
-          ? next.id.videoId
-          : null;
-
-      const nextVideo = {
-        id: nextId || next.id,
-        title: next.title || next.snippet?.title || "",
-        author:
-          next.author || next.channelTitle || next.snippet?.channelTitle || "",
-        description: next.description || next.snippet?.description,
-        thumbnail:
-          next.thumbnail ||
-          next.snippet?.thumbnails?.default?.url ||
-          next.snippet?.thumbnails?.high?.url,
-        fromRelated: true,
-      };
-
-      log(`Autonext (related) -> id=${normalizeId(nextVideo)}`);
-
-      setCurrentVideo(nextVideo);
-      setPlaying(true);
-      return nextVideo;
+    if (!autonext) {
+      log(`Autonext disabled — stopping`, "PLAYER");
+      setPlaying(false);
+      return;
     }
 
-    // No autonext
-    log("Autonext disabled, returning null");
-    return null;
-  }, [autonextMode, relatedList, playNextInPlaylist]);
+    log(`Autonext triggered`, "PLAYER");
+    playNext();
+  };
 
+  // ------------------------------------------------------------
+  // PLAYER REF ATTACHMENT
+  // ------------------------------------------------------------
+  const attachPlayerRef = (ref) => {
+    playerRef.current = ref;
+    log(`Player ref attached`, "PLAYER");
+  };
+
+  // ------------------------------------------------------------
+  // EXPOSED CONTEXT VALUE
+  // ------------------------------------------------------------
   const value = {
     currentVideo,
     playing,
     playlist,
     currentIndex,
-    autonextMode,
-    relatedList,
+    autonext,
+    relatedVideos,
 
-    playVideo,
-    pauseVideo,
-    stopVideo,
-    togglePlay,
-    playNext,
-    playPrev,
-
-    setCurrentVideo,
     setPlaying,
     setPlaylist,
     setCurrentIndex,
-    setAutonextMode,
-    setRelatedList,
+    setAutonext,
+    setRelatedVideos,
+
+    playVideo,
+    playNext,
+    playPrev,
+    seekRelative,
+    handleEnded,
+    attachPlayerRef,
   };
 
-  return (
-    <PlayerContext.Provider value={value}>
-      {children}
-    </PlayerContext.Provider>
-  );
+  // ------------------------------------------------------------
+  // MOUNT/UNMOUNT LOGGING
+  // ------------------------------------------------------------
+  useEffect(() => {
+    log(`PlayerContext mounted`, "UI");
+    return () => log(`PlayerContext unmounted`, "UI");
+  }, []);
+
+  return <PlayerContext.Provider value={value}>{children}</PlayerContext.Provider>;
 }
