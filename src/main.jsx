@@ -8,7 +8,6 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./app/App";
 
-// Boot-level log BEFORE React mounts
 bootDebug.info("main.jsx loaded — starting React mount");
 
 try {
