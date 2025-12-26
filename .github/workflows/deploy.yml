@@ -17,6 +17,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          path: .
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -29,11 +31,8 @@ jobs:
       - name: Build Vite app
         run: npm run build
 
-      - name: Show working directory
-        run: pwd
-
       - name: List dist folder
-        run: ls -al ./dist
+        run: ls -al dist
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
