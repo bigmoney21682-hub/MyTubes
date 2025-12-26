@@ -1,45 +1,45 @@
-name: Diagnostic Directory Tree
+name: Deploy Vite App
 
 on:
-  workflow_dispatch:
   push:
-    branches:
-      - main
+    branches: [ "main" ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
 
 jobs:
-  diag:
+  build:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Print working directory
-        run: |
-          echo "PWD:"
-          pwd
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
 
-      - name: List root directory
-        run: |
-          echo "=== ROOT DIRECTORY ==="
-          ls -al .
+      - name: Install dependencies
+        run: npm ci
 
-      - name: Print full directory tree
-        run: |
-          echo "=== FULL TREE ==="
-          find . -maxdepth 5 -type d -print
+      - name: Build Vite app
+        run: npm run build
 
-      - name: Search for package.json
-        run: |
-          echo "=== SEARCHING FOR package.json ==="
-          find . -name "package.json" -print
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist
 
-      - name: Search for package-lock.json
-        run: |
-          echo "=== SEARCHING FOR package-lock.json ==="
-          find . -name "package-lock.json" -print
-
-      - name: Show nested structure
-        run: |
-          echo "=== TREE WITH FILES ==="
-          find . -maxdepth 5 -print
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
