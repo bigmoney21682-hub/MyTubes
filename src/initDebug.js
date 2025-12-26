@@ -1,50 +1,68 @@
 // File: src/initDebug.js
-// PCC v5.0 — Global Fetch Instrumentation
-// rebuild-debug-5
+// Initializes global debug hooks BEFORE React mounts.
+// Safe, silent, and guaranteed not to break boot.
 
-(function () {
-  if (window.__PCC_FETCH_PATCHED__) return;
-  window.__PCC_FETCH_PATCHED__ = true;
+import { debugLog as coreLog, debugApi as coreApi } from "./utils/debug";
 
-  const originalFetch = window.fetch;
+// Ensure global namespace exists
+if (typeof window !== "undefined") {
+  // Global log collector (DebugOverlay reads this)
+  if (!window.__debugEntries) {
+    window.__debugEntries = [];
+  }
 
-  window.fetch = async function (url, options = {}) {
-    const start = performance.now();
-    const method = options.method || "GET";
-
+  // ------------------------------------------------------------
+  // Global debugLog(message, category)
+  // ------------------------------------------------------------
+  window.debugLog = (message, category = "LOG") => {
     try {
-      window.debugLog?.(
-        `FETCH → ${method} ${url}`,
-        "API"
-      );
+      // Push into global buffer for DebugOverlay
+      window.__debugEntries.push({
+        ts: Date.now(),
+        category,
+        message,
+      });
 
-      const res = await originalFetch(url, options);
-      const ms = (performance.now() - start).toFixed(1);
-
-      window.debugLog?.(
-        `FETCH OK → ${res.status} (${ms}ms) ${url}`,
-        "API"
-      );
-
-      // Detect HTML fallback (GitHub Pages misrouting)
-      const ct = res.headers.get("Content-Type") || "";
-      if (ct.includes("text/html")) {
-        window.debugLog?.(
-          `FETCH WARNING → HTML response detected (likely fallback)`,
-          "ERROR"
-        );
-      }
-
-      return res;
+      // Forward to centralized logger
+      coreLog(message, category);
     } catch (err) {
-      const ms = (performance.now() - start).toFixed(1);
-
-      window.debugLog?.(
-        `FETCH FAIL → ${method} ${url} (${ms}ms) → ${err.message}`,
-        "ERROR"
-      );
-
-      throw err;
+      // Never break boot
+      console.warn("debugLog error:", err);
     }
   };
-})();
+
+  // ------------------------------------------------------------
+  // Global debugApi(endpoint, label)
+  // ------------------------------------------------------------
+  window.debugApi = (endpoint, label = "") => {
+    try {
+      window.__debugEntries.push({
+        ts: Date.now(),
+        category: "API",
+        message: `${endpoint} ${label}`,
+      });
+
+      coreApi(endpoint, label);
+    } catch (err) {
+      console.warn("debugApi error:", err);
+    }
+  };
+
+  // ------------------------------------------------------------
+  // Optional: fatal error collector
+  // ------------------------------------------------------------
+  if (!window.__fatalErrors) {
+    window.__fatalErrors = [];
+  }
+
+  window.debugFatal = (err) => {
+    try {
+      window.__fatalErrors.push({
+        ts: Date.now(),
+        error: err?.message || String(err),
+      });
+
+      coreLog(`FATAL: ${err?.message || err}`, "ERROR");
+    } catch (_) {}
+  };
+}
