@@ -1,8 +1,14 @@
 // File: src/contexts/PlayerContext.jsx
-// PCC v13.3 — Global player state + debug hooks
+// PCC v13.3 — Global player state + debug hooks (YouTube-only)
 
-import React, { createContext, useContext, useState, useCallback } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+} from "react";
 import { fetchRelatedVideos } from "../api/youtube";
+import { debugPlayer, debugError } from "../utils/debug";
 
 const PlayerContext = createContext(null);
 export const usePlayer = () => useContext(PlayerContext);
@@ -18,7 +24,7 @@ export function PlayerProvider({ children }) {
   });
 
   const playVideo = useCallback(async (video, opts = {}) => {
-    window.debugLog?.(`playVideo(${video.id})`, "PLAYER");
+    debugPlayer(`playVideo(${video.id})`);
 
     setCurrentVideo(video);
 
@@ -27,11 +33,12 @@ export function PlayerProvider({ children }) {
     }
 
     try {
+      debugPlayer(`Fetch related for ${video.id}`);
       const rel = await fetchRelatedVideos(video.id);
       setRelatedVideos(rel);
-      window.debugLog?.(`Loaded ${rel.length} related`, "PLAYER");
+      debugPlayer(`Loaded ${rel.length} related for ${video.id}`);
     } catch (err) {
-      window.debugLog?.("Failed to load related videos", "ERROR");
+      debugError(`Failed to load related videos for id=${video.id}`);
     }
   }, []);
 
