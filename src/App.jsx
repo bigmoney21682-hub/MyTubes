@@ -1,23 +1,20 @@
 // File: src/App.jsx
-// PCC v5.1 — Minimal stable App shell for Vite + React
-
 import React from "react";
+import { Routes, Route } from "react-router-dom";
+
+import Home from "./pages/Home";
+import Watch from "./pages/Watch";
+import Search from "./pages/Search";
 
 export default function App() {
   return (
-    <div
-      style={{
-        width: "100%",
-        height: "100%",
-        background: "#000",
-        color: "#fff",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontSize: "1.5rem",
-      }}
-    >
-      MyTube is running.
-    </div>
+    <Routes>
+      <Route path="/" element={<Home />} />
+      <Route path="/watch" element={<Watch />} />
+      <Route path="/search" element={<Search />} />
+
+      {/* Catch-all fallback */}
+      <Route path="*" element={<Home />} />
+    </Routes>
   );
 }
