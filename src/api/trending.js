@@ -4,16 +4,17 @@
  * Description: Wrapper for YouTube trending videos using youtube.js API client.
  */
 
-import { getTrending } from "./youtube";
+import { getTrending as ytTrending } from "./youtube";
 
 export async function fetchTrendingVideos(region = "US", maxResults = 25) {
   try {
-    const data = await getTrending(region, maxResults);
-
-    // Normalize items (YouTube returns items array)
+    const data = await ytTrending(region, maxResults);
     return data?.items || [];
   } catch (err) {
     window.bootDebug?.error("Failed to load trending", err);
     return [];
   }
 }
+
+// Optional compatibility export
+export const getTrending = fetchTrendingVideos;
