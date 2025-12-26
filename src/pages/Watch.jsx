@@ -176,4 +176,60 @@ export default function Watch() {
         <div style={{ color: "#fff", padding: 16 }}>Loading…</div>
       )}
 
-      {video
+      {video && (
+        <div style={{ padding: 12 }}>
+          <div style={{ color: "#fff", fontSize: 20, fontWeight: 700 }}>
+            {video.title}
+          </div>
+          <div style={{ color: "#aaa", marginTop: 4 }}>
+            {video.channel}
+          </div>
+        </div>
+      )}
+
+      <div style={{ padding: 12, color: "#fff", fontSize: 18 }}>
+        Related
+      </div>
+
+      {related.map((v) => (
+        <div
+          key={v.id}
+          onClick={() => navigate(`/watch?v=${v.id}`)}
+          style={{
+            display: "flex",
+            marginBottom: 12,
+            cursor: "pointer",
+          }}
+        >
+          <img
+            src={v.thumbnail}
+            style={{
+              width: 160,
+              height: 90,
+              borderRadius: 8,
+              objectFit: "cover",
+              marginRight: 12,
+            }}
+            alt=""
+          />
+
+          <div style={{ flexGrow: 1 }}>
+            <div
+              style={{
+                color: "#fff",
+                fontSize: 15,
+                fontWeight: 600,
+                marginBottom: 4,
+              }}
+            >
+              {v.title}
+            </div>
+            <div style={{ color: "#aaa", fontSize: 13 }}>
+              {v.channel}
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
