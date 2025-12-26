@@ -53,4 +53,30 @@ export default function DebugRouter({ logs, colors, formatTime }) {
       )}
 
       {/* No router events */}
-      {logs.length ===
+      {logs.length === 0 && (
+        <div style={{ color: "#888", fontSize: 12 }}>
+          No router events yet.
+        </div>
+      )}
+
+      {/* Router event list */}
+      {logs.map((log, i) => (
+        <div
+          key={i}
+          style={{
+            padding: "4px 0",
+            borderBottom: "1px solid #333",
+            color: colors.ROUTER,
+            fontSize: 12,
+            lineHeight: "16px"
+          }}
+        >
+          <div style={{ opacity: 0.6 }}>
+            {formatTime(log.ts)}
+          </div>
+          <div>{log.msg}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
