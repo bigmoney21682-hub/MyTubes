@@ -8,6 +8,8 @@ import { Routes as Switch, Route } from "react-router-dom";
 import Home from "../pages/Home/Home";
 import Watch from "../pages/Watch/Watch";
 
+bootDebug.info("routes.jsx loaded");
+
 export default function Routes() {
   return (
     <Switch>
