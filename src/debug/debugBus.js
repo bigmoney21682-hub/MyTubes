@@ -1,21 +1,22 @@
-// src/debug/debugBus.js
-const subscribers = new Set();
+/**
+ * File: debugBus.js
+ * Path: src/debug/debugBus.js
+ * Description: Global debug event bus for runtime logs.
+ */
 
-export function debugLog(type, message, data = null) {
+const listeners = new Set();
+
+export function debugLog(level, msg, data) {
   const entry = {
-    id: Date.now() + Math.random(),
-    type,
-    message,
-    data,
-    timestamp: new Date().toISOString()
+    level,
+    msg: data ? `${msg} ${JSON.stringify(data)}` : msg,
+    ts: Date.now()
   };
 
-  for (const sub of subscribers) {
-    sub(entry);
-  }
+  listeners.forEach((fn) => fn(entry));
 }
 
-export function subscribeDebug(callback) {
-  subscribers.add(callback);
-  return () => subscribers.delete(callback);
+export function subscribeToDebugBus(fn) {
+  listeners.add(fn);
+  return () => listeners.delete(fn);
 }
