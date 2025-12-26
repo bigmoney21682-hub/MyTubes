@@ -6,8 +6,9 @@ export default function Watch() {
   const id = params.get("v");
 
   return (
-    <div style={{ color: "#fff", padding: 20 }}>
-      <h1>Watching video: {id}</h1>
+    <div style={{ padding: 20, color: "#fff" }}>
+      <h1>Watch Page</h1>
+      <p>Video ID: {id}</p>
     </div>
   );
 }
