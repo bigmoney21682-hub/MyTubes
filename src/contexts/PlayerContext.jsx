@@ -1,11 +1,11 @@
 // File: src/contexts/PlayerContext.jsx
-// PCC v13.0 — Global Player Engine + YouTube-Only Related Loader
+// PCC v13.1 — Global Player Engine + Metrics Integration
 // Changes:
-// - Added fetchRelatedVideos import
-// - Added loadRelated() helper
-// - Auto-load related videos on playVideo()
-// - Removed all legacy utils dependencies
-// - Cleaned logging + state transitions
+// - Added playerMetrics object
+// - Added setPlayerMetrics()
+// - Integrated with GlobalPlayer polling
+// - Human-readable player states
+// - No legacy utils
 
 import React, {
   createContext,
@@ -18,7 +18,6 @@ import React, {
 import { fetchRelatedVideos } from "../api/youtube";
 
 const PlayerContext = createContext(null);
-
 export function usePlayer() {
   return useContext(PlayerContext);
 }
@@ -36,173 +35,117 @@ export function PlayerProvider({ children }) {
   const [autonext, setAutonext] = useState(true);
   const [relatedVideos, setRelatedVideos] = useState([]);
 
+  // NEW: Player metrics
+  const [playerMetrics, setPlayerMetrics] = useState({
+    duration: 0,
+    currentTime: 0,
+    buffered: 0,
+    state: "unstarted",
+  });
+
   const playerRef = useRef(null);
 
   // ------------------------------------------------------------
-  // INTERNAL LOGGING HELPERS
+  // LOGGING
   // ------------------------------------------------------------
   const log = (msg, category = "PLAYER") => {
     if (window.debugEvent) window.debugEvent(msg, category);
     else window.debugLog?.(msg, category);
   };
 
-  const logState = () => {
-    log(
-      `STATE → playing=${playing}, index=${currentIndex}, playlist=${playlist.length}, currentVideo=${currentVideo?.id || "null"}`,
-      "PLAYER"
-    );
-  };
-
   // ------------------------------------------------------------
-  // LOAD RELATED VIDEOS (YouTube Data API)
+  // LOAD RELATED VIDEOS
   // ------------------------------------------------------------
   const loadRelated = async (videoId) => {
     if (!videoId) return;
-
-    log(`Loading related videos for id=${videoId}`, "PLAYER");
-
     try {
       const items = await fetchRelatedVideos(videoId);
       setRelatedVideos(items);
-      log(`Related videos loaded (${items.length})`, "PLAYER");
+      log(`Related videos loaded (${items.length})`);
     } catch (err) {
       log(`Failed to load related videos: ${err.message}`, "ERROR");
     }
   };
 
   // ------------------------------------------------------------
-  // PLAY A SPECIFIC VIDEO
+  // PLAY VIDEO
   // ------------------------------------------------------------
   const playVideo = (video, options = {}) => {
-    if (!video || !video.id) {
-      log(`playVideo() called with invalid video`, "ERROR");
-      return;
-    }
+    if (!video || !video.id) return;
 
-    log(`playVideo(id=${video.id})`, "PLAYER");
-
-    // Replace playlist if requested
     if (options.replacePlaylist && Array.isArray(options.playlist)) {
       setPlaylist(options.playlist);
       const idx = options.playlist.findIndex((v) => v.id === video.id);
       setCurrentIndex(idx >= 0 ? idx : 0);
-      log(`Playlist replaced (${options.playlist.length} items)`, "PLAYER");
     } else {
-      // Update index if video exists in current playlist
       const idx = playlist.findIndex((v) => v.id === video.id);
-      if (idx >= 0) {
-        setCurrentIndex(idx);
-        log(`Index updated to ${idx}`, "PLAYER");
-      }
+      if (idx >= 0) setCurrentIndex(idx);
     }
 
     setCurrentVideo(video);
     setPlaying(true);
-
-    // Load related videos automatically
     loadRelated(video.id);
-
-    logState();
   };
 
   // ------------------------------------------------------------
-  // PLAY NEXT
+  // NEXT / PREV
   // ------------------------------------------------------------
   const playNext = () => {
-    if (!playlist.length) {
-      log(`playNext() called but playlist empty`, "ERROR");
-      return;
-    }
-
+    if (!playlist.length) return;
     const nextIndex = currentIndex + 1;
-
-    if (nextIndex >= playlist.length) {
-      log(`Reached end of playlist`, "PLAYER");
-      return;
-    }
+    if (nextIndex >= playlist.length) return;
 
     const nextVideo = playlist[nextIndex];
-    log(`playNext → id=${nextVideo.id}`, "PLAYER");
-
     setCurrentIndex(nextIndex);
     setCurrentVideo(nextVideo);
     setPlaying(true);
-
     loadRelated(nextVideo.id);
-
-    logState();
   };
 
-  // ------------------------------------------------------------
-  // PLAY PREVIOUS
-  // ------------------------------------------------------------
   const playPrev = () => {
-    if (!playlist.length) {
-      log(`playPrev() called but playlist empty`, "ERROR");
-      return;
-    }
-
+    if (!playlist.length) return;
     const prevIndex = currentIndex - 1;
-
-    if (prevIndex < 0) {
-      log(`Already at start of playlist`, "PLAYER");
-      return;
-    }
+    if (prevIndex < 0) return;
 
     const prevVideo = playlist[prevIndex];
-    log(`playPrev → id=${prevVideo.id}`, "PLAYER");
-
     setCurrentIndex(prevIndex);
     setCurrentVideo(prevVideo);
     setPlaying(true);
-
     loadRelated(prevVideo.id);
-
-    logState();
   };
 
   // ------------------------------------------------------------
-  // SEEK RELATIVE (± seconds)
+  // SEEK RELATIVE
   // ------------------------------------------------------------
   const seekRelative = (seconds) => {
-    log(`seekRelative(${seconds})`, "PLAYER");
-
     try {
       const player = playerRef.current;
       if (player && player.seekTo) {
         player.seekTo(player.getCurrentTime() + seconds, true);
       }
-    } catch (err) {
-      log(`seekRelative error: ${err.message}`, "ERROR");
-    }
+    } catch {}
   };
 
   // ------------------------------------------------------------
-  // AUTONEXT HANDLER
+  // AUTONEXT
   // ------------------------------------------------------------
   const handleEnded = () => {
-    log(`Video ended`, "PLAYER");
-
     if (!autonext) {
-      log(`Autonext disabled — stopping`, "PLAYER");
       setPlaying(false);
       return;
     }
-
-    log(`Autonext triggered`, "PLAYER");
     playNext();
   };
 
   // ------------------------------------------------------------
-  // PLAYER REF ATTACHMENT
+  // ATTACH PLAYER REF
   // ------------------------------------------------------------
   const attachPlayerRef = (ref) => {
     playerRef.current = ref;
-    log(`Player ref attached`, "PLAYER");
   };
 
   // ------------------------------------------------------------
-  // EXPOSED CONTEXT VALUE
+  // CONTEXT VALUE
   // ------------------------------------------------------------
   const value = {
     currentVideo,
@@ -211,12 +154,14 @@ export function PlayerProvider({ children }) {
     currentIndex,
     autonext,
     relatedVideos,
+    playerMetrics,
 
     setPlaying,
     setPlaylist,
     setCurrentIndex,
     setAutonext,
     setRelatedVideos,
+    setPlayerMetrics,
 
     playVideo,
     playNext,
@@ -225,14 +170,6 @@ export function PlayerProvider({ children }) {
     handleEnded,
     attachPlayerRef,
   };
-
-  // ------------------------------------------------------------
-  // MOUNT/UNMOUNT LOGGING
-  // ------------------------------------------------------------
-  useEffect(() => {
-    log(`PlayerContext mounted`, "UI");
-    return () => log(`PlayerContext unmounted`, "UI");
-  }, []);
 
   return (
     <PlayerContext.Provider value={value}>
