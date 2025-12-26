@@ -1,8 +1,21 @@
 // File: src/contexts/PlayerContext.jsx
-// PCC v12.0 — Global Player Engine + Deep Telemetry
-// rebuild-player-12
+// PCC v13.0 — Global Player Engine + YouTube-Only Related Loader
+// Changes:
+// - Added fetchRelatedVideos import
+// - Added loadRelated() helper
+// - Auto-load related videos on playVideo()
+// - Removed all legacy utils dependencies
+// - Cleaned logging + state transitions
 
-import React, { createContext, useContext, useState, useRef, useEffect } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useRef,
+  useEffect,
+} from "react";
+
+import { fetchRelatedVideos } from "../api/youtube";
 
 const PlayerContext = createContext(null);
 
@@ -41,6 +54,23 @@ export function PlayerProvider({ children }) {
   };
 
   // ------------------------------------------------------------
+  // LOAD RELATED VIDEOS (YouTube Data API)
+  // ------------------------------------------------------------
+  const loadRelated = async (videoId) => {
+    if (!videoId) return;
+
+    log(`Loading related videos for id=${videoId}`, "PLAYER");
+
+    try {
+      const items = await fetchRelatedVideos(videoId);
+      setRelatedVideos(items);
+      log(`Related videos loaded (${items.length})`, "PLAYER");
+    } catch (err) {
+      log(`Failed to load related videos: ${err.message}`, "ERROR");
+    }
+  };
+
+  // ------------------------------------------------------------
   // PLAY A SPECIFIC VIDEO
   // ------------------------------------------------------------
   const playVideo = (video, options = {}) => {
@@ -51,14 +81,14 @@ export function PlayerProvider({ children }) {
 
     log(`playVideo(id=${video.id})`, "PLAYER");
 
-    // If caller wants to replace playlist
+    // Replace playlist if requested
     if (options.replacePlaylist && Array.isArray(options.playlist)) {
       setPlaylist(options.playlist);
       const idx = options.playlist.findIndex((v) => v.id === video.id);
       setCurrentIndex(idx >= 0 ? idx : 0);
       log(`Playlist replaced (${options.playlist.length} items)`, "PLAYER");
     } else {
-      // If video exists in current playlist, update index
+      // Update index if video exists in current playlist
       const idx = playlist.findIndex((v) => v.id === video.id);
       if (idx >= 0) {
         setCurrentIndex(idx);
@@ -68,6 +98,9 @@ export function PlayerProvider({ children }) {
 
     setCurrentVideo(video);
     setPlaying(true);
+
+    // Load related videos automatically
+    loadRelated(video.id);
 
     logState();
   };
@@ -95,6 +128,8 @@ export function PlayerProvider({ children }) {
     setCurrentVideo(nextVideo);
     setPlaying(true);
 
+    loadRelated(nextVideo.id);
+
     logState();
   };
 
@@ -120,6 +155,8 @@ export function PlayerProvider({ children }) {
     setCurrentIndex(prevIndex);
     setCurrentVideo(prevVideo);
     setPlaying(true);
+
+    loadRelated(prevVideo.id);
 
     logState();
   };
@@ -197,5 +234,9 @@ export function PlayerProvider({ children }) {
     return () => log(`PlayerContext unmounted`, "UI");
   }, []);
 
-  return <PlayerContext.Provider value={value}>{children}</PlayerContext.Provider>;
+  return (
+    <PlayerContext.Provider value={value}>
+      {children}
+    </PlayerContext.Provider>
+  );
 }
