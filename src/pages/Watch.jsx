@@ -1,5 +1,6 @@
 // File: src/pages/Watch.jsx
-// YouTube-only Watch page wired to PlayerContext.playVideo
+// Clean YouTube-only Watch page aligned with PlayerContext.playVideo
+// and fixed GlobalPlayer layout (16:9, fixed position)
 
 import React, { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
@@ -28,6 +29,7 @@ export default function Watch() {
 
     try {
       const key = import.meta.env.VITE_YT_API_PRIMARY;
+
       const yt = await fetch(
         `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&id=${id}&key=${key}`
       );
@@ -48,12 +50,11 @@ export default function Watch() {
         title: v.snippet.title,
         channel: v.snippet.channelTitle,
         thumbnail: v.snippet.thumbnails?.medium?.url,
-        // IMPORTANT: no direct URL in YouTube-only architecture
       };
 
       setVideo(videoObj);
 
-      // Tell the global player to play this video by ID
+      // Tell GlobalPlayer to play this video
       playVideo({
         id,
         title: v.snippet.title,
@@ -82,6 +83,8 @@ export default function Watch() {
 
     try {
       const key = import.meta.env.VITE_YT_API_PRIMARY;
+
+      // FIXED: YouTube requires BOTH "relatedToVideoId" AND "type=video"
       const yt = await fetch(
         `https://www.googleapis.com/youtube/v3/search?part=snippet&relatedToVideoId=${id}&type=video&maxResults=25&key=${key}`
       );
@@ -135,7 +138,13 @@ export default function Watch() {
   // Render
   // ------------------------------------------------------------
   return (
-    <div style={{ paddingTop: 68, paddingBottom: 68 }}>
+    <div
+      style={{
+        // Leave space for the fixed GlobalPlayer (16:9) + header
+        paddingTop: "calc(56.25vw + var(--header-height))",
+        paddingBottom: "var(--footer-height)",
+      }}
+    >
       {/* Main video metadata */}
       {loadingVideo && (
         <div style={{ color: "#fff", padding: 16 }}>Loading…</div>
