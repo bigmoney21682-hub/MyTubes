@@ -1,5 +1,10 @@
 // File: src/components/Player.jsx
-// PCC v11.0 — Crash-proof minimalist overlay for global YouTube player
+// PCC v12.0 — Minimal overlay for global YouTube player (wired to PlayerContext)
+// Changes:
+// - Switched from togglePlay (non-existent) to setPlaying from PlayerContext
+// - Wired double-tap skip to seekRelative from PlayerContext
+// - Kept duration/currentTime/buffered/playerState as safe placeholders
+// - Ensured no dependencies on removed utils or missing context fields
 
 import React, { useEffect, useRef, useState } from "react";
 import { usePlayer } from "../contexts/PlayerContext";
@@ -7,19 +12,19 @@ import { usePlayer } from "../contexts/PlayerContext";
 export default function Player() {
   const {
     playing,
-    togglePlay,
+    setPlaying,
     playNext,
     playPrev,
+    seekRelative,
   } = usePlayer();
 
   // ------------------------------------------------------------
-  // SAFE DEFAULTS (PlayerContext does not yet provide these)
+  // SAFE DEFAULTS (will be upgraded when GlobalPlayer exposes metrics)
   // ------------------------------------------------------------
-  const seekTo = () => {};
   const duration = 0;
   const currentTime = 0;
   const buffered = 0;
-  const playerState = "loading";
+  const playerState = "ready"; // avoid permanent "Preparing video…" overlay
 
   // ------------------------------------------------------------
   // UI State
@@ -57,9 +62,11 @@ export default function Player() {
     playerState === "loading";
 
   // ------------------------------------------------------------
-  // Double-tap skip
+  // Double-tap skip (uses seekRelative from PlayerContext)
   // ------------------------------------------------------------
   const handleDoubleTap = (e) => {
+    if (!containerRef.current) return;
+
     const rect = containerRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
 
@@ -72,7 +79,8 @@ export default function Player() {
       key: Date.now(),
     });
 
-    seekTo(currentTime + skipAmount);
+    // Use context-level relative seek instead of local seekTo
+    seekRelative(skipAmount);
     showControls();
   };
 
@@ -89,9 +97,10 @@ export default function Player() {
   };
 
   // ------------------------------------------------------------
-  // Scrubbing
+  // Scrubbing (UI only for now; duration/currentTime are placeholders)
   // ------------------------------------------------------------
   const handleScrubStart = (e) => {
+    if (!duration) return;
     setIsScrubbing(true);
     const rect = e.target.getBoundingClientRect();
     const pct = (e.clientX - rect.left) / rect.width;
@@ -99,16 +108,14 @@ export default function Player() {
   };
 
   const handleScrubMove = (e) => {
-    if (!isScrubbing) return;
+    if (!isScrubbing || !duration) return;
     const rect = e.target.getBoundingClientRect();
     const pct = Math.min(Math.max((e.clientX - rect.left) / rect.width, 0), 1);
     setScrubTime(duration * pct);
   };
 
   const handleScrubEnd = () => {
-    if (isScrubbing) {
-      seekTo(scrubTime);
-    }
+    // When we wire real duration/currentTime, this should call a real seek
     setIsScrubbing(false);
   };
 
@@ -123,6 +130,10 @@ export default function Player() {
       .padStart(2, "0");
     return `${m}:${s}`;
   };
+
+  const effectiveTime = isScrubbing ? scrubTime : currentTime;
+  const progressPct = duration ? (effectiveTime / duration) * 100 : 0;
+  const bufferedPct = buffered ? buffered * 100 : 0;
 
   // ------------------------------------------------------------
   // Render
@@ -218,7 +229,7 @@ export default function Player() {
           <button
             onClick={(e) => {
               e.stopPropagation();
-              togglePlay();
+              setPlaying((prev) => !prev);
               showControls();
             }}
             style={iconStyle}
@@ -251,7 +262,7 @@ export default function Player() {
               marginBottom: 6,
             }}
           >
-            <span>{fmt(isScrubbing ? scrubTime : currentTime)}</span>
+            <span>{fmt(effectiveTime)}</span>
             <span>{fmt(duration)}</span>
           </div>
 
@@ -274,7 +285,7 @@ export default function Player() {
               style={{
                 position: "absolute",
                 height: "100%",
-                width: `${buffered * 100}%`,
+                width: `${bufferedPct}%`,
                 background: "rgba(255,255,255,0.4)",
                 borderRadius: 2,
               }}
@@ -285,9 +296,7 @@ export default function Player() {
               style={{
                 position: "absolute",
                 height: "100%",
-                width: `${
-                  ((isScrubbing ? scrubTime : currentTime) / duration) * 100
-                }%`,
+                width: `${progressPct}%`,
                 background: "#fff",
                 borderRadius: 2,
               }}
@@ -298,9 +307,7 @@ export default function Player() {
               <div
                 style={{
                   position: "absolute",
-                  left: `${
-                    ((isScrubbing ? scrubTime : currentTime) / duration) * 100
-                  }%`,
+                  left: `${progressPct}%`,
                   top: -4,
                   width: 12,
                   height: 12,
