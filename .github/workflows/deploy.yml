@@ -18,7 +18,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          path: .
+          path: MyTube-Piped-Frontend
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -26,18 +26,21 @@ jobs:
           node-version: 18
 
       - name: Install dependencies
+        working-directory: MyTube-Piped-Frontend
         run: npm install
 
       - name: Build Vite app
+        working-directory: MyTube-Piped-Frontend
         run: npm run build
 
       - name: List dist folder
+        working-directory: MyTube-Piped-Frontend
         run: ls -al dist
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: dist
+          path: MyTube-Piped-Frontend/dist
 
   deploy:
     needs: build
