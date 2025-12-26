@@ -13,8 +13,9 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Setup Node
@@ -28,6 +29,12 @@ jobs:
       - name: Build Vite app
         run: npm run build
 
+      - name: Show working directory
+        run: pwd
+
+      - name: List dist folder
+        run: ls -al ./dist
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
@@ -39,6 +46,7 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
+
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
