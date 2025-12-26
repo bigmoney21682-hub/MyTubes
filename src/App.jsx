@@ -1,29 +1,36 @@
 // File: src/App.jsx
-// PCC v13.3 — App shell with PlayerProvider + GlobalPlayer + DebugOverlay + routes
+// PCC v9.0 — Full App wiring with MiniPlayer + DebugOverlay + Routing
 
 import React from "react";
-import { Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
 import { PlayerProvider } from "./contexts/PlayerContext";
 import GlobalPlayer from "./components/GlobalPlayer";
+import MiniPlayer from "./components/MiniPlayer";
 import DebugOverlay from "./components/DebugOverlay";
 
 import Home from "./pages/Home";
 import Watch from "./pages/Watch";
-import SearchResults from "./pages/SearchResults";
 
 export default function App() {
   return (
-    <PlayerProvider>
-      <GlobalPlayer />
-      <DebugOverlay />
+    <Router basename="/MyTube-Piped-Frontend">
+      <PlayerProvider>
+        {/* Global audio/video engine */}
+        <GlobalPlayer />
 
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/watch" element={<Watch />} />
-        <Route path="/search" element={<SearchResults />} />
-        <Route path="*" element={<Home />} />
-      </Routes>
-    </PlayerProvider>
+        {/* Persistent bottom MiniPlayer */}
+        <MiniPlayer />
+
+        {/* Debug panel + floating button */}
+        <DebugOverlay />
+
+        {/* Main app routes */}
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/watch" element={<Watch />} />
+        </Routes>
+      </PlayerProvider>
+    </Router>
   );
 }
