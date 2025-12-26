@@ -10,7 +10,13 @@
   <body>
     <div id="root"></div>
 
-    <!-- IMPORTANT: must be RELATIVE, no leading slash -->
-    <script type="module" src="src/main.jsx"></script>
+    <!-- 
+      IMPORTANT:
+      - Must be RELATIVE (./src/main.jsx)
+      - Must NOT be "src/main.jsx" (breaks production)
+      - Must NOT be "/src/main.jsx" (breaks GitHub Pages)
+      - Vite will rewrite this to the hashed bundle automatically
+    -->
+    <script type="module" src="./src/main.jsx"></script>
   </body>
 </html>
