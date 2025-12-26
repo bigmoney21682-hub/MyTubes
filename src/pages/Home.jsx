@@ -1,13 +1,10 @@
 // File: src/pages/Home.jsx
-// PCC v13.0 — Trending Feed (YouTube-only)
-// - Fetches trending videos via api/youtube.js
-// - Loading + error states
-// - Clean 1-column mobile layout
-// - Uses VideoCard for navigation
+// PCC v13.1 — Trending feed with SearchBar
 
 import React, { useEffect, useState } from "react";
 import { fetchTrendingVideos } from "../api/youtube";
 import VideoCard from "../components/VideoCard";
+import SearchBar from "../components/SearchBar";
 
 export default function Home() {
   const [videos, setVideos] = useState([]);
@@ -40,22 +37,26 @@ export default function Home() {
   // Render
   // ------------------------------------------------------------
   return (
-    <div style={{ padding: 16, color: "#fff" }}>
-      <h2 style={{ marginBottom: 12 }}>Trending</h2>
+    <div style={{ minHeight: "100vh", background: "#000", color: "#fff" }}>
+      <SearchBar />
 
-      {loading && <p style={{ opacity: 0.7 }}>Loading…</p>}
-      {error && <p style={{ color: "#ff7777" }}>{error}</p>}
+      <div style={{ padding: 16 }}>
+        <h2 style={{ marginBottom: 12 }}>Trending</h2>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr",
-          gap: 16,
-        }}
-      >
-        {videos.map((v) => (
-          <VideoCard key={v.id} video={v} />
-        ))}
+        {loading && <p style={{ opacity: 0.7 }}>Loading…</p>}
+        {error && <p style={{ color: "#ff7777" }}>{error}</p>}
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr",
+            gap: 16,
+          }}
+        >
+          {videos.map((v) => (
+            <VideoCard key={v.id} video={v} />
+          ))}
+        </div>
       </div>
     </div>
   );
