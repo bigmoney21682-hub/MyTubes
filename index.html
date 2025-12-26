@@ -1,16 +1,24 @@
+<!--
+  File: index.html
+  Path: index.html
+  Description: Root HTML entry for Vite + React app. Loads boot debug console and React entry.
+-->
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>MyTube</title>
   </head>
+
   <body>
     <div id="root"></div>
 
-    <!-- Boot debug console -->
+    <!-- Boot-level debug console -->
     <script src="/debug-boot.js"></script>
 
-    <!-- React entry -->
+    <!-- React entry point -->
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
