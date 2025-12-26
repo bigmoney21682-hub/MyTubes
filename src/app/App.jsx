@@ -1,22 +1,22 @@
 /**
  * File: App.jsx
- * Path: src/App.jsx
+ * Path: src/app/App.jsx
  * Description: App shell with router, error boundary, and DebugOverlay v3.
  */
 
 import { BrowserRouter } from "react-router-dom";
-import ErrorBoundary from "./debug/ErrorBoundary";
-import DebugOverlay from "./debug/DebugOverlay";
-import Routes from "./app/routes";
+import ErrorBoundary from "../debug/ErrorBoundary";
+import DebugOverlay from "../debug/DebugOverlay";
+import Routes from "./routes";
 
 export default function App() {
   return (
     <BrowserRouter basename="/MyTube-Piped-Frontend">
       <ErrorBoundary>
-        {/* Main app content */}
+        {/* Main application routes */}
         <Routes />
 
-        {/* Global debug overlay */}
+        {/* Global debug overlay (always mounted) */}
         <DebugOverlay />
       </ErrorBoundary>
     </BrowserRouter>
