@@ -1,87 +1,57 @@
-// src/debug/DebugOverlay.jsx
+/**
+ * File: DebugOverlay.jsx
+ * Path: src/debug/DebugOverlay.jsx
+ * Description: Unified debug overlay that displays boot logs + runtime logs with color coding.
+ */
+
 import { useEffect, useState } from "react";
-import { subscribeDebug } from "./debugBus";
+import { subscribeToDebugBus } from "./debugBus";
 
 export default function DebugOverlay() {
   const [logs, setLogs] = useState([]);
-  const [open, setOpen] = useState(true);
 
+  // Merge boot logs on mount
   useEffect(() => {
-    return subscribeDebug(entry => {
-      setLogs(prev => [entry, ...prev].slice(0, 200));
+    const boot = window.bootDebug?._buffer || [];
+    setLogs(boot);
+
+    // Subscribe to runtime logs
+    const unsub = subscribeToDebugBus((entry) => {
+      setLogs((prev) => [...prev, entry]);
     });
+
+    return unsub;
   }, []);
 
-  if (!open) {
-    return (
-      <div
-        style={{
-          position: "fixed",
-          bottom: 10,
-          right: 10,
-          background: "#111",
-          color: "#fff",
-          padding: "6px 10px",
-          borderRadius: 6,
-          fontSize: 12,
-          opacity: 0.8,
-          zIndex: 99999
-        }}
-        onClick={() => setOpen(true)}
-      >
-        Debug
-      </div>
-    );
-  }
+  const colors = {
+    INFO: "#0f0",
+    WARN: "#ff0",
+    ERROR: "#f33",
+    BOOT: "#0af",
+    API: "#0ff",
+    UI: "#f0f"
+  };
 
   return (
     <div
       style={{
         position: "fixed",
-        bottom: 10,
-        right: 10,
-        width: "90%",
-        maxWidth: 400,
-        height: "50%",
-        background: "#000",
-        color: "#0f0",
-        padding: 10,
+        bottom: 0,
+        left: 0,
+        width: "100vw",
+        maxHeight: "45vh",
         overflowY: "auto",
-        borderRadius: 8,
-        zIndex: 99999,
-        opacity: 0.9,
-        fontSize: 12
+        background: "rgba(0,0,0,0.85)",
+        fontFamily: "monospace",
+        fontSize: 12,
+        padding: 8,
+        zIndex: 999999,
+        borderTop: "2px solid #333"
       }}
     >
-      <div
-        style={{
-          marginBottom: 10,
-          display: "flex",
-          justifyContent: "space-between"
-        }}
-      >
-        <strong>Debug Console</strong>
-        <button
-          style={{
-            background: "#222",
-            color: "#fff",
-            border: "none",
-            padding: "4px 8px",
-            borderRadius: 4
-          }}
-          onClick={() => setOpen(false)}
-        >
-          Minimize
-        </button>
-      </div>
-
-      {logs.map(log => (
-        <div key={log.id} style={{ marginBottom: 6 }}>
-          <span style={{ color: "#888" }}>
-            [{log.type}] {log.timestamp}
-          </span>
-          <br />
-          {log.message}
+      {logs.map((log, i) => (
+        <div key={i} style={{ color: colors[log.level] || "#0f0" }}>
+          [{log.level}] {log.msg}
         </div>
       ))}
     </div>
