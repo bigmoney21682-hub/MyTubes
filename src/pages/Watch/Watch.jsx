@@ -9,6 +9,8 @@ import { useParams } from "react-router-dom";
 export default function Watch() {
   const { id } = useParams();
 
+  bootDebug.info("Watch.jsx mounted with id " + id);
+
   return (
     <div style={{ padding: 20 }}>
       <h1>Watch Page</h1>
