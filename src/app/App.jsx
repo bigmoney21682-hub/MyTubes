@@ -12,7 +12,7 @@ bootDebug.info("App.jsx mounted");
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename="/MyTube-Piped-Frontend">
       <Routes />
       <DebugOverlay />
     </BrowserRouter>
