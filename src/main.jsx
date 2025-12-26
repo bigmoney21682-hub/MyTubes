@@ -1,4 +1,5 @@
 // File: src/main.jsx
+console.log("MAIN: React bundle loaded");
 
 import React from "react";
 import ReactDOM from "react-dom/client";
