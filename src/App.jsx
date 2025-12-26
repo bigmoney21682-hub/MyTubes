@@ -1,5 +1,6 @@
 // File: src/App.jsx
 // Adds centralized router logging with zero regression
+console.log("APP: App.jsx loaded");
 
 import React, { useEffect } from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
