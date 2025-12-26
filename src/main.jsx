@@ -1,28 +1,30 @@
 /**
  * File: main.jsx
  * Path: src/main.jsx
- * Description: Application entry point. Initializes React and logs boot events.
+ * Description: React entry point with DebugOverlay v3 boot initialization.
  */
 
 import React from "react";
 import ReactDOM from "react-dom/client";
-import App from "./app/App";
+import App from "./App";
 
-bootDebug.info("main.jsx loaded — starting React mount");
+// Debug system (bootDebug, debugBus, etc.)
+import "./debug/debugBoot";
 
-try {
-  const rootEl = document.getElementById("root");
+function mount() {
+  // Log root mount
+  window.bootDebug?.boot("main.jsx → React root mounting");
 
-  if (!rootEl) {
-    bootDebug.error("Root element #root not found");
-  } else {
-    bootDebug.info("Root element found, mounting React…");
-  }
+  const root = ReactDOM.createRoot(document.getElementById("root"));
 
-  ReactDOM.createRoot(rootEl).render(<App />);
+  root.render(
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>
+  );
 
-  bootDebug.info("React mounted successfully");
-} catch (err) {
-  bootDebug.error("React failed to mount: " + err.message);
-  console.error(err);
+  // Log completion
+  window.bootDebug?.boot("main.jsx → React root mounted");
 }
+
+mount();
