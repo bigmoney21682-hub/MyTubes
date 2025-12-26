@@ -1,59 +1,44 @@
 // File: src/utils/debug.js
-// Centralized structured logging for the entire app
+// Centralized logging helpers that preserve existing DebugOverlay behavior.
 
-// Format timestamps like [5:12:03 AM]
-function ts() {
-  return new Date().toLocaleTimeString();
-}
-
-// Base logger
 export function debugLog(message, category = "LOG") {
-  const entry = `[${ts()}] [${category}] ${message}`;
-  console.log(entry);
-  window.debugLog?.(entry, category);
+  // Console for dev tools
+  if (category === "ERROR") {
+    console.error(`[${category}] ${message}`);
+  } else {
+    console.log(`[${category}] ${message}`);
+  }
+
+  // Forward to existing global logger if present (DebugOverlay)
+  if (typeof window !== "undefined" && window.debugLog) {
+    window.debugLog(message, category);
+  }
 }
 
-// API logger (start + end)
-export function debugApi(url, status = "START") {
-  const entry = `[${ts()}] [API] ${status} → ${url}`;
-  console.log(entry);
-  window.debugLog?.(entry, "API");
+export function debugApi(endpoint, label) {
+  console.log(`[API] ${endpoint} ${label !== undefined ? `(${label})` : ""}`);
+
+  if (typeof window !== "undefined" && window.debugApi) {
+    window.debugApi(endpoint, label);
+  }
 }
 
-// Error logger
-export function debugError(message, extra = "") {
-  const entry = `[${ts()}] [ERROR] ${message} ${extra}`;
-  console.error(entry);
-  window.debugLog?.(entry, "ERROR");
+export function debugError(message) {
+  debugLog(message, "ERROR");
 }
 
-// Player events
 export function debugPlayer(message) {
   debugLog(message, "PLAYER");
 }
 
-// Router events
 export function debugRouter(message) {
   debugLog(message, "ROUTER");
 }
 
-// ------------------------------------------------------------
-// Fetch wrapper with automatic logging
-// ------------------------------------------------------------
-export async function debugFetch(url, opts = {}) {
-  debugApi(url, "START");
-
-  try {
-    const res = await fetch(url, opts);
-
-    if (!res.ok) {
-      debugError(`API ERROR ${res.status}`, `url=${url}`);
-    }
-
-    debugApi(url, `END ${res.status}`);
-    return res;
-  } catch (err) {
-    debugError(`FETCH EXCEPTION`, `${err.message} | url=${url}`);
-    throw err;
-  }
+// Optional fetch helper: logs to console only (no quota side effects)
+export async function debugFetch(url, options) {
+  console.log(`[API] FETCH → ${url}`);
+  const res = await fetch(url, options);
+  console.log(`[API] RESPONSE ${res.status} ← ${url}`);
+  return res;
 }
