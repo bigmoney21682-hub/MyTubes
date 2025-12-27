@@ -7,7 +7,8 @@
 window.bootDebug?.boot("Home.jsx file loaded");
 
 import { useEffect, useState } from "react";
-import { getTrending } from "../../api/youtube";
+import { fetchTrendingVideos } from "../../api/trending";
+
 import VideoCard from "../../components/VideoCard";
 
 export default function Home() {
