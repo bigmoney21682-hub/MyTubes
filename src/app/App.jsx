@@ -8,8 +8,9 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useEffect } from "react";
 
-import Home from "./pages/Home/Home";
-import Watch from "./pages/Watch/Watch";
+import Home from "../pages/Home/Home";
+import Watch from "../pages/Watch/Watch";
+
 import DebugOverlay from "./debug/DebugOverlay";
 
 export default function App() {
