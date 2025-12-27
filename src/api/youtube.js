@@ -3,7 +3,7 @@
 // Description: Unified YouTube Data API wrapper with quota tracking and DebugOverlay logging.
 // Provides trending, video details, related videos, and search. All responses normalized.
 
-import { debugBus } from "../debug/debugBus";
+import { debugBus } from "../debug/debugBus.js";
 
 // ------------------------------------------------------------
 // API CONFIG
