@@ -1,8 +1,8 @@
 {
-  "//": "File: package.json | Path: /package.json | Description: Project manifest for MyTube-Piped-Frontend including dependencies, scripts, and Vite config.",
+  "//": "File: package.json | Path: /package.json | Description: Clean manifest with ReactPlayer removed.",
 
   "name": "mytube-piped-frontend",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
 
@@ -15,8 +15,7 @@
   "dependencies": {
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^6.22.0",
-    "react-player": "^2.12.0"
+    "react-router-dom": "^6.22.0"
   },
 
   "devDependencies": {
