@@ -1,179 +1,108 @@
 /**
  * File: Watch.jsx
  * Path: src/pages/Watch/Watch.jsx
- * Description: Video watch page with full DebugOverlay v3 player event logging.
+ * Description: Video watch page with ReactPlayer, metadata loading,
+ *              quota tracking, and DebugOverlay logging.
  */
 
-import { useEffect, useState, useRef } from "react";
-import ReactPlayer from "react-player";
 import { useParams } from "react-router-dom";
-
-
+import { useEffect, useState } from "react";
+import ReactPlayer from "react-player";
+import { getVideoDetails } from "../../api/youtube";
 
 export default function Watch() {
   const { id } = useParams();
+  const [videoUrl, setVideoUrl] = useState("");
+  const [details, setDetails] = useState(null);
 
-  const [video, setVideo] = useState(null);
-  const [related, setRelated] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  const playerRef = useRef(null);
-
-  // Helper to log player events
-  const log = (msg, data = {}) => {
-    window.bootDebug?.player(msg, data);
-  };
-
-  // Load video + related
+  /* -------------------------------------------------------
+     MOUNT LOG
+  ------------------------------------------------------- */
   useEffect(() => {
-    let mounted = true;
-
-    async function load() {
-      setLoading(true);
-      log("load:start", { id });
-
-      try {
-        const details = await getVideoDetails(id);
-        const relatedVideos = await getRelatedVideos(id);
-
-        if (!mounted) return;
-
-        setVideo(details?.items?.[0] || null);
-        setRelated(relatedVideos?.items || []);
-
-        log("load:success", {
-          title: details?.items?.[0]?.snippet?.title,
-          relatedCount: relatedVideos?.items?.length
-        });
-      } catch (err) {
-        log("load:error", { error: err.message });
-      }
-
-      setLoading(false);
-    }
-
-    load();
-    return () => {
-      mounted = false;
-    };
+    window.bootDebug?.watch("Watch.jsx mounted with id:", id);
   }, [id]);
 
-  // Player event handlers
-  const handlePlay = () => {
-    const t = playerRef.current?.getCurrentTime?.() || 0;
-    log("onPlay", { position: t });
-  };
+  /* -------------------------------------------------------
+     BUILD VIDEO URL
+  ------------------------------------------------------- */
+  useEffect(() => {
+    if (!id) return;
 
-  const handlePause = () => {
-    const t = playerRef.current?.getCurrentTime?.() || 0;
-    log("onPause", { position: t });
-  };
+    const url = `https://www.youtube.com/watch?v=${id}`;
+    setVideoUrl(url);
 
-  const handleBuffer = () => {
-    const t = playerRef.current?.getCurrentTime?.() || 0;
-    log("onBuffer", { position: t });
-  };
+    window.bootDebug?.player("Watch.jsx → video URL set:", url);
+  }, [id]);
 
-  const handleSeek = (seconds) => {
-    const t = playerRef.current?.getCurrentTime?.() || 0;
-    log("onSeek", { from: t, to: seconds });
-  };
+  /* -------------------------------------------------------
+     FETCH METADATA
+  ------------------------------------------------------- */
+  useEffect(() => {
+    if (!id) return;
 
-  const handleEnded = () => {
-    log("onEnded");
-  };
+    window.bootDebug?.api("Watch.jsx → Fetching video details…");
 
-  const handleError = (e) => {
-    log("onError", { error: e?.message || "Unknown error" });
-  };
+    getVideoDetails(id).then((info) => {
+      setDetails(info);
+      window.bootDebug?.api("Watch.jsx → Metadata loaded:", info);
+    });
+  }, [id]);
 
-  if (loading) {
-    return (
-      <div style={{ padding: 20, color: "#ccc" }}>
-        Loading video…
-      </div>
-    );
-  }
-
-  if (!video) {
-    return (
-      <div style={{ padding: 20, color: "#ccc" }}>
-        Video not found.
-      </div>
-    );
-  }
-
-  const videoUrl = `https://www.youtube.com/watch?v=${id}`;
-
+  /* -------------------------------------------------------
+     RENDER
+  ------------------------------------------------------- */
   return (
     <div
       style={{
+        width: "100%",
+        minHeight: "100vh",
+        background: "#000",
+        color: "#fff",
         display: "flex",
         flexDirection: "column",
-        gap: 20,
-        padding: 20,
-        color: "#fff"
+        alignItems: "center",
+        paddingBottom: "40px"
       }}
     >
       {/* Player */}
-      <div style={{ width: "100%", maxWidth: 900 }}>
+      <div
+        style={{
+          width: "100%",
+          maxWidth: "900px",
+          aspectRatio: "16 / 9",
+          background: "#000",
+          overflow: "hidden",
+          position: "relative",
+          marginTop: "20px"
+        }}
+      >
         <ReactPlayer
-          ref={playerRef}
           url={videoUrl}
-          controls
-          playing={false}
+          playing={true}
+          controls={true}
           width="100%"
-          height="500px"
-          onPlay={handlePlay}
-          onPause={handlePause}
-          onBuffer={handleBuffer}
-          onSeek={handleSeek}
-          onEnded={handleEnded}
-          onError={handleError}
+          height="100%"
+          onPlay={() => window.bootDebug?.player("ReactPlayer → play")}
+          onPause={() => window.bootDebug?.player("ReactPlayer → pause")}
+          onEnded={() => window.bootDebug?.player("ReactPlayer → ended")}
+          onError={(e) => window.bootDebug?.error("ReactPlayer error:", e)}
         />
       </div>
 
-      {/* Title */}
-      <h2 style={{ margin: 0 }}>
-        {video.snippet?.title}
-      </h2>
+      {/* Metadata */}
+      {details && (
+        <div style={{ width: "100%", maxWidth: "900px", marginTop: "20px" }}>
+          <h2 style={{ margin: 0 }}>{details.title}</h2>
 
-      {/* Description */}
-      <div style={{ opacity: 0.8, whiteSpace: "pre-wrap" }}>
-        {video.snippet?.description}
-      </div>
+          <div style={{ opacity: 0.7, marginTop: 4 }}>
+            {details.channel} • {Number(details.views).toLocaleString()} views
+          </div>
 
-      {/* Related videos */}
-      <div style={{ marginTop: 20 }}>
-        <h3>Related Videos</h3>
-
-        {related.length === 0 && (
-          <div style={{ opacity: 0.6 }}>No related videos found.</div>
-        )}
-
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 12,
-            marginTop: 10
-          }}
-        >
-          {related.map((item) => (
-            <a
-              key={item.id.videoId}
-              href={`/watch/${item.id.videoId}`}
-              style={{
-                color: "#4ea3ff",
-                textDecoration: "none",
-                fontSize: 14
-              }}
-            >
-              {item.snippet?.title}
-            </a>
-          ))}
+          <p style={{ marginTop: "16px", lineHeight: 1.5, opacity: 0.9 }}>
+            {details.description}
+          </p>
         </div>
-      </div>
+      )}
     </div>
   );
 }
