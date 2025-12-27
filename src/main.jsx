@@ -3,6 +3,14 @@
  * Path: src/main.jsx
  * Description: React entry point with DebugOverlay v3 boot initialization.
  */
+window.addEventListener("error", (e) => {
+  window.bootDebug?.error("GLOBAL ERROR → " + e.message);
+});
+
+window.addEventListener("unhandledrejection", (e) => {
+  window.bootDebug?.error("PROMISE REJECTION → " + (e.reason?.message || e.reason));
+});
+
 import "./debug/bootDebug";
 import React from "react";
 import ReactDOM from "react-dom/client";
