@@ -1,54 +1,50 @@
 /**
  * File: Home.jsx
  * Path: src/pages/Home/Home.jsx
- * Description: Home screen that loads trending videos and displays them in a list.
+ * Description: Home page showing trending videos with API quota logging.
  */
 
 import { useEffect, useState } from "react";
-import { getTrending } from "../../api/trending";
-import { debugLog } from "../../debug/debugBus";
-import VideoCard from "../../components/VideoCard";
 import { useNavigate } from "react-router-dom";
+import { fetchTrendingVideos } from "../../api/youtube";
 
 export default function Home() {
   const [videos, setVideos] = useState([]);
   const navigate = useNavigate();
 
-  bootDebug.info("Home.jsx mounted");
-
   useEffect(() => {
-    async function load() {
-      bootDebug.info("Fetching trending videos…");
-      debugLog("API", "Fetching trending videos…");
+    window.bootDebug?.home("Fetching trending…");
 
-      try {
-        const data = await getTrending();
-        setVideos(data.items || []);
-
-        bootDebug.info("Trending videos loaded");
-        debugLog("API", "Trending videos loaded", data);
-      } catch (err) {
-        bootDebug.error("Failed to load trending: " + err.message);
-        debugLog("ERROR", "Failed to load trending", err);
-      }
-    }
-
-    load();
+    fetchTrendingVideos().then((items) => {
+      setVideos(items);
+      window.bootDebug?.home(`Trending loaded: ${items.length}`);
+    });
   }, []);
 
   return (
     <div style={{ padding: 20 }}>
-      <h1>Trending</h1>
+      <h2 style={{ color: "#fff" }}>Trending</h2>
 
       {videos.map((v) => (
-        <VideoCard
+        <div
           key={v.id}
-          video={v}
-          onClick={() => {
-            bootDebug.info("Navigating to video " + v.id);
-            navigate(`/watch/${v.id}`);
+          style={{
+            display: "flex",
+            marginBottom: 12,
+            cursor: "pointer",
+            color: "#fff",
           }}
-        />
+          onClick={() => navigate(`/watch/${v.id}`)}
+        >
+          <img
+            src={v.thumbnail}
+            style={{ width: 160, height: 90, borderRadius: 6 }}
+          />
+          <div style={{ marginLeft: 12 }}>
+            <div>{v.title}</div>
+            <div style={{ opacity: 0.6, fontSize: 12 }}>{v.channel}</div>
+          </div>
+        </div>
       ))}
     </div>
   );
