@@ -8,7 +8,8 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { getTrendingVideos } from "../../api/youtube";   // Correct wrapper
-import { debugBus } from "../../debug/debugBus";         // Now exported correctly
+import { debugBus } from "../../debug/debugBus.js";
+         // Now exported correctly
 
 export default function Home() {
   const navigate = useNavigate();
