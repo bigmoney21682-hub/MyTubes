@@ -24,7 +24,7 @@ export default function VideoCard({ video }) {
     >
       <img
         src={video.thumbnail || "https://via.placeholder.com/160x90?text=No+Image"}
-        alt={video.title}
+        alt={video.title || "Video thumbnail"}
         style={{
           width: "160px",
           height: "90px",
@@ -35,11 +35,11 @@ export default function VideoCard({ video }) {
 
       <div style={{ marginLeft: "10px", flex: 1 }}>
         <div style={{ fontSize: "14px", fontWeight: 600 }}>
-          {video.title}
+          {video.title || "Untitled video"}
         </div>
 
         <div style={{ fontSize: "12px", opacity: 0.7, marginTop: "4px" }}>
-          {video.channel}
+          {video.channel || "Unknown channel"}
         </div>
 
         <div style={{ fontSize: "12px", opacity: 0.5 }}>
