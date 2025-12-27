@@ -3,6 +3,7 @@
  * Path: src/debug/debugBus.js
  * Description: Global debug event bus for runtime logs including player + router events.
  */
+console.log("DEBUGBUS INSTANCE:", Math.random());
 
 const listeners = new Set();
 
