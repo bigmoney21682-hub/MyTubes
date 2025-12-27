@@ -1,21 +1,12 @@
 /**
  * File: trending.js
  * Path: src/api/trending.js
- * Description: Wrapper for YouTube trending videos using youtube.js API client.
+ * Description: Thin wrapper around youtube.js getTrending().
  */
-window.bootDebug?.boot("trending.js file loaded");
 
-import { getTrending as ytTrending } from "./youtube";
+import { getTrending } from "./youtube";
 
 export async function fetchTrendingVideos(region = "US", maxResults = 25) {
-  try {
-    const data = await ytTrending(region, maxResults);
-    return data?.items || [];
-  } catch (err) {
-    window.bootDebug?.error("Failed to load trending", err);
-    return [];
-  }
+  const items = await getTrending(region, maxResults);
+  return items || []; // items is already an array
 }
-
-// Optional compatibility export
-export const getTrending = fetchTrendingVideos;
