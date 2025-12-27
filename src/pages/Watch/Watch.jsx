@@ -8,7 +8,7 @@ import { useEffect, useState, useRef } from "react";
 import ReactPlayer from "react-player";
 import { useParams } from "react-router-dom";
 
-import { getVideoDetails, getRelatedVideos } from "../../api/youtube";
+
 
 export default function Watch() {
   const { id } = useParams();
