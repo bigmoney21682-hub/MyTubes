@@ -4,17 +4,6 @@
  * Description: Main app shell with router + real Home/Watch pages and DebugOverlay.
  */
 // src/pages/Home/Home.jsx
-window.bootDebug?.boot("Home.jsx file loaded");
-
-// src/components/VideoCard.jsx
-window.bootDebug?.boot("VideoCard.jsx file loaded");
-
-// src/api/youtube.js
-window.bootDebug?.boot("youtube.js file loaded");
-
-// src/api/trending.js
-window.bootDebug?.boot("trending.js file loaded");
-
 /**
  * File: App.jsx
  * Path: src/app/App.jsx
