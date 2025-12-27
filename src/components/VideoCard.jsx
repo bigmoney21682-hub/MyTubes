@@ -43,7 +43,7 @@ export default function VideoCard({ video }) {
         </div>
 
         <div style={{ fontSize: "12px", opacity: 0.5 }}>
-          {Number(video.views).toLocaleString()} views
+          {(video.views ? Number(video.views).toLocaleString() : "—") + " views"}
         </div>
       </div>
     </div>
