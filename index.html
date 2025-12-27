@@ -3,19 +3,18 @@
   <head>
     <meta charset="UTF-8" />
 
-    <!-- Mobile + PWA friendly -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <title>MyTube</title>
 
-    <!-- Global debug boot script (MUST load before Vite bundle) -->
-    <script src="/debug-boot.js"></script>
+    <!-- Correct public path -->
+    <script src="debug-boot.js"></script>
   </head>
 
   <body style="margin: 0; background: #000;">
     <div id="root"></div>
 
     <!-- Vite entry point -->
-   <script type="module" src="/src/main.jsx"></script>
+    <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
