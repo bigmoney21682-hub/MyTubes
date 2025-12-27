@@ -12,8 +12,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
 
     <script>
-      // GitHub Pages SPA redirect
-      // Reconstruct the original path and redirect to index.html
+      /*
+        GitHub Pages SPA Redirect Logic
+        --------------------------------
+        When a user loads a deep link like:
+          /MyTube-Piped-Frontend/watch/abc123
+
+        GitHub Pages serves 404.html.
+        This script reconstructs the original path and redirects to:
+          /MyTube-Piped-Frontend/index.html#!/watch/abc123
+
+        React Router then takes over.
+      */
+
       (function () {
         var l = window.location;
         var repo = "/MyTube-Piped-Frontend";
@@ -21,10 +32,10 @@
         // Remove the repo prefix from the path
         var path = l.pathname.replace(repo, "");
 
-        // Build the redirect URL
+        // Build redirect URL
         var redirect = repo + "/index.html#!" + path + l.search + l.hash;
 
-        // Redirect to the SPA entry point
+        // Perform redirect
         window.location.replace(redirect);
       })();
     </script>
@@ -37,6 +48,10 @@
         background: #000;
         color: #fff;
         text-align: center;
+      }
+      a {
+        color: #ff4444;
+        text-decoration: underline;
       }
     </style>
   </head>
