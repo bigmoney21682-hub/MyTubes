@@ -13,7 +13,7 @@ export default function VideoCard({ video }) {
   return (
     <div
       onClick={() => {
-        window.bootDebug.router("VideoCard → navigate to", video.id);
+        window.bootDebug?.info("VideoCard → navigate to " + video.id);
         navigate(`/watch/${video.id}`);
       }}
       style={{
