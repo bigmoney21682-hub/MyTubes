@@ -1,119 +1,140 @@
 /**
  * File: youtube.js
  * Path: src/api/youtube.js
- * Description: YouTube API client with trending + video details,
- *              quota tracking, and DebugOverlay logging.
+ * Description: Full YouTube IFrame Player wrapper with persistent instance,
+ *              accurate event mapping, debugBus logging, and clean teardown.
  */
-window.bootDebug?.boot("youtube.js file loaded");
 
-import {
-  recordCall,
-  recordQuotaError,
-  getQuotaSummary
-} from "../debug/quotaTracker";
+import { logPlayerState, logPlayerEvent } from "../player/playerDebug";
+import { debugBus } from "../debug/debugBus";
 
-const API_KEY = import.meta.env.VITE_YT_API_PRIMARY;
-const BASE = "https://www.googleapis.com/youtube/v3";
+let player = null;
+let apiReady = false;
+let pendingVideoId = null;
 
-/* -------------------------------------------------------
-   GET TRENDING (region, maxResults)
-------------------------------------------------------- */
-export async function getTrending(region = "US", maxResults = 25) {
-  const url =
-    `${BASE}/videos?part=snippet,contentDetails,statistics` +
-    `&chart=mostPopular&regionCode=${region}` +
-    `&maxResults=${maxResults}&key=${API_KEY}`;
-
-  window.bootDebug?.api("Trending → Request:", url);
-
-  try {
-    const res = await fetch(url);
-    const json = await res.json();
-
-    // Quota exceeded?
-    if (json.error?.errors?.[0]?.reason === "quotaExceeded") {
-      recordQuotaError();
-      window.bootDebug?.error("Trending → quotaExceeded");
-      window.bootDebug?.quota(getQuotaSummary());
-      return [];
-    }
-
-    // Track quota usage
-    recordCall("videos.list", "PRIMARY");
-    window.bootDebug?.quota(getQuotaSummary());
-
-    if (!json.items || !Array.isArray(json.items)) {
-      window.bootDebug?.error("Trending → Invalid response:", json);
-      return [];
-    }
-
-    window.bootDebug?.api(`Trending → Loaded ${json.items.length} items`);
-    return json.items.map(normalizeVideo);
-  } catch (err) {
-    window.bootDebug?.error("Trending → Fetch failed:", err);
-    return [];
+// ------------------------------------------------------------
+// Load YouTube IFrame API (only once)
+// ------------------------------------------------------------
+function loadYouTubeAPI() {
+  if (window.YT && window.YT.Player) {
+    apiReady = true;
+    return Promise.resolve();
   }
-}
 
-/* -------------------------------------------------------
-   GET VIDEO DETAILS
-------------------------------------------------------- */
-export async function getVideoDetails(id) {
-  const url =
-    `${BASE}/videos?part=snippet,contentDetails,statistics` +
-    `&id=${id}&key=${API_KEY}`;
+  return new Promise((resolve) => {
+    const tag = document.createElement("script");
+    tag.src = "https://www.youtube.com/iframe_api";
+    document.body.appendChild(tag);
 
-  window.bootDebug?.api("VideoDetails → Request:", url);
-
-  try {
-    const res = await fetch(url);
-    const json = await res.json();
-
-    // Quota exceeded?
-    if (json.error?.errors?.[0]?.reason === "quotaExceeded") {
-      recordQuotaError();
-      window.bootDebug?.error("VideoDetails → quotaExceeded");
-      window.bootDebug?.quota(getQuotaSummary());
-      return null;
-    }
-
-    // Track quota usage
-    recordCall("videos.list", "PRIMARY");
-    window.bootDebug?.quota(getQuotaSummary());
-
-    if (!json.items || json.items.length === 0) {
-      window.bootDebug?.error("VideoDetails → No items:", json);
-      return null;
-    }
-
-    const item = json.items[0];
-    window.bootDebug?.api("VideoDetails → Loaded:", item.id);
-
-    return {
-      id: item.id,
-      title: item.snippet?.title,
-      description: item.snippet?.description,
-      channel: item.snippet?.channelTitle,
-      published: item.snippet?.publishedAt,
-      views: item.statistics?.viewCount,
-      duration: item.contentDetails?.duration
+    window.onYouTubeIframeAPIReady = () => {
+      apiReady = true;
+      resolve();
     };
+  });
+}
+
+// ------------------------------------------------------------
+// Create or reuse player instance
+// ------------------------------------------------------------
+async function ensurePlayer(containerId) {
+  await loadYouTubeAPI();
+
+  if (player) return player;
+
+  player = new window.YT.Player(containerId, {
+    height: "100%",
+    width: "100%",
+    playerVars: {
+      autoplay: 1,
+      controls: 1,
+      rel: 0,
+      modestbranding: 1,
+      playsinline: 1
+    },
+    events: {
+      onReady: () => {
+        logPlayerState("ready");
+        debugBus.log("PLAYER", "IFrame ready");
+
+        if (pendingVideoId) {
+          player.loadVideoById(pendingVideoId);
+          pendingVideoId = null;
+        }
+      },
+
+      onStateChange: (e) => {
+        const stateMap = {
+          [window.YT.PlayerState.UNSTARTED]: "unstarted",
+          [window.YT.PlayerState.ENDED]: "ended",
+          [window.YT.PlayerState.PLAYING]: "playing",
+          [window.YT.PlayerState.PAUSED]: "paused",
+          [window.YT.PlayerState.BUFFERING]: "buffering",
+          [window.YT.PlayerState.CUED]: "cued"
+        };
+
+        const state = stateMap[e.data] || "unknown";
+        logPlayerState(state);
+        debugBus.log("PLAYER", "State → " + state);
+      },
+
+      onError: (e) => {
+        logPlayerEvent("error", { code: e.data });
+        debugBus.log("PLAYER", "Error → " + e.data);
+      }
+    }
+  });
+
+  return player;
+}
+
+// ------------------------------------------------------------
+// Public API
+// ------------------------------------------------------------
+export async function loadVideo(containerId, videoId) {
+  window.bootDebug?.player("loadVideo → " + videoId);
+
+  const p = await ensurePlayer(containerId);
+
+  if (!apiReady) {
+    pendingVideoId = videoId;
+    return;
+  }
+
+  try {
+    p.loadVideoById(videoId);
+    logPlayerEvent("load", { videoId });
   } catch (err) {
-    window.bootDebug?.error("VideoDetails → Fetch failed:", err);
-    return null;
+    debugBus.log("PLAYER", "loadVideo error: " + err.message);
   }
 }
 
-/* -------------------------------------------------------
-   NORMALIZER
-------------------------------------------------------- */
-function normalizeVideo(item) {
-  return {
-    id: item.id,
-    title: item.snippet?.title || "Untitled",
-    thumbnail: item.snippet?.thumbnails?.medium?.url,
-    channel: item.snippet?.channelTitle,
-    published: item.snippet?.publishedAt,
-    views: item.statistics?.viewCount
-  };
+export function play() {
+  try {
+    player?.playVideo();
+    logPlayerEvent("play");
+  } catch (_) {}
+}
+
+export function pause() {
+  try {
+    player?.pauseVideo();
+    logPlayerEvent("pause");
+  } catch (_) {}
+}
+
+export function seek(seconds) {
+  try {
+    player?.seekTo(seconds, true);
+    logPlayerEvent("seek", { seconds });
+  } catch (_) {}
+}
+
+export function destroyPlayer() {
+  if (player) {
+    try {
+      player.destroy();
+      debugBus.log("PLAYER", "Player destroyed");
+    } catch (_) {}
+  }
+  player = null;
 }
