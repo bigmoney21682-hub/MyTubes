@@ -3,7 +3,8 @@
 // Description: Full DebugOverlay v3 with tabbed inspectors and unified debugBus subscription.
 
 import React, { useEffect, useState, useRef } from "react";
-import { debugBus } from "./debugBus";
+import { debugBus } from "./debugBus.js";
+
 
 // ------------------------------------------------------------
 // Tab Names
