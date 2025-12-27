@@ -5,6 +5,9 @@
  *              normalization, error handling, and DebugOverlay quota logging.
  */
 
+import { recordCall, recordQuotaError } from "../debug/quotaTracker";
+
+
 const API_KEY = import.meta.env.VITE_YT_API_KEY;
 const BASE = "https://www.googleapis.com/youtube/v3";
 
