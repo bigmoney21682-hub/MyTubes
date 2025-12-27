@@ -23,7 +23,7 @@ export default function VideoCard({ video }) {
       }}
     >
       <img
-        src={video.thumbnail}
+        src={video.thumbnail || "https://via.placeholder.com/160x90?text=No+Image"}
         alt={video.title}
         style={{
           width: "160px",
