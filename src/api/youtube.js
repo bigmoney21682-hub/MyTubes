@@ -1,109 +1,97 @@
-/**
- * File: youtube.js
- * Path: src/api/youtube.js
- * Description: YouTube API wrapper with trending + video details,
- *              quota tracking via quotaTracker.js, and DebugOverlay logging.
- */
+// File: youtube.js
+// Path: src/api/youtube.js
+// Description: YouTube Data API wrapper with quota tracking and DebugOverlay logging.
+// Provides getTrendingVideos() with normalized output and error handling.
 
-import { recordCall, recordQuotaError, getQuotaSummary } from "../debug/quotaTracker";
+import { debugBus } from "../debug/debugBus";
 
+// ------------------------------------------------------------
+// API CONFIG
+// ------------------------------------------------------------
 const API_KEY = import.meta.env.VITE_YT_API_KEY;
-const BASE = "https://www.googleapis.com/youtube/v3";
+const BASE_URL = "https://www.googleapis.com/youtube/v3";
 
-/* -------------------------------------------------------
-   FETCH TRENDING VIDEOS
-------------------------------------------------------- */
-export async function fetchTrendingVideos() {
-  const url = `${BASE}/videos?part=snippet,contentDetails,statistics&chart=mostPopular&regionCode=US&maxResults=20&key=${API_KEY}`;
+// ------------------------------------------------------------
+// Quota Tracker
+// ------------------------------------------------------------
+let quotaUsed = 0;
 
-  window.bootDebug?.api("Trending → Request:", url);
+function trackQuota(cost, endpoint) {
+  quotaUsed += cost;
 
-  try {
-    const res = await fetch(url);
-    const json = await res.json();
-
-    // Detect quotaExceeded
-    if (json.error?.errors?.[0]?.reason === "quotaExceeded") {
-      recordQuotaError();
-      window.bootDebug?.error("Trending → quotaExceeded");
-      window.bootDebug?.quota(getQuotaSummary());
-      return [];
-    }
-
-    // Track quota usage (videos.list = 1)
-    recordCall("videos.list", "PRIMARY");
-    window.bootDebug?.quota(getQuotaSummary());
-
-    if (!json.items || !Array.isArray(json.items)) {
-      window.bootDebug?.error("Trending → Invalid response:", json);
-      return [];
-    }
-
-    window.bootDebug?.api(`Trending → Loaded ${json.items.length} items`);
-    return json.items.map(normalizeVideo);
-  } catch (err) {
-    window.bootDebug?.error("Trending → Fetch failed:", err);
-    return [];
-  }
+  debugBus.log(
+    "INFO",
+    `[QUOTA] ${endpoint} → +${cost} (total used: ${quotaUsed})`
+  );
 }
 
-/* -------------------------------------------------------
-   FETCH VIDEO DETAILS
-------------------------------------------------------- */
-export async function getVideoDetails(id) {
-  const url = `${BASE}/videos?part=snippet,contentDetails,statistics&id=${id}&key=${API_KEY}`;
+// ------------------------------------------------------------
+// Helper: Perform GET request
+// ------------------------------------------------------------
+async function ytGet(endpoint, params = {}) {
+  if (!API_KEY) {
+    debugBus.error("[YOUTUBE] Missing API key");
+    throw new Error("Missing API key");
+  }
 
-  window.bootDebug?.api("VideoDetails → Request:", url);
+  const url = new URL(`${BASE_URL}/${endpoint}`);
+  url.searchParams.set("key", API_KEY);
+
+  Object.entries(params).forEach(([k, v]) => {
+    if (v !== undefined && v !== null) url.searchParams.set(k, v);
+  });
+
+  debugBus.log("INFO", `[YOUTUBE] GET ${url.toString()}`);
+
+  const res = await fetch(url.toString());
+
+  if (!res.ok) {
+    const text = await res.text();
+    debugBus.error("[YOUTUBE] API error", { status: res.status, text });
+    throw new Error(`YouTube API error: ${res.status}`);
+  }
+
+  return res.json();
+}
+
+// ------------------------------------------------------------
+// Trending Videos
+// ------------------------------------------------------------
+// Cost: 1 quota per request (videos.list with chart=mostPopular)
+export async function getTrendingVideos() {
+  trackQuota(1, "Trending");
 
   try {
-    const res = await fetch(url);
-    const json = await res.json();
+    const data = await ytGet("videos", {
+      part: "snippet,contentDetails,statistics",
+      chart: "mostPopular",
+      maxResults: 25,
+      regionCode: "US"
+    });
 
-    // Detect quotaExceeded
-    if (json.error?.errors?.[0]?.reason === "quotaExceeded") {
-      recordQuotaError();
-      window.bootDebug?.error("VideoDetails → quotaExceeded");
-      window.bootDebug?.quota(getQuotaSummary());
-      return null;
+    if (!data || !Array.isArray(data.items)) {
+      debugBus.error("[YOUTUBE] Invalid trending response", data);
+      return { items: [] };
     }
 
-    // Track quota usage (videos.list = 1)
-    recordCall("videos.list", "PRIMARY");
-    window.bootDebug?.quota(getQuotaSummary());
-
-    if (!json.items || json.items.length === 0) {
-      window.bootDebug?.error("VideoDetails → No items:", json);
-      return null;
-    }
-
-    const item = json.items[0];
-    window.bootDebug?.api("VideoDetails → Loaded:", item.id);
-
-    return {
+    // Normalize items
+    const items = data.items.map((item) => ({
       id: item.id,
       title: item.snippet?.title,
       description: item.snippet?.description,
-      channel: item.snippet?.channelTitle,
-      published: item.snippet?.publishedAt,
-      views: item.statistics?.viewCount,
-      duration: item.contentDetails?.duration
-    };
-  } catch (err) {
-    window.bootDebug?.error("VideoDetails → Fetch failed:", err);
-    return null;
-  }
-}
+      thumbnail: item.snippet?.thumbnails?.medium?.url,
+      channelTitle: item.snippet?.channelTitle,
+      publishedAt: item.snippet?.publishedAt
+    }));
 
-/* -------------------------------------------------------
-   NORMALIZER
-------------------------------------------------------- */
-function normalizeVideo(item) {
-  return {
-    id: item.id,
-    title: item.snippet?.title || "Untitled",
-    thumbnail: item.snippet?.thumbnails?.medium?.url,
-    channel: item.snippet?.channelTitle,
-    published: item.snippet?.publishedAt,
-    views: item.statistics?.viewCount
-  };
+    debugBus.log(
+      "INFO",
+      `[YOUTUBE] Trending normalized → ${items.length} items`
+    );
+
+    return { items };
+  } catch (err) {
+    debugBus.error("[YOUTUBE] Trending fetch failed", err);
+    return { items: [] };
+  }
 }
