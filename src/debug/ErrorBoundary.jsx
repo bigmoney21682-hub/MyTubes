@@ -19,7 +19,7 @@ export default class ErrorBoundary extends React.Component {
 
   componentDidCatch(err, info) {
     debugLog("ERROR", "React error: " + err.message, info);
-    bootDebug.error("React crashed: " + err.message);
+    window.bootDebug?.error("React crashed: " + err.message);
   }
 
   render() {
