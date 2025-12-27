@@ -8,10 +8,10 @@ import { logPlayer } from "../debug/debugBus";
 
 export function logPlayerState(state, data) {
   logPlayer("Player state → " + state, data);
-  bootDebug.info("PLAYER → " + state);
+  window.bootDebug?.info("PLAYER → " + state);
 }
 
 export function logPlayerEvent(event, data) {
   logPlayer("Player event → " + event, data);
-  bootDebug.info("PLAYER EVENT → " + event);
+  window.bootDebug?.info("PLAYER EVENT → " + event);
 }
