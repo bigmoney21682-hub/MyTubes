@@ -3,6 +3,7 @@
  * Path: src/api/trending.js
  * Description: Wrapper for YouTube trending videos using youtube.js API client.
  */
+window.bootDebug?.boot("trending.js file loaded");
 
 import { getTrending as ytTrending } from "./youtube";
 
