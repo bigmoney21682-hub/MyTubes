@@ -1,148 +1,77 @@
 /**
  * File: Watch.jsx
  * Path: src/pages/Watch/Watch.jsx
- * Description: Video watch page using YouTube IFrame API + DebugOverlay logging.
+ * Description: YouTube‑accurate watch page using the IFrame API wrapper
+ *              from src/api/youtube.js. Fully debug‑instrumented.
  */
-window.bootDebug?.boot("Watch.jsx file loaded");
 
+import { useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { useEffect, useRef, useState } from "react";
-import { getVideoDetails } from "../../api/youtube";
+
+import {
+  loadVideo,
+  play,
+  pause,
+  seek,
+  destroyPlayer
+} from "../../api/youtube";
 
 export default function Watch() {
   const { id } = useParams();
-  const playerRef = useRef(null);
-  const iframeRef = useRef(null);
 
-  const [details, setDetails] = useState(null);
-
-  /* -------------------------------------------------------
-     LOAD METADATA
-  ------------------------------------------------------- */
   useEffect(() => {
-    if (!id) return;
+    window.bootDebug?.watch("Watch.jsx mounted → video " + id);
 
-    window.bootDebug?.watch("Watch.jsx mounted with id:", id);
-    window.bootDebug?.api("Watch.jsx → Fetching video details…");
+    // Load the video into the persistent player
+    loadVideo("player-container", id);
 
-    getVideoDetails(id).then((info) => {
-      setDetails(info);
-      window.bootDebug?.api("Watch.jsx → Metadata loaded:", info);
-    });
-  }, [id]);
-
-  /* -------------------------------------------------------
-     LOAD YOUTUBE IFRAME API
-  ------------------------------------------------------- */
-  useEffect(() => {
-    if (!id) return;
-
-    window.bootDebug?.player("Watch.jsx → Loading YouTube IFrame API");
-
-    // If API already loaded, initialize immediately
-    if (window.YT && window.YT.Player) {
-      createPlayer();
-      return;
-    }
-
-    // Otherwise inject script
-    const tag = document.createElement("script");
-    tag.src = "https://www.youtube.com/iframe_api";
-    document.body.appendChild(tag);
-
-    window.onYouTubeIframeAPIReady = () => {
-      window.bootDebug?.player("YouTube IFrame API ready");
-      createPlayer();
+    return () => {
+      window.bootDebug?.watch("Watch.jsx unmounted → destroy player");
+      destroyPlayer();
     };
   }, [id]);
 
-  /* -------------------------------------------------------
-     CREATE PLAYER
-  ------------------------------------------------------- */
-  function createPlayer() {
-    if (!iframeRef.current) return;
-
-    window.bootDebug?.player("Watch.jsx → Creating player instance");
-
-    playerRef.current = new window.YT.Player(iframeRef.current, {
-      videoId: id,
-      playerVars: {
-        autoplay: 1,
-        controls: 1,
-        rel: 0,
-        modestbranding: 1
-      },
-      events: {
-        onReady: () => {
-          window.bootDebug?.player("IFrame → ready");
-        },
-        onStateChange: (e) => {
-          const stateMap = {
-            "-1": "unstarted",
-            "0": "ended",
-            "1": "playing",
-            "2": "paused",
-            "3": "buffering",
-            "5": "cued"
-          };
-          window.bootDebug?.player("IFrame → " + stateMap[e.data]);
-        },
-        onError: (e) => {
-          window.bootDebug?.error("IFrame error:", e.data);
-        }
-      }
-    });
-  }
-
-  /* -------------------------------------------------------
-     RENDER
-  ------------------------------------------------------- */
   return (
-    <div
-      style={{
-        width: "100%",
-        minHeight: "100vh",
-        background: "#000",
-        color: "#fff",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        paddingBottom: "40px"
-      }}
-    >
-      {/* Player */}
-      <div
-        style={{
-          width: "100%",
-          maxWidth: "900px",
-          aspectRatio: "16 / 9",
-          background: "#000",
-          overflow: "hidden",
-          position: "relative",
-          marginTop: "20px"
-        }}
-      >
-        <div
-          ref={iframeRef}
-          id="yt-player"
-          style={{ width: "100%", height: "100%" }}
-        />
+    <div style={styles.page}>
+      {/* Player container */}
+      <div id="player-container" style={styles.player} />
+
+      {/* Debug controls (optional) */}
+      <div style={styles.controls}>
+        <button onClick={() => play()} style={styles.btn}>Play</button>
+        <button onClick={() => pause()} style={styles.btn}>Pause</button>
+        <button onClick={() => seek(60)} style={styles.btn}>Seek 1:00</button>
       </div>
-
-      {/* Metadata */}
-      {details && (
-        <div style={{ width: "100%", maxWidth: "900px", marginTop: "20px" }}>
-          <h2 style={{ margin: 0 }}>{details.title}</h2>
-
-          <div style={{ opacity: 0.7, marginTop: 4 }}>
-            {details.channel} • {Number(details.views).toLocaleString()} views
-          </div>
-
-          <p style={{ marginTop: "16px", lineHeight: 1.5, opacity: 0.9 }}>
-            {details.description}
-          </p>
-        </div>
-      )}
     </div>
   );
 }
+
+const styles = {
+  page: {
+    display: "flex",
+    flexDirection: "column",
+    width: "100%",
+    height: "100%",
+    background: "#000",
+    color: "#fff",
+    paddingBottom: "200px"
+  },
+  player: {
+    width: "100%",
+    height: "240px",
+    background: "#111"
+  },
+  controls: {
+    display: "flex",
+    gap: "10px",
+    padding: "12px"
+  },
+  btn: {
+    padding: "6px 12px",
+    background: "#333",
+    border: "1px solid #555",
+    color: "#fff",
+    borderRadius: "4px",
+    cursor: "pointer"
+  }
+};
