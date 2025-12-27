@@ -5,7 +5,7 @@
  */
 
 import { useEffect, useState, useMemo } from "react";
-import { subscribeToDebugBus } from "./debugBus";
+import { debugBus } from "./debugBus";
 import { loadDebugState, saveDebugState } from "./debugStorage";
 import { formatTime } from "./debugUtils";
 import DebugTabs from "./DebugTabs";
