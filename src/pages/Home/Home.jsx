@@ -4,6 +4,7 @@
  * Description: Home page that loads trending videos and displays them
  *              using VideoCard. Fully wired to debugBus + youtube.js.
  */
+window.bootDebug?.boot("Home.jsx file loaded");
 
 import { useEffect, useState } from "react";
 import { getTrending } from "../../api/youtube";
