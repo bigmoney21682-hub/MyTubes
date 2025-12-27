@@ -3,10 +3,11 @@
  * Path: src/main.jsx
  * Description: React entry point with DebugOverlay v3 boot initialization.
  */
-
+import "./debug/bootDebug";
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./app/App";
+
 
 
 
