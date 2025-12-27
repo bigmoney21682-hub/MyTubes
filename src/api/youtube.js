@@ -1,19 +1,18 @@
 /**
  * File: youtube.js
  * Path: src/api/youtube.js
- * Description: Unified YouTube Data API wrapper with trending, video details,
- *              normalization, error handling, and DebugOverlay quota logging.
+ * Description: YouTube API wrapper with trending + video details,
+ *              quota tracking via quotaTracker.js, and DebugOverlay logging.
  */
 
-import { recordCall, recordQuotaError } from "../debug/quotaTracker";
-
+import { recordCall, recordQuotaError, getQuotaSummary } from "../debug/quotaTracker";
 
 const API_KEY = import.meta.env.VITE_YT_API_KEY;
 const BASE = "https://www.googleapis.com/youtube/v3";
 
-/**
- * Fetch trending videos (Most Popular)
- */
+/* -------------------------------------------------------
+   FETCH TRENDING VIDEOS
+------------------------------------------------------- */
 export async function fetchTrendingVideos() {
   const url = `${BASE}/videos?part=snippet,contentDetails,statistics&chart=mostPopular&regionCode=US&maxResults=20&key=${API_KEY}`;
 
@@ -23,9 +22,17 @@ export async function fetchTrendingVideos() {
     const res = await fetch(url);
     const json = await res.json();
 
-    // Quota tracking (header may be missing depending on Google)
-    const quota = res.headers.get("x-quota-used") || "unknown";
-    window.bootDebug?.api("Trending → Quota used:", quota);
+    // Detect quotaExceeded
+    if (json.error?.errors?.[0]?.reason === "quotaExceeded") {
+      recordQuotaError();
+      window.bootDebug?.error("Trending → quotaExceeded");
+      window.bootDebug?.quota(getQuotaSummary());
+      return [];
+    }
+
+    // Track quota usage (videos.list = 1)
+    recordCall("videos.list", "PRIMARY");
+    window.bootDebug?.quota(getQuotaSummary());
 
     if (!json.items || !Array.isArray(json.items)) {
       window.bootDebug?.error("Trending → Invalid response:", json);
@@ -40,9 +47,9 @@ export async function fetchTrendingVideos() {
   }
 }
 
-/**
- * Fetch details for a single YouTube video by ID.
- */
+/* -------------------------------------------------------
+   FETCH VIDEO DETAILS
+------------------------------------------------------- */
 export async function getVideoDetails(id) {
   const url = `${BASE}/videos?part=snippet,contentDetails,statistics&id=${id}&key=${API_KEY}`;
 
@@ -52,13 +59,24 @@ export async function getVideoDetails(id) {
     const res = await fetch(url);
     const json = await res.json();
 
+    // Detect quotaExceeded
+    if (json.error?.errors?.[0]?.reason === "quotaExceeded") {
+      recordQuotaError();
+      window.bootDebug?.error("VideoDetails → quotaExceeded");
+      window.bootDebug?.quota(getQuotaSummary());
+      return null;
+    }
+
+    // Track quota usage (videos.list = 1)
+    recordCall("videos.list", "PRIMARY");
+    window.bootDebug?.quota(getQuotaSummary());
+
     if (!json.items || json.items.length === 0) {
       window.bootDebug?.error("VideoDetails → No items:", json);
       return null;
     }
 
     const item = json.items[0];
-
     window.bootDebug?.api("VideoDetails → Loaded:", item.id);
 
     return {
@@ -76,9 +94,9 @@ export async function getVideoDetails(id) {
   }
 }
 
-/**
- * Normalize video objects for UI consumption.
- */
+/* -------------------------------------------------------
+   NORMALIZER
+------------------------------------------------------- */
 function normalizeVideo(item) {
   return {
     id: item.id,
