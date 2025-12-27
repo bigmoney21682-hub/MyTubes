@@ -2,7 +2,7 @@
  * File: bootDebug.js
  * Path: src/debug/bootDebug.js
  * Description: Bridges public/debug-boot.js buffer into debugBus and
- *              defines runtime window.bootDebug that publishes to debugBus.
+ *              defines runtime window.bootDebug with full category map.
  */
 
 import { debugBus } from "./debugBus";
@@ -14,18 +14,24 @@ if (window.bootDebug?._buffer) {
   }
 }
 
-// Replace bootDebug with runtime publisher
+// Helper to publish to debugBus
 function emit(level, ...args) {
   debugBus.log(level, args.join(" "));
 }
 
+// Full category map (restored)
 window.bootDebug = {
-  log: (...msg) => emit("CONSOLE", ...msg),
-  info: (...msg) => emit("INFO", ...msg),
-  warn: (...msg) => emit("WARN", ...msg),
-  error: (...msg) => emit("ERROR", ...msg),
+  // Boot + lifecycle
+  boot: (...msg) => emit("BOOT", ...msg),
+  main: (...msg) => emit("BOOT", ...msg),
+  app: (...msg) => emit("BOOT", ...msg),
 
-  // Network
+  // Page-level logs
+  home: (...msg) => emit("ROUTER", ...msg),
+  watch: (...msg) => emit("ROUTER", ...msg),
+  search: (...msg) => emit("ROUTER", ...msg),
+
+  // Network / API
   api: (...msg) => emit("NETWORK", ...msg),
   net: (...msg) => emit("NETWORK", ...msg),
 
@@ -41,10 +47,15 @@ window.bootDebug = {
   // Commands
   cmd: (...msg) => emit("CMD", ...msg),
 
+  // Console-level
+  log: (...msg) => emit("CONSOLE", ...msg),
+  info: (...msg) => emit("INFO", ...msg),
+  warn: (...msg) => emit("WARN", ...msg),
+  error: (...msg) => emit("ERROR", ...msg),
+
   // Quota
   quota: (...msg) => emit("CONSOLE", ...msg)
 };
 
-window.bootDebug.boot = (...msg) => emit("BOOT", ...msg);
-
+// Confirm runtime logger is active
 window.bootDebug.boot("Runtime bootDebug initialized");
