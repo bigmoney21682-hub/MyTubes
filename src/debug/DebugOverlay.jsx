@@ -1,10 +1,12 @@
-// File: DebugOverlay.jsx
-// Path: src/debug/DebugOverlay.jsx
-// Description: Full DebugOverlay v3 with tabbed inspectors and unified debugBus subscription.
+/**
+ * File: DebugOverlay.jsx
+ * Path: src/debug/DebugOverlay.jsx
+ * Description: Full DebugOverlay v3 with tabbed inspectors, vertical-only scroll,
+ *              full-width content, and one-click Copy Logs button.
+ */
 
 import React, { useEffect, useState, useRef } from "react";
 import { debugBus } from "./debugBus.js";
-
 
 // ------------------------------------------------------------
 // Tab Names
@@ -54,7 +56,7 @@ export default function DebugOverlay() {
       case "Player":
         return entries.filter((e) => e.level === "PLAYER");
       case "Router":
-        return entries.filter((e) => e.level === "ROUTER");
+        return entries.filter((e) => e.level === "ROUTER" || e.level === "BOOT");
       case "Perf":
         return entries.filter((e) => e.level === "PERF");
       case "Cmd":
@@ -69,6 +71,22 @@ export default function DebugOverlay() {
   // ------------------------------------------------------------
   function clearLogs() {
     setEntries([]);
+    window.bootDebug.info("DebugOverlay → Logs cleared");
+  }
+
+  // ------------------------------------------------------------
+  // Copy logs to clipboard
+  // ------------------------------------------------------------
+  function copyLogs() {
+    const text = entries
+      .map(
+        (e) =>
+          `[${e.level}] ${e.msg} (${new Date(e.ts).toLocaleTimeString()})`
+      )
+      .join("\n");
+
+    navigator.clipboard.writeText(text);
+    window.bootDebug.info("DebugOverlay → Logs copied to clipboard");
   }
 
   // ------------------------------------------------------------
@@ -81,13 +99,13 @@ export default function DebugOverlay() {
         <span style={styles.title}>DebugOverlay v3</span>
 
         <div style={styles.headerButtons}>
+          <button style={styles.btn} onClick={copyLogs}>
+            Copy
+          </button>
           <button style={styles.btn} onClick={clearLogs}>
             Clear
           </button>
-          <button
-            style={styles.btn}
-            onClick={() => setCollapsed((c) => !c)}
-          >
+          <button style={styles.btn} onClick={() => setCollapsed((c) => !c)}>
             {collapsed ? "Expand" : "Collapse"}
           </button>
         </div>
@@ -194,13 +212,18 @@ const styles = {
   content: {
     flex: 1,
     overflowY: "auto",
+    overflowX: "hidden", // 🔥 vertical-only scroll
+    width: "100%",       // 🔥 full width
+    boxSizing: "border-box",
     padding: "8px"
   },
 
   entry: {
     display: "flex",
     gap: "8px",
-    marginBottom: "4px"
+    marginBottom: "4px",
+    width: "100%",
+    wordBreak: "break-word" // 🔥 prevents horizontal overflow
   },
 
   level: {
