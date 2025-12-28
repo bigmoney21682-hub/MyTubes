@@ -1,46 +1,82 @@
 /**
  * File: MiniPlayer.jsx
- * Path: src/components/MiniPlayer.jsx
- * Description: Global mini‑player UI that controls the persistent GlobalPlayer.
- *              Appears when a video is playing AND user is not on /watch/:id.
+ * Path: src/player/MiniPlayer.jsx
+ * Description: Persistent bottom mini-player UI that reflects the global
+ *              playback state. Shows current video ID, play/pause controls,
+ *              and queue navigation. Fully safe for iOS/Safari and StrictMode.
  */
 
-import React from "react";
-import { useNavigate, useLocation } from "react-router-dom";
-import { usePlayer } from "../player/PlayerContext.jsx";
+import React, { useEffect, useState } from "react";
+import { usePlayer } from "./PlayerContext.jsx";
+import { GlobalPlayer } from "./GlobalPlayer.js";
+import { QueueStore } from "./QueueStore.js";
 import { debugBus } from "../debug/debugBus.js";
 
 export default function MiniPlayer() {
-  // Safely extract values from PlayerContext
   const player = usePlayer() ?? {};
 
-  const currentVideoId = player.currentVideoId ?? null;
-  const isPlaying = player.isPlaying ?? false;
-  const togglePlay = player.togglePlay ?? (() => {});
+  const currentId = player.currentId ?? null;
+  const loadVideo = player.loadVideo ?? (() => {});
 
-  const navigate = useNavigate();
-  const location = useLocation();
+  const [isPlaying, setIsPlaying] = useState(false);
 
-  // Hide if no video OR on watch page
-  if (!currentVideoId) return null;
-  if (location.pathname.startsWith("/watch/")) return null;
+  // ------------------------------------------------------------
+  // Listen to GlobalPlayer state changes
+  // ------------------------------------------------------------
+  useEffect(() => {
+    debugBus.player("MiniPlayer → Mount");
 
-  // Safe thumbnail
-  const thumbnail = `https://i.ytimg.com/vi/${currentVideoId}/hqdefault.jpg`;
+    const handler = (state) => {
+      debugBus.player("MiniPlayer → Player state: " + state);
+      setIsPlaying(state === "playing");
+    };
 
-  function openFullPlayer() {
-    debugBus.player("MiniPlayer → Navigate to /watch/" + currentVideoId);
-    navigate(`/watch/${currentVideoId}`);
+    GlobalPlayer.onStateChange = handler;
+
+    return () => {
+      GlobalPlayer.onStateChange = null;
+    };
+  }, []);
+
+  // ------------------------------------------------------------
+  // Controls
+  // ------------------------------------------------------------
+  function togglePlay() {
+    try {
+      if (!GlobalPlayer.player) return;
+
+      if (isPlaying) {
+        debugBus.player("MiniPlayer → pause()");
+        GlobalPlayer.player.pauseVideo();
+      } else {
+        debugBus.player("MiniPlayer → play()");
+        GlobalPlayer.player.playVideo();
+      }
+    } catch (err) {
+      debugBus.player("MiniPlayer.togglePlay error: " + (err?.message || err));
+    }
   }
 
-  function handlePlayPause(e) {
-    e.stopPropagation();
-    togglePlay();
+  function playNextInQueue() {
+    const next = QueueStore.next();
+    if (!next) {
+      debugBus.player("MiniPlayer → No next item in queue");
+      return;
+    }
+
+    debugBus.player("MiniPlayer → Next in queue → " + next);
+    loadVideo(next);
+  }
+
+  // ------------------------------------------------------------
+  // Render
+  // ------------------------------------------------------------
+  if (!currentId) {
+    return null; // No video loaded → no mini-player
   }
 
   return (
     <div
-      onClick={openFullPlayer}
       style={{
         position: "fixed",
         bottom: 0,
@@ -48,44 +84,46 @@ export default function MiniPlayer() {
         right: 0,
         height: "64px",
         background: "#111",
+        borderTop: "1px solid #333",
         display: "flex",
         alignItems: "center",
-        padding: "8px",
-        borderTop: "1px solid #333",
-        cursor: "pointer",
+        padding: "0 16px",
+        color: "#fff",
         zIndex: 9999
       }}
     >
-      <img
-        src={thumbnail}
-        alt="thumbnail"
-        style={{
-          width: "96px",
-          height: "54px",
-          objectFit: "cover",
-          borderRadius: "4px",
-          marginRight: "12px"
-        }}
-      />
-
-      <div style={{ flex: 1, color: "#fff", fontSize: "14px" }}>
-        {currentVideoId}
+      {/* Video ID (placeholder for future metadata) */}
+      <div style={{ flex: 1, fontSize: "14px", opacity: 0.8 }}>
+        Playing: {currentId}
       </div>
 
+      {/* Play/Pause */}
       <button
-        onClick={handlePlayPause}
+        onClick={togglePlay}
         style={{
-          width: "40px",
-          height: "40px",
-          borderRadius: "20px",
-          border: "none",
+          marginRight: "12px",
+          padding: "6px 10px",
           background: "#222",
           color: "#fff",
-          fontSize: "18px",
-          marginLeft: "12px"
+          border: "1px solid #444",
+          borderRadius: "4px"
         }}
       >
-        {isPlaying ? "❚❚" : "▶"}
+        {isPlaying ? "Pause" : "Play"}
+      </button>
+
+      {/* Next in queue */}
+      <button
+        onClick={playNextInQueue}
+        style={{
+          padding: "6px 10px",
+          background: "#222",
+          color: "#fff",
+          border: "1px solid #444",
+          borderRadius: "4px"
+        }}
+      >
+        Next ▶
       </button>
     </div>
   );
