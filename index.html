@@ -138,9 +138,9 @@
          Must load BEFORE main.jsx
     ------------------------------------------------------------- -->
     <script type="module">
-      import "./debug/bootDebug";
-      import { installNetworkLogger } from "./debug/NetworkLogger";
-      import { installPlayerLogger } from "./debug/PlayerLogger";
+      import "/src/debug/bootDebug.js";
+      import { installNetworkLogger } from "/src/debug/NetworkLogger.js";
+      import { installPlayerLogger } from "/src/debug/PlayerLogger.js";
 
       installNetworkLogger();
       installPlayerLogger();
