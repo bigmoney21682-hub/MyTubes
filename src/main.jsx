@@ -52,6 +52,9 @@ function mount() {
     );
 
     window.bootDebug?.boot("main.jsx → React root mounted");
+
+    // ✅ NEW: Signal boot completion so Overlay 1 can dismiss
+    window.bootDebug?.ready?.("main.jsx → app ready");
   } catch (err) {
     window.bootDebug?.error("main.jsx → React mount error: " + err?.message);
     throw err;
