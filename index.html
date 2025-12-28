@@ -102,7 +102,8 @@
     <!-- ------------------------------------------------------------
          BOOT RESOURCE MAP
          Logs every script, stylesheet, image, and fetch() load attempt.
-         Runs BEFORE React, BEFORE main.jsx, BEFORE bootDebug.
+         Runs BEFORE React, BEFORE main.jsx, BEFORE runtime bootDebug.
+         Uses the same overlay but auto-hides it once the app is ready.
     ------------------------------------------------------------- -->
     <script>
       (function () {
@@ -154,12 +155,25 @@
             throw err;
           }
         };
+
+        // 🔥 Auto-hide overlay when the app signals it's ready
+        const readyCheck = setInterval(() => {
+          if (window.__BOOT_READY) {
+            overlay.style.display = "none";
+            clearInterval(readyCheck);
+          }
+        }, 300);
       })();
     </script>
 
     <!-- ------------------------------------------------------------
          BOOT DEBUG + NETWORK LOGGER + PLAYER LOGGER
-         Must load BEFORE main.jsx
+         Must load BEFORE main.jsx.
+         This initializes runtime bootDebug (src/debug/bootDebug.js),
+         which will:
+         - Drain any _buffer from public/debug-boot.js (if present)
+         - Define window.bootDebug.ready() and set window.__BOOT_READY
+           when main.jsx calls it after React mounts.
     ------------------------------------------------------------- -->
     <script type="module">
       import "/src/debug/bootDebug.js";
