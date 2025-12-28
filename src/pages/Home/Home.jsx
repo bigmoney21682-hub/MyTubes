@@ -1,4 +1,4 @@
--/**
+/**
  * File: Home.jsx
  * Path: src/pages/Home/Home.jsx
  * Description: Home page showing trending videos from YouTube Data API v3
