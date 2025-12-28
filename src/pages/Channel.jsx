@@ -1,8 +1,8 @@
 /**
  * File: Channel.jsx
  * Path: src/pages/Channel.jsx
- * Description: Channel page showing channel details + channel videos.
- *              Fully wired to PlayerContext + GlobalPlayer.
+ * Description: Channel page with safe destructuring, normalized IDs,
+ *              channel details + channel videos, and PlayerContext wiring.
  */
 
 import React, { useEffect, useState } from "react";
@@ -20,13 +20,8 @@ export default function Channel() {
   const [channel, setChannel] = useState(null);
   const [videos, setVideos] = useState([]);
 
-  // ------------------------------------------------------------
-  // Fetch channel info + channel videos
-  // ------------------------------------------------------------
   useEffect(() => {
     if (!id) return;
-
-    debugBus.player("Channel.jsx → Loading channel " + id);
 
     fetchChannelDetails(id);
     fetchChannelVideos(id);
@@ -44,8 +39,10 @@ export default function Channel() {
       const res = await fetch(url);
       const data = await res.json();
 
-      if (data.items && data.items.length > 0) {
+      if (Array.isArray(data.items) && data.items.length > 0) {
         setChannel(data.items[0]);
+      } else {
+        setChannel(null);
       }
     } catch (err) {
       debugBus.player("Channel.jsx → fetchChannelDetails error: " + err?.message);
@@ -59,28 +56,20 @@ export default function Channel() {
     try {
       const url =
         `https://www.googleapis.com/youtube/v3/search?` +
-        `part=snippet&type=video&maxResults=30&channelId=${channelId}&key=${API_KEY}`;
+        `part=snippet&type=video&channelId=${channelId}&maxResults=25&order=date&key=${API_KEY}`;
 
       const res = await fetch(url);
       const data = await res.json();
 
-      if (data.items) {
-        setVideos(data.items);
-      }
+      setVideos(Array.isArray(data.items) ? data.items : []);
     } catch (err) {
       debugBus.player("Channel.jsx → fetchChannelVideos error: " + err?.message);
     }
   }
 
   // ------------------------------------------------------------
-  // Open video
+  // Render
   // ------------------------------------------------------------
-  function openVideo(videoId) {
-    debugBus.player("Channel.jsx → Navigate to /watch/" + videoId);
-    navigate(`/watch/${videoId}`);
-    loadVideo(videoId);
-  }
-
   if (!channel) {
     return (
       <div style={{ padding: "16px", color: "#fff" }}>
@@ -89,49 +78,64 @@ export default function Channel() {
     );
   }
 
-  const sn = channel.snippet;
+  const sn = channel?.snippet ?? {};
+  const title = sn?.title ?? "Unknown Channel";
+  const desc = sn?.description ?? "";
+  const banner = sn?.thumbnails?.high?.url ?? "";
 
   return (
     <div style={{ paddingBottom: "80px", color: "#fff" }}>
-      {/* Channel header */}
-      <div style={{ padding: "16px", textAlign: "center" }}>
-        <img
-          src={sn.thumbnails.high.url}
-          alt=""
-          style={{
-            width: "120px",
-            height: "120px",
-            borderRadius: "60px",
-            marginBottom: "12px"
-          }}
-        />
-        <h2>{sn.title}</h2>
-        <div style={{ opacity: 0.7, marginTop: "4px" }}>
-          {channel.statistics.subscriberCount} subscribers
-        </div>
+      {/* Channel Header */}
+      <div style={{ padding: "16px" }}>
+        {banner && (
+          <img
+            src={banner}
+            alt=""
+            style={{
+              width: "100%",
+              maxHeight: "200px",
+              objectFit: "cover",
+              borderRadius: "6px",
+              marginBottom: "16px"
+            }}
+          />
+        )}
+
+        <h2>{title}</h2>
+        <p style={{ opacity: 0.8, whiteSpace: "pre-wrap" }}>{desc}</p>
       </div>
 
-      {/* Channel videos */}
+      {/* Channel Videos */}
       <div style={{ padding: "16px" }}>
         <h3>Videos</h3>
 
-        {videos.map((item) => {
-          const vid = item.id.videoId;
-          const sn = item.snippet;
+        {videos.map((item, i) => {
+          const vid =
+            item?.id?.videoId ??
+            item?.id ??
+            null;
+
+          const vsn = item?.snippet ?? {};
+          const thumb = vsn?.thumbnails?.medium?.url ?? "";
+
+          if (!vid) return null;
 
           return (
             <div
-              key={vid}
+              key={vid + "_" + i}
               style={{
                 display: "flex",
                 marginBottom: "16px",
                 cursor: "pointer"
               }}
+              onClick={() => {
+                navigate(`/watch/${vid}`);
+                loadVideo(vid);
+              }}
             >
               <img
-                src={sn.thumbnails.medium.url}
+                src={thumb}
                 alt=""
-                onClick={() => openVideo(vid)}
                 style={{
                   width: "168px",
                   height: "94px",
@@ -141,24 +145,19 @@ export default function Channel() {
                 }}
               />
 
-              <div style={{ flex: 1 }}>
-                <div
-                  onClick={() => openVideo(vid)}
-                  style={{
-                    fontSize: "15px",
-                    fontWeight: "bold",
-                    marginBottom: "4px"
-                  }}
-                >
-                  {sn.title}
+              <div>
+                <div style={{ fontSize: "15px", fontWeight: "bold" }}>
+                  {vsn.title ?? "Untitled"}
                 </div>
-
                 <div style={{ fontSize: "13px", opacity: 0.7 }}>
-                  {sn.channelTitle}
+                  {vsn.channelTitle ?? title}
                 </div>
 
                 <button
-                  onClick={() => queueAdd(vid)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    queueAdd(vid);
+                  }}
                   style={{
                     marginTop: "8px",
                     padding: "6px 10px",
