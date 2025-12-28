@@ -1,13 +1,12 @@
 /**
  * File: Watch.jsx
  * Path: src/pages/Watch/Watch.jsx
- * Description: Full video watch page. Loads video via PlayerContext + GlobalPlayer,
- *              fetches video details + related videos, registers autonext callback,
- *              and provides queue + autonext controls.
+ * Description: Full video watch page with safe destructuring, normalized IDs,
+ *              related videos, autonext integration, and PlayerContext wiring.
  */
 
 import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { usePlayer } from "../../player/PlayerContext.jsx";
 import { AutonextEngine } from "../../player/AutonextEngine.js";
 import { debugBus } from "../../debug/debugBus.js";
@@ -16,6 +15,8 @@ const API_KEY = import.meta.env.VITE_YT_API_KEY;
 
 export default function Watch() {
   const { id } = useParams();
+  const navigate = useNavigate();
+
   const {
     loadVideo,
     queueAdd,
@@ -43,9 +44,16 @@ export default function Watch() {
       debugBus.player("Watch.jsx → Autonext (related) triggered");
 
       if (related.length > 0) {
-        const next = related[0].id.videoId;
-        debugBus.player("Watch.jsx → Autonext → " + next);
-        loadVideo(next);
+        const next =
+          related[0]?.id?.videoId ??
+          related[0]?.id ??
+          null;
+
+        if (next) {
+          debugBus.player("Watch.jsx → Autonext → " + next);
+          navigate(`/watch/${next}`);
+          loadVideo(next);
+        }
       } else {
         debugBus.player("Watch.jsx → No related videos available");
       }
@@ -64,8 +72,10 @@ export default function Watch() {
       const res = await fetch(url);
       const data = await res.json();
 
-      if (data.items && data.items.length > 0) {
+      if (Array.isArray(data.items) && data.items.length > 0) {
         setVideo(data.items[0]);
+      } else {
+        setVideo(null);
       }
     } catch (err) {
       debugBus.player("Watch.jsx → fetchVideoDetails error: " + err?.message);
@@ -79,19 +89,20 @@ export default function Watch() {
     try {
       const url =
         `https://www.googleapis.com/youtube/v3/search?` +
-        `part=snippet&type=video&relatedToVideoId=${videoId}&key=${API_KEY}`;
+        `part=snippet&type=video&relatedToVideoId=${videoId}&maxResults=25&key=${API_KEY}`;
 
       const res = await fetch(url);
       const data = await res.json();
 
-      if (data.items) {
-        setRelated(data.items);
-      }
+      setRelated(Array.isArray(data.items) ? data.items : []);
     } catch (err) {
       debugBus.player("Watch.jsx → fetchRelated error: " + err?.message);
     }
   }
 
+  // ------------------------------------------------------------
+  // Render
+  // ------------------------------------------------------------
   if (!video) {
     return (
       <div style={{ padding: "16px", color: "#fff" }}>
@@ -100,12 +111,14 @@ export default function Watch() {
     );
   }
 
-  const snippet = video.snippet;
+  const sn = video?.snippet ?? {};
+  const title = sn?.title ?? "Untitled";
+  const channel = sn?.channelTitle ?? "Unknown Channel";
 
   return (
     <div style={{ paddingBottom: "80px", color: "#fff" }}>
       {/* Title */}
-      <h2 style={{ padding: "16px" }}>{snippet.title}</h2>
+      <h2 style={{ padding: "16px" }}>{title}</h2>
 
       {/* Autonext toggle */}
       <div style={{ padding: "16px" }}>
@@ -140,13 +153,20 @@ export default function Watch() {
       <div style={{ padding: "16px" }}>
         <h3>Related Videos</h3>
 
-        {related.map((item) => {
-          const vid = item.id.videoId;
-          const sn = item.snippet;
+        {related.map((item, i) => {
+          const vid =
+            item?.id?.videoId ??
+            item?.id ??
+            null;
+
+          const sn = item?.snippet ?? {};
+          const thumb = sn?.thumbnails?.medium?.url ?? "";
+
+          if (!vid) return null;
 
           return (
             <a
-              key={vid}
+              key={vid + "_" + i}
               href={`/watch/${vid}`}
               style={{
                 display: "flex",
@@ -156,7 +176,7 @@ export default function Watch() {
               }}
             >
               <img
-                src={sn.thumbnails.medium.url}
+                src={thumb}
                 alt=""
                 style={{
                   width: "168px",
@@ -168,10 +188,10 @@ export default function Watch() {
               />
               <div>
                 <div style={{ fontSize: "14px", fontWeight: "bold" }}>
-                  {sn.title}
+                  {sn.title ?? "Untitled"}
                 </div>
                 <div style={{ fontSize: "12px", opacity: 0.7 }}>
-                  {sn.channelTitle}
+                  {sn.channelTitle ?? "Unknown Channel"}
                 </div>
               </div>
             </a>
