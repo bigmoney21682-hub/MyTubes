@@ -45,7 +45,9 @@ export default function Channel() {
         setChannel(null);
       }
     } catch (err) {
-      debugBus.player("Channel.jsx → fetchChannelDetails error: " + err?.message);
+      debugBus.player(
+        "Channel.jsx → fetchChannelDetails error: " + (err?.message || err)
+      );
     }
   }
 
@@ -63,7 +65,9 @@ export default function Channel() {
 
       setVideos(Array.isArray(data.items) ? data.items : []);
     } catch (err) {
-      debugBus.player("Channel.jsx → fetchChannelVideos error: " + err?.message);
+      debugBus.player(
+        "Channel.jsx → fetchChannelVideos error: " + (err?.message || err)
+      );
     }
   }
 
