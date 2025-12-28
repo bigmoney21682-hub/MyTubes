@@ -1,8 +1,8 @@
 <!--
   File: index.html
   Path: index.html
-  Description: App entry HTML with Boot Error Overlay, bootDebug,
-               NetworkLogger, PlayerLogger, and React mount point.
+  Description: App entry HTML with Boot Error Overlay, Boot Resource Map,
+               bootDebug, NetworkLogger, PlayerLogger, and React mount point.
 -->
 
 <!DOCTYPE html>
@@ -67,6 +67,64 @@
         );
 
         window.__bootErrorOverlay = { showError };
+      })();
+    </script>
+
+    <!-- ------------------------------------------------------------
+         BOOT RESOURCE MAP
+         Logs every script, stylesheet, image, and fetch() load attempt.
+         Runs BEFORE React, BEFORE main.jsx, BEFORE bootDebug.
+    ------------------------------------------------------------- -->
+    <script>
+      (function () {
+        const overlay = document.getElementById("boot-error-overlay");
+
+        function log(msg) {
+          overlay.style.display = "block";
+          overlay.innerText += msg + "\n";
+        }
+
+        // Track successful loads
+        document.addEventListener(
+          "load",
+          (e) => {
+            const el = e.target;
+            if (el.tagName === "SCRIPT") log("RESOURCE OK → script loaded: " + (el.src || "[inline]"));
+            if (el.tagName === "LINK") log("RESOURCE OK → stylesheet loaded: " + el.href);
+            if (el.tagName === "IMG") log("RESOURCE OK → image loaded: " + el.src);
+          },
+          true
+        );
+
+        // Track failed loads
+        document.addEventListener(
+          "error",
+          (e) => {
+            const el = e.target;
+            if (el.tagName === "SCRIPT") log("RESOURCE FAIL → script failed: " + (el.src || "[inline]"));
+            if (el.tagName === "LINK") log("RESOURCE FAIL → stylesheet failed: " + el.href);
+            if (el.tagName === "IMG") log("RESOURCE FAIL → image failed: " + el.src);
+          },
+          true
+        );
+
+        // Intercept fetch() during boot
+        const originalFetch = window.fetch;
+        window.fetch = async function (...args) {
+          const url = args[0];
+          try {
+            const res = await originalFetch(...args);
+            if (!res.ok) {
+              log("FETCH FAIL → " + url + " | status=" + res.status);
+            } else {
+              log("FETCH OK → " + url + " | status=" + res.status);
+            }
+            return res;
+          } catch (err) {
+            log("FETCH ERROR → " + url + " | " + err.message);
+            throw err;
+          }
+        };
       })();
     </script>
   </head>
