@@ -2,7 +2,8 @@
   File: index.html
   Path: index.html
   Description: App entry HTML with Boot Error Overlay, Boot Resource Map,
-               bootDebug, NetworkLogger, PlayerLogger, and React mount point.
+               bootDebug, NetworkLogger, PlayerLogger, GlobalPlayer mount,
+               and React mount point.
 -->
 
 <!DOCTYPE html>
@@ -16,6 +17,29 @@
   <body style="margin:0; background:black;">
     <!-- React root -->
     <div id="root"></div>
+
+    <!-- ------------------------------------------------------------
+         GLOBAL YOUTUBE PLAYER (hidden iframe mount point)
+         MUST exist BEFORE GlobalPlayer.init() runs.
+         MUST NOT be inside React.
+    ------------------------------------------------------------- -->
+    <div
+      id="global-player"
+      style="
+        position: fixed;
+        width: 0;
+        height: 0;
+        opacity: 0;
+        pointer-events: none;
+        z-index: -1;
+      "
+    ></div>
+
+    <!-- ------------------------------------------------------------
+         YOUTUBE IFRAME API
+         Must load BEFORE main.jsx, AFTER global-player div.
+    ------------------------------------------------------------- -->
+    <script src="https://www.youtube.com/iframe_api"></script>
 
     <!-- ------------------------------------------------------------
          BOOT ERROR OVERLAY (runs BEFORE React, BEFORE main.jsx)
