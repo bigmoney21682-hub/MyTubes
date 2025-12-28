@@ -8,7 +8,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { usePlayer } from "../player/PlayerContext.jsx";
+import { usePlayer } from "../../player/PlayerContext.jsx";
 import { AutonextEngine } from "../player/AutonextEngine.js";
 import { debugBus } from "../debug/debugBus.js";
 
