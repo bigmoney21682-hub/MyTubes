@@ -16,8 +16,13 @@ import "./debug/bootDebug";
 // ------------------------------------------------------------
 // 2. Install Network Diagnostic Logger
 // ------------------------------------------------------------
+import "./debug/bootDebug";
 import { installNetworkLogger } from "./debug/NetworkLogger";
+import { installPlayerLogger } from "./debug/PlayerLogger";
+
 installNetworkLogger();
+installPlayerLogger();
+
 
 // ------------------------------------------------------------
 // 3. Global error listeners (safe in production)
