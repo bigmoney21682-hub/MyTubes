@@ -8,7 +8,7 @@
  */
 
 import { GlobalPlayer } from "./GlobalPlayer.js";
-import { QueueStore } from "./QueueStore.js";
+import { QueueStore } from "./QueueStore.jsx";
 import { debugBus } from "../debug/debugBus.js";
 
 let mode = "related"; // default
