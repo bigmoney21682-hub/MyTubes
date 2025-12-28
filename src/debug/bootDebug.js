@@ -8,12 +8,11 @@
 import { debugBus } from "./debugBus.js";
 
 // ------------------------------------------------------------
-// Drain any existing boot buffer (if an earlier script wrote to window.bootDebug._buffer)
+// Drain any existing boot buffer (from public/debug-boot.js)
 // ------------------------------------------------------------
 if (window.bootDebug?._buffer && Array.isArray(window.bootDebug._buffer)) {
   for (const entry of window.bootDebug._buffer) {
     if (entry && typeof entry === "object") {
-      // Expecting { level, msg }
       debugBus.log(entry.level || "BOOT", entry.msg || "");
     } else if (typeof entry === "string") {
       debugBus.log("BOOT", entry);
@@ -29,13 +28,19 @@ function emit(level, ...args) {
 }
 
 // ------------------------------------------------------------
-// Full category map
+// Full category map (runtime)
 // ------------------------------------------------------------
 window.bootDebug = {
   // Boot + lifecycle
   boot: (...msg) => emit("BOOT", ...msg),
   main: (...msg) => emit("BOOT", ...msg),
   app: (...msg) => emit("BOOT", ...msg),
+
+  // ✅ NEW: Signal that the app is ready so the boot overlay can dismiss
+  ready: (...msg) => {
+    emit("BOOT", ...(msg.length ? msg : ["App ready"]));
+    window.__BOOT_READY = true; // For public/debug-boot.js overlay
+  },
 
   // Page-level logs
   home: (...msg) => emit("ROUTER", ...msg),
