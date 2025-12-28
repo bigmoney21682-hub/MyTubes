@@ -1,8 +1,7 @@
 /**
  * File: Home.jsx
  * Path: src/pages/Home/Home.jsx
- * Description: App homepage showing trending videos using YouTube Data API v3.
- *              Fully wired to PlayerContext + GlobalPlayer.
+ * Description: Trending page with fully safe destructuring for all API shapes.
  */
 
 import React, { useEffect, useState } from "react";
@@ -17,9 +16,6 @@ export default function Home() {
   const navigate = useNavigate();
   const { loadVideo, queueAdd } = usePlayer();
 
-  // ------------------------------------------------------------
-  // Fetch trending videos on mount
-  // ------------------------------------------------------------
   useEffect(() => {
     fetchTrending();
   }, []);
@@ -35,15 +31,14 @@ export default function Home() {
       const res = await fetch(url);
       const data = await res.json();
 
-      if (data.items) {
-        setVideos(data.items);
-      }
+      setVideos(Array.isArray(data.items) ? data.items : []);
     } catch (err) {
       debugBus.player("Home.jsx → fetchTrending error: " + err?.message);
     }
   }
 
   function openVideo(id) {
+    if (!id) return;
     debugBus.player("Home.jsx → Navigate to /watch/" + id);
     navigate(`/watch/${id}`);
     loadVideo(id);
@@ -53,13 +48,20 @@ export default function Home() {
     <div style={{ padding: "16px", color: "#fff" }}>
       <h2 style={{ marginBottom: "16px" }}>Trending</h2>
 
-      {videos.map((item) => {
-        const vid = item.id;
-        const sn = item.snippet;
+      {videos.map((item, i) => {
+        const vid =
+          item?.id?.videoId ??
+          item?.id ??
+          null;
+
+        const sn = item?.snippet ?? {};
+        const thumb = sn?.thumbnails?.medium?.url ?? "";
+
+        if (!vid) return null;
 
         return (
           <div
-            key={vid}
+            key={vid + "_" + i}
             style={{
               display: "flex",
               marginBottom: "16px",
@@ -67,7 +69,7 @@ export default function Home() {
             }}
           >
             <img
-              src={sn.thumbnails.medium.url}
+              src={thumb}
               alt=""
               onClick={() => openVideo(vid)}
               style={{
@@ -88,11 +90,11 @@ export default function Home() {
                   marginBottom: "4px"
                 }}
               >
-                {sn.title}
+                {sn.title ?? "Untitled"}
               </div>
 
               <div style={{ fontSize: "13px", opacity: 0.7 }}>
-                {sn.channelTitle}
+                {sn.channelTitle ?? "Unknown Channel"}
               </div>
 
               <button
