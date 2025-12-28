@@ -2,8 +2,7 @@
   File: index.html
   Path: index.html
   Description: App entry HTML with Boot Error Overlay, Boot Resource Map,
-               bootDebug, NetworkLogger, PlayerLogger, GlobalPlayer mount,
-               and React mount point.
+               debug-boot.js, YouTube API, and React mount point.
 -->
 
 <!DOCTYPE html>
@@ -20,8 +19,6 @@
 
     <!-- ------------------------------------------------------------
          GLOBAL YOUTUBE PLAYER (hidden iframe mount point)
-         MUST exist BEFORE GlobalPlayer.init() runs.
-         MUST NOT be inside React.
     ------------------------------------------------------------- -->
     <div
       id="global-player"
@@ -37,17 +34,11 @@
 
     <!-- ------------------------------------------------------------
          YOUTUBE IFRAME API
-         Must load BEFORE main.jsx, AFTER global-player div.
     ------------------------------------------------------------- -->
     <script src="https://www.youtube.com/iframe_api"></script>
 
     <!-- ------------------------------------------------------------
-         BOOT ERROR OVERLAY (runs BEFORE React, BEFORE main.jsx)
-         Captures:
-         - Missing scripts (404)
-         - Syntax errors
-         - Promise rejections
-         - Any boot failure that prevents React from mounting
+         BOOT ERROR OVERLAY
     ------------------------------------------------------------- -->
     <script>
       (function () {
@@ -74,17 +65,14 @@
           overlay.innerText += msg + "\n";
         }
 
-        // JS errors
         window.addEventListener("error", (e) => {
           showError("BOOT ERROR → " + e.message);
         });
 
-        // Promise rejections
         window.addEventListener("unhandledrejection", (e) => {
           showError("BOOT PROMISE → " + (e.reason?.message || e.reason));
         });
 
-        // Missing resources (404)
         window.addEventListener(
           "error",
           (e) => {
@@ -101,9 +89,6 @@
 
     <!-- ------------------------------------------------------------
          BOOT RESOURCE MAP
-         Logs every script, stylesheet, image, and fetch() load attempt.
-         Runs BEFORE React, BEFORE main.jsx, BEFORE runtime bootDebug.
-         Uses the same overlay but auto-hides it once the app is ready.
     ------------------------------------------------------------- -->
     <script>
       (function () {
@@ -114,7 +99,6 @@
           overlay.innerText += msg + "\n";
         }
 
-        // Track successful loads
         document.addEventListener(
           "load",
           (e) => {
@@ -126,7 +110,6 @@
           true
         );
 
-        // Track failed loads
         document.addEventListener(
           "error",
           (e) => {
@@ -138,7 +121,6 @@
           true
         );
 
-        // Intercept fetch() during boot
         const originalFetch = window.fetch;
         window.fetch = async function (...args) {
           const url = args[0];
@@ -156,7 +138,7 @@
           }
         };
 
-        // 🔥 Auto-hide overlay when the app signals it's ready
+        // 🔥 Auto-hide overlay when app signals ready
         const readyCheck = setInterval(() => {
           if (window.__BOOT_READY) {
             overlay.style.display = "none";
@@ -167,25 +149,16 @@
     </script>
 
     <!-- ------------------------------------------------------------
-         BOOT DEBUG + NETWORK LOGGER + PLAYER LOGGER
-         Must load BEFORE main.jsx.
-         This initializes runtime bootDebug (src/debug/bootDebug.js),
-         which will:
-         - Drain any _buffer from public/debug-boot.js (if present)
-         - Define window.bootDebug.ready() and set window.__BOOT_READY
-           when main.jsx calls it after React mounts.
+         BOOT LOGGER (public/debug-boot.js)
+         Must load BEFORE Vite bundle.
     ------------------------------------------------------------- -->
-    <script type="module">
-      import "/src/debug/bootDebug.js";
-      import { installNetworkLogger } from "/src/debug/NetworkLogger.js";
-      import { installPlayerLogger } from "/src/debug/PlayerLogger.js";
-
-      installNetworkLogger();
-      installPlayerLogger();
-    </script>
+    <script src="/MyTube-Piped-Frontend/debug-boot.js"></script>
 
     <!-- ------------------------------------------------------------
-         MAIN REACT ENTRY
+         MAIN VITE BUNDLE (injected automatically in production)
+         DO NOT import /src/... here.
+         Vite will replace this with:
+         <script type="module" crossorigin src="/MyTube-Piped-Frontend/assets/index-xxxx.js"></script>
     ------------------------------------------------------------- -->
     <script type="module" src="/src/main.jsx"></script>
   </body>
