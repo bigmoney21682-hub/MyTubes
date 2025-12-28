@@ -1,21 +1,21 @@
 /**
  * File: Home.jsx
  * Path: src/pages/Home/Home.jsx
- * Description: Trending page with fully safe destructuring for all API shapes.
+ * Description: Trending page with safe destructuring and shared API key module.
  */
 
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { usePlayer } from "../../player/PlayerContext.jsx";
 import { debugBus } from "../../debug/debugBus.js";
+import { getApiKey } from "../../api/getApiKey.js";
 
-const API_KEY = import.meta.env.VITE_YT_API_KEY;
+const API_KEY = getApiKey();
 
 export default function Home() {
   const [videos, setVideos] = useState([]);
   const navigate = useNavigate();
 
-  // Safe PlayerContext extraction
   const player = usePlayer() ?? {};
   const loadVideo = player.loadVideo ?? (() => {});
   const queueAdd = player.queueAdd ?? (() => {});
@@ -35,8 +35,7 @@ export default function Home() {
       const res = await fetch(url);
       const data = await res.json();
 
-      const items = Array.isArray(data?.items) ? data.items : [];
-      setVideos(items);
+      setVideos(Array.isArray(data?.items) ? data.items : []);
     } catch (err) {
       debugBus.player("Home.jsx → fetchTrending error: " + (err?.message || err));
       setVideos([]);
