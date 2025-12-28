@@ -1,40 +1,36 @@
 /**
  * File: Search.jsx
  * Path: src/pages/Search.jsx
- * Description: Search page with safe destructuring, normalized IDs,
- *              YouTube Data API v3 search, and PlayerContext wiring.
+ * Description: Search results page with safe destructuring and shared API key.
  */
 
 import React, { useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { usePlayer } from "../player/PlayerContext.jsx";
 import { debugBus } from "../debug/debugBus.js";
+import { getApiKey } from "../api/getApiKey.js";
 
-const API_KEY = import.meta.env.VITE_YT_API_KEY;
+const API_KEY = getApiKey();
 
 export default function Search() {
-  const [results, setResults] = useState([]);
   const [params] = useSearchParams();
-  const navigate = useNavigate();
-  const { loadVideo, queueAdd } = usePlayer();
-
   const query = params.get("q") ?? "";
+  const navigate = useNavigate();
+
+  const player = usePlayer() ?? {};
+  const loadVideo = player.loadVideo ?? (() => {});
+  const queueAdd = player.queueAdd ?? (() => {});
+
+  const [results, setResults] = useState([]);
 
   useEffect(() => {
-    if (!query) {
-      setResults([]);
-      return;
-    }
-
-    fetchSearch(query);
+    if (!query) return;
+    fetchResults(query);
   }, [query]);
 
-  // ------------------------------------------------------------
-  // Fetch search results
-  // ------------------------------------------------------------
-  async function fetchSearch(q) {
+  async function fetchResults(q) {
     try {
-      debugBus.player("Search.jsx → Searching for: " + q);
+      debugBus.player("Search.jsx → Searching: " + q);
 
       const url =
         `https://www.googleapis.com/youtube/v3/search?` +
@@ -43,30 +39,22 @@ export default function Search() {
       const res = await fetch(url);
       const data = await res.json();
 
-      setResults(Array.isArray(data.items) ? data.items : []);
+      setResults(Array.isArray(data?.items) ? data.items : []);
     } catch (err) {
-      debugBus.player("Search.jsx → fetchSearch error: " + err?.message);
+      debugBus.player("Search.jsx → fetchResults error: " + (err?.message || err));
+      setResults([]);
     }
   }
 
-  // ------------------------------------------------------------
-  // Open video
-  // ------------------------------------------------------------
   function openVideo(id) {
     if (!id) return;
-    debugBus.player("Search.jsx → Navigate to /watch/" + id);
     navigate(`/watch/${id}`);
     loadVideo(id);
   }
 
-  // ------------------------------------------------------------
-  // Render
-  // ------------------------------------------------------------
   return (
     <div style={{ padding: "16px", color: "#fff" }}>
-      <h2 style={{ marginBottom: "16px" }}>
-        Results for: <span style={{ opacity: 0.7 }}>{query}</span>
-      </h2>
+      <h2>Search results for: {query}</h2>
 
       {results.map((item, i) => {
         const vid =
