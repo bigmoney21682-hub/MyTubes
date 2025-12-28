@@ -16,7 +16,7 @@ import Watch from "../pages/Watch/Watch.jsx";
 import Search from "../pages/Search.jsx";
 import Channel from "../pages/Channel.jsx";
 
-import { installRouterLogger } from "../debug/debugRouter.js";
+//import { installRouterLogger } from "../debug/debugRouter.js";
 
 /* ------------------------------------------------------------
    RouterEvents
