@@ -17,31 +17,26 @@ export function installNetworkLogger() {
     const method = options.method || "GET";
     const start = performance.now();
 
-    debugBus.log({
-      level: "NETWORK",
-      msg: `FETCH → ${method} ${url}`,
-      ts: Date.now()
-    });
+    // Correct usage: debugBus.log(level, msg)
+    debugBus.log("NETWORK", `FETCH → ${method} ${url}`);
 
     try {
       const response = await originalFetch(url, options);
       const duration = (performance.now() - start).toFixed(1);
 
-      debugBus.log({
-        level: "NETWORK",
-        msg: `RESPONSE → ${method} ${url} | status=${response.status} | ${duration}ms`,
-        ts: Date.now()
-      });
+      debugBus.log(
+        "NETWORK",
+        `RESPONSE → ${method} ${url} | status=${response.status} | ${duration}ms`
+      );
 
       return response;
     } catch (err) {
       const duration = (performance.now() - start).toFixed(1);
 
-      debugBus.log({
-        level: "NETWORK",
-        msg: `ERROR → ${method} ${url} | ${err.message} | ${duration}ms`,
-        ts: Date.now()
-      });
+      debugBus.log(
+        "NETWORK",
+        `ERROR → ${method} ${url} | ${err.message} | ${duration}ms`
+      );
 
       throw err;
     }
