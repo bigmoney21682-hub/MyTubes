@@ -43,7 +43,7 @@ function RouterEvents() {
 /* ------------------------------------------------------------
    IframeDock
    Moves the global YouTube iframe into the Watch page container
-   when on /watch/:id, and back into MiniPlayer otherwise.
+   when on /watch/:id, and back into its default mount otherwise.
 ------------------------------------------------------------- */
 function IframeDock() {
   const location = useLocation();
@@ -54,16 +54,21 @@ function IframeDock() {
 
     if (!global) return;
 
-    if (location.pathname.startsWith("/MyTube-Piped-Frontend/watch/")) {
-      // Move iframe into Watch page
+    const path = location.pathname || "";
+
+    // basename="/MyTube-Piped-Frontend" means path is like "/watch/..."
+    const onWatchPage = path.startsWith("/watch/");
+
+    if (onWatchPage) {
+      // Move iframe into Watch page container
       if (watch && watch !== global.parentNode) {
         watch.appendChild(global);
       }
     } else {
-      // Move iframe back into MiniPlayer container
-      const mini = document.getElementById("mini-player-mount");
-      if (mini && mini !== global.parentNode) {
-        mini.appendChild(global);
+      // Move iframe back to its default hidden mount
+      const defaultMount = document.body.querySelector("#global-player");
+      if (defaultMount && defaultMount !== global.parentNode) {
+        defaultMount.appendChild(global);
       }
     }
   }, [location]);
