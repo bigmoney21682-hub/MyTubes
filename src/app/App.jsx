@@ -40,7 +40,7 @@ function RouterEvents() {
 export default function App() {
   return (
     <PlayerProvider>
-      <BrowserRouter>
+      <BrowserRouter basename="/MyTube-Piped-Frontend">
         <RouterEvents />
 
         {/* Layout wrapper ensures MiniPlayer never overlaps content */}
