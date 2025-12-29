@@ -1,6 +1,89 @@
-/* src/index.css */
+/* Global reset */
 body {
+  margin: 0;
   background: #000;
   color: #fff;
-  font-family: sans-serif;
+  font-family: system-ui, sans-serif;
+}
+
+/* Watch page layout */
+.watch-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-bottom: 80px; /* space for MiniPlayer */
+}
+
+/* Player container */
+.player-container {
+  width: 100%;
+  background: #000;
+  position: relative;
+  padding-top: 56.25%; /* 16:9 aspect ratio */
+}
+
+.player-container iframe,
+.player-container #player {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Video title */
+.video-title {
+  font-size: 18px;
+  font-weight: 600;
+  padding: 0 12px;
+}
+
+/* Video description */
+.video-description {
+  padding: 0 12px;
+  opacity: 0.85;
+  line-height: 1.4;
+}
+
+/* Related videos */
+.related-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0 12px 40px;
+}
+
+.related-item {
+  display: flex;
+  gap: 12px;
+}
+
+.related-item img {
+  width: 168px;
+  height: 94px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.related-item .info {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* DebugOverlay runtime */
+#debug-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.85);
+  color: #0f0;
+  font-family: monospace;
+  font-size: 12px;
+  padding: 12px;
+  z-index: 999999999;
+  overflow-y: auto;
+  display: none; /* toggled by JS */
 }
