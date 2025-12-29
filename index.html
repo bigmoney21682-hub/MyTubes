@@ -13,8 +13,10 @@
     <!-- React root -->
     <div id="root"></div>
 
-    <!-- Hidden global YouTube player mount -->
-    <div id="global-player" style="width:0;height:0;overflow:hidden;"></div>
+    <!-- Hidden global YouTube player mount (with container) -->
+    <div id="global-player-container" style="width:0;height:0;overflow:hidden;">
+      <div id="global-player"></div>
+    </div>
 
     <!-- ------------------------------------------------------------
          FIXED BOOT OVERLAY (v3)
@@ -95,7 +97,7 @@
     <!-- YouTube IFrame API -->
     <script src="https://www.youtube.com/iframe_api"></script>
 
-    <!-- Debug Boot Script -->
+    <!-- Debug Boot Script (optional, remains commented for now) -->
     <!-- <script src="/MyTube-Piped-Frontend/debug-boot.js"></script> -->
 
     <!-- Vite entry point -->
