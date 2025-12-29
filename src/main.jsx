@@ -5,7 +5,7 @@
  *              and clean React root mount. Network + Player loggers are
  *              already installed in index.html (before main.jsx).
  */
-
+import "./index.css";
 import React from "react";
 import ReactDOM from "react-dom/client";
 
