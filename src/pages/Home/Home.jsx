@@ -2,7 +2,8 @@
  * File: Home.jsx
  * Path: src/pages/Home/Home.jsx
  * Description: Home page showing trending videos (most popular) with
- *              stacked 16:9 thumbnails and minimal quota usage.
+ *              stacked 16:9 thumbnails, collapsible descriptions,
+ *              and minimal quota usage.
  */
 
 import React, { useEffect, useState } from "react";
@@ -12,6 +13,9 @@ import { getApiKey } from "../../api/getApiKey.js";
 
 const API_KEY = getApiKey();
 
+/* ------------------------------------------------------------
+   Shared card styles
+------------------------------------------------------------- */
 const cardStyle = {
   width: "100%",
   marginBottom: "20px",
@@ -48,6 +52,7 @@ const descStyle = {
 
 export default function Home() {
   const [videos, setVideos] = useState([]);
+  const [expandedIndex, setExpandedIndex] = useState(null);
 
   useEffect(() => {
     fetchTrending();
@@ -87,6 +92,8 @@ export default function Home() {
 
         if (!vid) return null;
 
+        const isExpanded = expandedIndex === i;
+
         return (
           <Link
             key={vid + "_" + i}
@@ -101,7 +108,36 @@ export default function Home() {
 
             <div style={titleStyle}>{sn.title ?? "Untitled"}</div>
             <div style={channelStyle}>{sn.channelTitle ?? "Unknown Channel"}</div>
-            <div style={descStyle}>{sn.description ?? ""}</div>
+
+            {/* Collapsible description */}
+            <div
+              style={{
+                ...descStyle,
+                maxHeight: isExpanded ? "none" : "3.6em",
+                overflow: "hidden",
+                transition: "max-height 0.2s ease"
+              }}
+            >
+              {sn.description ?? ""}
+            </div>
+
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                setExpandedIndex(isExpanded ? null : i);
+              }}
+              style={{
+                marginTop: "6px",
+                background: "none",
+                border: "none",
+                color: "#3ea6ff",
+                fontSize: "14px",
+                cursor: "pointer",
+                padding: 0
+              }}
+            >
+              {isExpanded ? "Show less" : "Show more"}
+            </button>
           </Link>
         );
       })}
