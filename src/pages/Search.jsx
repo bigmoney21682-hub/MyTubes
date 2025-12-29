@@ -1,40 +1,38 @@
 /**
  * File: Search.jsx
  * Path: src/pages/Search.jsx
- * Description: Search results page with safe destructuring and shared API key.
+ * Description: Search results page using YouTube Data API.
  */
 
 import React, { useEffect, useState } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
-import { usePlayer } from "../player/PlayerContext.jsx";
+import { useLocation, useNavigate } from "react-router-dom";
 import { debugBus } from "../debug/debugBus.js";
 import { getApiKey } from "../api/getApiKey.js";
 
 const API_KEY = getApiKey();
 
 export default function Search() {
-  const [params] = useSearchParams();
-  const query = params.get("q") ?? "";
   const navigate = useNavigate();
-
-  const player = usePlayer() ?? {};
-  const loadVideo = player.loadVideo ?? (() => {});
-  const queueAdd = player.queueAdd ?? (() => {});
-
+  const location = useLocation();
   const [results, setResults] = useState([]);
+
+  const params = new URLSearchParams(location.search);
+  const query = params.get("q") || "";
 
   useEffect(() => {
     if (!query) return;
+
+    debugBus.player("Search.jsx → Searching: " + query);
     fetchResults(query);
   }, [query]);
 
   async function fetchResults(q) {
     try {
-      debugBus.player("Search.jsx → Searching: " + q);
-
       const url =
         `https://www.googleapis.com/youtube/v3/search?` +
-        `part=snippet&type=video&maxResults=25&q=${encodeURIComponent(q)}&key=${API_KEY}`;
+        `part=snippet&type=video&videoEmbeddable=true&maxResults=25&q=${encodeURIComponent(
+          q
+        )}&key=${API_KEY}`;
 
       const res = await fetch(url);
       const data = await res.json();
@@ -46,40 +44,31 @@ export default function Search() {
     }
   }
 
-  function openVideo(id) {
-    if (!id) return;
-    navigate(`/watch/${id}`);
-    loadVideo(id);
-  }
-
   return (
     <div style={{ padding: "16px", color: "#fff" }}>
       <h2>Search results for: {query}</h2>
 
       {results.map((item, i) => {
-        const vid =
-          item?.id?.videoId ??
-          item?.id ??
-          null;
-
+        const vid = item?.id?.videoId;
         const sn = item?.snippet ?? {};
         const thumb = sn?.thumbnails?.medium?.url ?? "";
 
         if (!vid) return null;
 
         return (
-          <div
+          <a
             key={vid + "_" + i}
+            href={`/MyTube-Piped-Frontend/watch/${vid}`}
             style={{
               display: "flex",
-              marginBottom: "16px",
-              cursor: "pointer"
+              marginBottom: "12px",
+              textDecoration: "none",
+              color: "#fff"
             }}
           >
             <img
               src={thumb}
               alt=""
-              onClick={() => openVideo(vid)}
               style={{
                 width: "168px",
                 height: "94px",
@@ -88,38 +77,15 @@ export default function Search() {
                 marginRight: "12px"
               }}
             />
-
-            <div style={{ flex: 1 }}>
-              <div
-                onClick={() => openVideo(vid)}
-                style={{
-                  fontSize: "15px",
-                  fontWeight: "bold",
-                  marginBottom: "4px"
-                }}
-              >
+            <div>
+              <div style={{ fontSize: "14px", fontWeight: "bold" }}>
                 {sn.title ?? "Untitled"}
               </div>
-
-              <div style={{ fontSize: "13px", opacity: 0.7 }}>
+              <div style={{ fontSize: "12px", opacity: 0.7 }}>
                 {sn.channelTitle ?? "Unknown Channel"}
               </div>
-
-              <button
-                onClick={() => queueAdd(vid)}
-                style={{
-                  marginTop: "8px",
-                  padding: "6px 10px",
-                  background: "#222",
-                  color: "#fff",
-                  border: "1px solid #444",
-                  borderRadius: "4px"
-                }}
-              >
-                + Queue
-              </button>
             </div>
-          </div>
+          </a>
         );
       })}
     </div>
