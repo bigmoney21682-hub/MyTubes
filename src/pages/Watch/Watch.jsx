@@ -33,7 +33,7 @@ export default function Watch() {
     relatedRef.current = related;
   }, [related]);
 
-  // Ensure GlobalPlayer knows #player exists
+  // Ensure GlobalPlayer knows #player exists (triggers retry loop)
   useEffect(() => {
     GlobalPlayer.ensureMounted();
   }, []);
@@ -85,6 +85,10 @@ export default function Watch() {
 
       const items = Array.isArray(data?.items) ? data.items : [];
       setVideo(items[0] ?? null);
+
+      if (!items.length) {
+        debugBus.player("Watch.jsx → fetchVideoDetails returned 0 items");
+      }
     } catch (err) {
       debugBus.player("Watch.jsx → fetchVideoDetails error: " + (err?.message || err));
       setVideo(null);
@@ -95,12 +99,17 @@ export default function Watch() {
     try {
       const url =
         `https://www.googleapis.com/youtube/v3/search?` +
-        `part=snippet&type=video&relatedToVideoId=${videoId}&maxResults=25&key=${API_KEY}`;
+        `part=snippet&type=video&videoEmbeddable=true&relatedToVideoId=${videoId}&maxResults=25&key=${API_KEY}`;
 
       const res = await fetch(url);
       const data = await res.json();
 
-      setRelated(Array.isArray(data?.items) ? data.items : []);
+      const items = Array.isArray(data?.items) ? data.items : [];
+      setRelated(items);
+
+      if (!items.length) {
+        debugBus.player("Watch.jsx → fetchRelated returned 0 items");
+      }
     } catch (err) {
       debugBus.player("Watch.jsx → fetchRelated error: " + (err?.message || err));
       setRelated([]);
@@ -184,8 +193,8 @@ export default function Watch() {
             item?.id ??
             null;
 
-          const sn = item?.snippet ?? {};
-          const thumb = sn?.thumbnails?.medium?.url ?? "";
+          const rsn = item?.snippet ?? {};
+          const thumb = rsn?.thumbnails?.medium?.url ?? "";
 
           if (!vid) return null;
 
@@ -213,10 +222,10 @@ export default function Watch() {
               />
               <div>
                 <div style={{ fontSize: "14px", fontWeight: "bold" }}>
-                  {sn.title ?? "Untitled"}
+                  {rsn.title ?? "Untitled"}
                 </div>
                 <div style={{ fontSize: "12px", opacity: 0.7 }}>
-                  {sn.channelTitle ?? "Unknown Channel"}
+                  {rsn.channelTitle ?? "Unknown Channel"}
                 </div>
               </div>
             </a>
