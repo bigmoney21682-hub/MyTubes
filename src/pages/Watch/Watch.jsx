@@ -11,6 +11,7 @@ import { usePlayer } from "../../player/PlayerContext.jsx";
 import { AutonextEngine } from "../../player/AutonextEngine.js";
 import { debugBus } from "../../debug/debugBus.js";
 import { getApiKey } from "../../api/getApiKey.js";
+import { GlobalPlayer } from "../../player/GlobalPlayer.js";
 
 const API_KEY = getApiKey();
 
@@ -32,9 +33,11 @@ export default function Watch() {
     relatedRef.current = related;
   }, [related]);
 
-  /* ------------------------------------------------------------
-     Load video + fetch metadata
-  ------------------------------------------------------------- */
+  // Ensure GlobalPlayer knows #player exists
+  useEffect(() => {
+    GlobalPlayer.ensureMounted();
+  }, []);
+
   useEffect(() => {
     if (!id) return;
 
@@ -45,9 +48,6 @@ export default function Watch() {
     fetchRelated(id);
   }, [id]);
 
-  /* ------------------------------------------------------------
-     Autonext callback
-  ------------------------------------------------------------- */
   useEffect(() => {
     AutonextEngine.registerRelatedCallback(() => {
       debugBus.player("Watch.jsx → Autonext (related) triggered");
@@ -74,9 +74,6 @@ export default function Watch() {
     });
   }, []);
 
-  /* ------------------------------------------------------------
-     Fetch video details
-  ------------------------------------------------------------- */
   async function fetchVideoDetails(videoId) {
     try {
       const url =
@@ -94,9 +91,6 @@ export default function Watch() {
     }
   }
 
-  /* ------------------------------------------------------------
-     Fetch related videos
-  ------------------------------------------------------------- */
   async function fetchRelated(videoId) {
     try {
       const url =
@@ -113,9 +107,6 @@ export default function Watch() {
     }
   }
 
-  /* ------------------------------------------------------------
-     Loading state
-  ------------------------------------------------------------- */
   if (!video) {
     return (
       <div style={{ padding: "16px", color: "#fff" }}>
@@ -128,22 +119,14 @@ export default function Watch() {
   const title = sn?.title ?? "Untitled";
   const description = sn?.description ?? "";
 
-  /* ------------------------------------------------------------
-     RENDER
-  ------------------------------------------------------------- */
   return (
     <div style={{ paddingBottom: "80px", color: "#fff" }}>
-
-      {/* ------------------------------------------------------------
-           PLAYER CONTAINER (CRITICAL)
-           This is the mount point for the YouTube IFrame API.
-           Without this, the player has nowhere to render.
-      ------------------------------------------------------------- */}
+      {/* Player container (16:9) */}
       <div
         style={{
           width: "100%",
           position: "relative",
-          paddingTop: "56.25%", // 16:9 aspect ratio
+          paddingTop: "56.25%",
           background: "#000"
         }}
       >
@@ -159,15 +142,12 @@ export default function Watch() {
         ></div>
       </div>
 
-      {/* Title */}
       <h2 style={{ padding: "16px" }}>{title}</h2>
 
-      {/* Description */}
       <div style={{ padding: "0 16px 16px", opacity: 0.85, lineHeight: 1.4 }}>
         {description}
       </div>
 
-      {/* Autonext selector */}
       <div style={{ padding: "16px" }}>
         <label style={{ marginRight: "12px" }}>Autonext:</label>
         <select
@@ -180,7 +160,6 @@ export default function Watch() {
         </select>
       </div>
 
-      {/* Add to Queue */}
       <div style={{ padding: "16px" }}>
         <button
           onClick={() => queueAdd(id)}
@@ -196,7 +175,6 @@ export default function Watch() {
         </button>
       </div>
 
-      {/* Related videos */}
       <div style={{ padding: "16px" }}>
         <h3>Related Videos</h3>
 
