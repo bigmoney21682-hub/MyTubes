@@ -1,122 +1,94 @@
-<!--
-  File: index.html
-  Path: index.html
-  Description: App entry HTML with Boot Error Overlay, Boot Resource Map,
-               debug-boot.js, YouTube API, and React mount point.
--->
-
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>MyTube</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/MyTube-Piped-Frontend/favicon.png" />
+
+    <!-- Vite CSS -->
+    <link rel="stylesheet" href="/MyTube-Piped-Frontend/assets/index.css" />
   </head>
 
-  <body style="margin:0; background:black;">
+  <body>
     <!-- React root -->
     <div id="root"></div>
 
-    <!-- ------------------------------------------------------------
-         GLOBAL YOUTUBE PLAYER (hidden iframe mount point)
-    ------------------------------------------------------------- -->
-    <div
-      id="global-player"
-      style="
-        position: fixed;
-        width: 0;
-        height: 0;
-        opacity: 0;
-        pointer-events: none;
-        z-index: -1;
-      "
-    ></div>
+    <!-- Hidden global YouTube player mount -->
+    <div id="global-player" style="width:0;height:0;overflow:hidden;"></div>
 
     <!-- ------------------------------------------------------------
-         YOUTUBE IFRAME API
-    ------------------------------------------------------------- -->
-    <script src="https://www.youtube.com/iframe_api"></script>
-
-    <!-- ------------------------------------------------------------
-         BOOT ERROR OVERLAY (with Continue + Copy Logs buttons)
+         FIXED BOOT OVERLAY (v3)
+         Immune to CSS resets, buttons always visible
     ------------------------------------------------------------- -->
     <script>
       (function () {
         const overlay = document.createElement("div");
         overlay.id = "boot-error-overlay";
-        overlay.style.position = "fixed";
-        overlay.style.top = "0";
-        overlay.style.left = "0";
-        overlay.style.right = "0";
-        overlay.style.bottom = "0";
-        overlay.style.background = "rgba(0,0,0,0.92)";
-        overlay.style.color = "#ff4444";
-        overlay.style.fontFamily = "monospace";
-        overlay.style.fontSize = "14px";
-        overlay.style.padding = "20px";
-        overlay.style.zIndex = "999999999";
-        overlay.style.overflowY = "auto";
-        overlay.style.whiteSpace = "pre-wrap";
-        overlay.style.display = "none";
+
+        Object.assign(overlay.style, {
+          position: "fixed",
+          top: "0",
+          left: "0",
+          right: "0",
+          bottom: "0",
+          background: "rgba(0,0,0,0.92)",
+          color: "#ff4444",
+          fontFamily: "monospace",
+          fontSize: "14px",
+          padding: "20px",
+          zIndex: "2147483647",
+          overflowY: "auto",
+          whiteSpace: "pre-wrap",
+          display: "none",
+          pointerEvents: "auto"
+        });
+
         document.body.appendChild(overlay);
 
-        // --- Continue button ---
-        const continueBtn = document.createElement("button");
-        continueBtn.innerText = "Continue";
-        continueBtn.style.position = "absolute";
-        continueBtn.style.top = "10px";
-        continueBtn.style.right = "10px";
-        continueBtn.style.padding = "6px 12px";
-        continueBtn.style.background = "#444";
-        continueBtn.style.color = "#fff";
-        continueBtn.style.border = "1px solid #666";
-        continueBtn.style.borderRadius = "4px";
-        continueBtn.style.cursor = "pointer";
-        continueBtn.style.zIndex = "1000000000";
-        continueBtn.onclick = () => {
-          overlay.style.display = "none";
-        };
-        overlay.appendChild(continueBtn);
+        function makeButton(label, rightOffset, onClick) {
+          const btn = document.createElement("button");
+          btn.innerText = label;
 
-        // --- Copy Logs button ---
-        const copyBtn = document.createElement("button");
-        copyBtn.innerText = "Copy Logs";
-        copyBtn.style.position = "absolute";
-        copyBtn.style.top = "10px";
-        copyBtn.style.right = "110px";
-        copyBtn.style.padding = "6px 12px";
-        copyBtn.style.background = "#444";
-        copyBtn.style.color = "#fff";
-        copyBtn.style.border = "1px solid #666";
-        copyBtn.style.borderRadius = "4px";
-        copyBtn.style.cursor = "pointer";
-        copyBtn.style.zIndex = "1000000000";
-        copyBtn.onclick = () => {
+          Object.assign(btn.style, {
+            position: "absolute",
+            top: "10px",
+            right: rightOffset,
+            padding: "6px 12px",
+            background: "#444",
+            color: "#fff",
+            border: "1px solid #666",
+            borderRadius: "4px",
+            cursor: "pointer",
+            zIndex: "2147483647",
+            pointerEvents: "auto"
+          });
+
+          btn.onclick = onClick;
+          overlay.appendChild(btn);
+        }
+
+        makeButton("Continue", "10px", () => {
+          overlay.style.display = "none";
+        });
+
+        makeButton("Copy Logs", "110px", () => {
           navigator.clipboard.writeText(overlay.innerText);
-        };
-        overlay.appendChild(copyBtn);
+        });
 
         function showError(msg) {
           overlay.style.display = "block";
           overlay.innerText += msg + "\n";
         }
 
-        window.addEventListener("error", (e) => {
-          showError("BOOT ERROR → " + e.message);
-        });
+        window.addEventListener("error", (e) =>
+          showError("BOOT ERROR → " + e.message)
+        );
 
-        window.addEventListener("unhandledrejection", (e) => {
-          showError("BOOT PROMISE → " + (e.reason?.message || e.reason));
-        });
-
-        window.addEventListener(
-          "error",
-          (e) => {
-            if (e.target && (e.target.src || e.target.href)) {
-              showError("RESOURCE 404 → " + (e.target.src || e.target.href));
-            }
-          },
-          true
+        window.addEventListener("unhandledrejection", (e) =>
+          showError("BOOT PROMISE → " + (e.reason?.message || e.reason))
         );
 
         window.__bootErrorOverlay = { showError };
@@ -124,74 +96,18 @@
     </script>
 
     <!-- ------------------------------------------------------------
-         BOOT RESOURCE MAP (auto-hide when __BOOT_READY is true)
+         YouTube IFrame API
     ------------------------------------------------------------- -->
-    <script>
-      (function () {
-        const overlay = document.getElementById("boot-error-overlay");
-
-        function log(msg) {
-          overlay.style.display = "block";
-          overlay.innerText += msg + "\n";
-        }
-
-        document.addEventListener(
-          "load",
-          (e) => {
-            const el = e.target;
-            if (el.tagName === "SCRIPT") log("RESOURCE OK → script loaded: " + (el.src || "[inline]"));
-            if (el.tagName === "LINK") log("RESOURCE OK → stylesheet loaded: " + el.href);
-            if (el.tagName === "IMG") log("RESOURCE OK → image loaded: " + el.src);
-          },
-          true
-        );
-
-        document.addEventListener(
-          "error",
-          (e) => {
-            const el = e.target;
-            if (el.tagName === "SCRIPT") log("RESOURCE FAIL → script failed: " + (el.src || "[inline]"));
-            if (el.tagName === "LINK") log("RESOURCE FAIL → stylesheet failed: " + el.href);
-            if (el.tagName === "IMG") log("RESOURCE FAIL → image failed: " + el.src);
-          },
-          true
-        );
-
-        const originalFetch = window.fetch;
-        window.fetch = async function (...args) {
-          const url = args[0];
-          try {
-            const res = await originalFetch(...args);
-            if (!res.ok) {
-              log("FETCH FAIL → " + url + " | status=" + res.status);
-            } else {
-              log("FETCH OK → " + url + " | status=" + res.status);
-            }
-            return res;
-          } catch (err) {
-            log("FETCH ERROR → " + url + " | " + err.message);
-            throw err;
-          }
-        };
-
-        // Auto-hide when app signals ready
-        const readyCheck = setInterval(() => {
-          if (window.__BOOT_READY) {
-            overlay.style.display = "none";
-            clearInterval(readyCheck);
-          }
-        }, 300);
-      })();
-    </script>
+    <script src="https://www.youtube.com/iframe_api"></script>
 
     <!-- ------------------------------------------------------------
-         BOOT LOGGER (public/debug-boot.js)
+         Debug Boot Script
     ------------------------------------------------------------- -->
     <script src="/MyTube-Piped-Frontend/debug-boot.js"></script>
 
     <!-- ------------------------------------------------------------
-         MAIN VITE BUNDLE (dev: loads /src/main.jsx, prod: Vite rewrites)
+         Vite Bundle
     ------------------------------------------------------------- -->
-    <script type="module" src="/src/main.jsx"></script>
+    <script type="module" src="/MyTube-Piped-Frontend/assets/index.js"></script>
   </body>
 </html>
