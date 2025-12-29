@@ -53,7 +53,8 @@ class GlobalPlayerClass {
   }
 
   /**
-   * Create the hidden global player instance.
+   * Create the global player instance.
+   * The iframe fills whatever container #global-player is in.
    */
   _createPlayer() {
     if (this.player) {
@@ -70,12 +71,12 @@ class GlobalPlayerClass {
     debugBus.player("GlobalPlayer → Creating player…");
 
     this.player = new window.YT.Player("global-player", {
-      height: "0",
-      width: "0",
+      height: "100%",
+      width: "100%",
       videoId: "",
       playerVars: {
         autoplay: 0,
-        controls: 0,
+        controls: 1,      // show controls for watch page; MiniPlayer can overlay UI
         rel: 0,
         playsinline: 1
       },
