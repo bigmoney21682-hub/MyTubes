@@ -2,7 +2,7 @@
  * File: App.jsx
  * Path: src/app/App.jsx
  * Description: Root application shell with BrowserRouter, PlayerProvider,
- *              MiniPlayer, DebugOverlay, and robust iframe docking logic.
+ *              MiniPlayer, and DebugOverlay. No iframe docking.
  */
 
 import React, { useEffect } from "react";
@@ -24,11 +24,7 @@ import Channel from "../pages/Channel.jsx";
 
 import DebugOverlay from "../debug/DebugOverlay.jsx";
 import { installRouterLogger } from "../debug/debugRouter.js";
-import { debugBus } from "../debug/debugBus.js";
 
-/* ------------------------------------------------------------
-   RouterEvents
-------------------------------------------------------------- */
 function RouterEvents() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -40,105 +36,11 @@ function RouterEvents() {
   return null;
 }
 
-/* ------------------------------------------------------------
-   IframeDock
-   Moves the global YouTube iframe into the Watch page container
-   when on /watch/:id, and back into its hidden home otherwise.
-   Retries until Watch DOM is mounted.
-------------------------------------------------------------- */
-function IframeDock() {
-  const location = useLocation();
-
-  useEffect(() => {
-    const iframe = document.getElementById("global-player");
-    const home = document.getElementById("global-player-container");
-
-    if (!iframe || !home) {
-      debugBus.player("IframeDock → missing iframe or home");
-      return;
-    }
-
-    const path = location.pathname || "";
-    const onWatchPage = path.startsWith("/watch/");
-
-    debugBus.player(
-      "IframeDock → location=" +
-        path +
-        " onWatchPage=" +
-        onWatchPage
-    );
-
-    let cancelled = false;
-
-    function forceResize() {
-      try {
-        if (window.GlobalPlayer?.player?.setSize) {
-          window.GlobalPlayer.player.setSize("100%", "100%");
-          debugBus.player("IframeDock → setSize after docking");
-        }
-      } catch (e) {
-        debugBus.player("IframeDock → setSize error: " + e.message);
-      }
-    }
-
-    function attachToWatch() {
-      if (cancelled) return;
-
-      const watch = document.getElementById("player");
-      if (watch && watch !== iframe.parentNode) {
-        debugBus.player("IframeDock → moving iframe into #player");
-        watch.appendChild(iframe);
-        forceResize();
-        return true;
-      }
-
-      return false;
-    }
-
-    function attachHome() {
-      if (home !== iframe.parentNode) {
-        debugBus.player("IframeDock → moving iframe back home");
-        home.appendChild(iframe);
-        forceResize();
-      }
-    }
-
-    if (onWatchPage) {
-      if (!attachToWatch()) {
-        let attempts = 0;
-        const maxAttempts = 20;
-        const interval = setInterval(() => {
-          if (cancelled) {
-            clearInterval(interval);
-            return;
-          }
-          attempts += 1;
-          if (attachToWatch() || attempts >= maxAttempts) {
-            clearInterval(interval);
-          }
-        }, 100);
-      }
-    } else {
-      attachHome();
-    }
-
-    return () => {
-      cancelled = true;
-    };
-  }, [location]);
-
-  return null;
-}
-
-/* ------------------------------------------------------------
-   App Shell
-------------------------------------------------------------- */
 export default function App() {
   return (
     <PlayerProvider>
       <BrowserRouter basename="/MyTube-Piped-Frontend">
         <RouterEvents />
-        <IframeDock />
 
         <div style={{ paddingBottom: "80px" }}>
           <Routes>
