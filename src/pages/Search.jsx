@@ -1,18 +1,52 @@
 /**
  * File: Search.jsx
  * Path: src/pages/Search.jsx
- * Description: Search results page using YouTube Data API.
+ * Description: Search results page using YouTube Data API with stacked
+ *              16:9 thumbnails and limited results to reduce quota usage.
  */
 
 import React, { useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, Link } from "react-router-dom";
 import { debugBus } from "../debug/debugBus.js";
 import { getApiKey } from "../api/getApiKey.js";
 
 const API_KEY = getApiKey();
 
+const cardStyle = {
+  width: "100%",
+  marginBottom: "20px",
+  textDecoration: "none",
+  color: "#fff",
+  display: "block"
+};
+
+const thumbStyle = {
+  width: "100%",
+  aspectRatio: "16 / 9",
+  objectFit: "cover",
+  borderRadius: "8px",
+  marginBottom: "8px"
+};
+
+const titleStyle = {
+  fontSize: "16px",
+  fontWeight: "bold",
+  marginBottom: "4px"
+};
+
+const channelStyle = {
+  fontSize: "13px",
+  opacity: 0.7,
+  marginBottom: "6px"
+};
+
+const descStyle = {
+  fontSize: "13px",
+  opacity: 0.8,
+  lineHeight: 1.4
+};
+
 export default function Search() {
-  const navigate = useNavigate();
   const location = useLocation();
   const [results, setResults] = useState([]);
 
@@ -30,14 +64,21 @@ export default function Search() {
     try {
       const url =
         `https://www.googleapis.com/youtube/v3/search?` +
-        `part=snippet&type=video&videoEmbeddable=true&maxResults=25&q=${encodeURIComponent(
+        `part=snippet&type=video&videoEmbeddable=true&maxResults=5&q=${encodeURIComponent(
           q
         )}&key=${API_KEY}`;
+
+      debugBus.player("Search.jsx → fetchResults: " + url);
 
       const res = await fetch(url);
       const data = await res.json();
 
-      setResults(Array.isArray(data?.items) ? data.items : []);
+      const items = Array.isArray(data?.items) ? data.items : [];
+      setResults(items);
+
+      if (!items.length) {
+        debugBus.player("Search.jsx → fetchResults returned 0 items");
+      }
     } catch (err) {
       debugBus.player("Search.jsx → fetchResults error: " + (err?.message || err));
       setResults([]);
@@ -46,7 +87,9 @@ export default function Search() {
 
   return (
     <div style={{ padding: "16px", color: "#fff" }}>
-      <h2>Search results for: {query}</h2>
+      <h2 style={{ marginBottom: "12px" }}>
+        Search results for: {query || "…"}
+      </h2>
 
       {results.map((item, i) => {
         const vid = item?.id?.videoId;
@@ -56,36 +99,21 @@ export default function Search() {
         if (!vid) return null;
 
         return (
-          <a
+          <Link
             key={vid + "_" + i}
-            href={`/MyTube-Piped-Frontend/watch/${vid}`}
-            style={{
-              display: "flex",
-              marginBottom: "12px",
-              textDecoration: "none",
-              color: "#fff"
-            }}
+            to={`/watch/${vid}`}
+            style={cardStyle}
           >
             <img
               src={thumb}
-              alt=""
-              style={{
-                width: "168px",
-                height: "94px",
-                objectFit: "cover",
-                borderRadius: "4px",
-                marginRight: "12px"
-              }}
+              alt={sn.title ?? "Video thumbnail"}
+              style={thumbStyle}
             />
-            <div>
-              <div style={{ fontSize: "14px", fontWeight: "bold" }}>
-                {sn.title ?? "Untitled"}
-              </div>
-              <div style={{ fontSize: "12px", opacity: 0.7 }}>
-                {sn.channelTitle ?? "Unknown Channel"}
-              </div>
-            </div>
-          </a>
+
+            <div style={titleStyle}>{sn.title ?? "Untitled"}</div>
+            <div style={channelStyle}>{sn.channelTitle ?? "Unknown Channel"}</div>
+            <div style={descStyle}>{sn.description ?? ""}</div>
+          </Link>
         );
       })}
     </div>
