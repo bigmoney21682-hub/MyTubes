@@ -1,10 +1,17 @@
 /**
  * File: main.jsx
  * Path: src/main.jsx
- * Description: React entry point with bootDebug, global error listeners,
- *              and clean React root mount. Network + Player loggers are
- *              already installed in index.html (before main.jsx).
+ * Description:
+ *   React entry point with:
+ *     - bootDebug initialization BEFORE anything else
+ *     - global error listeners (safe in production)
+ *     - clean React root mount WITHOUT StrictMode
+ *       (prevents double‑initialization of GlobalPlayer)
+ *     - index.css loaded first so layout is stable
+ *
+ *   Network + Player loggers are already installed in index.html.
  */
+
 import "./index.css";
 import React from "react";
 import ReactDOM from "react-dom/client";
@@ -45,15 +52,20 @@ function mount() {
   try {
     const root = ReactDOM.createRoot(rootElement);
 
-    root.render(
-      <React.StrictMode>
-        <App />
-      </React.StrictMode>
-    );
+    // ------------------------------------------------------------
+    // IMPORTANT:
+    // StrictMode is removed to prevent double initialization of:
+    //   - GlobalPlayer
+    //   - PlayerContext effects
+    //   - iframe creation
+    //
+    // This resolves the YouTube playback error.
+    // ------------------------------------------------------------
+    root.render(<App />);
 
     window.bootDebug?.boot("main.jsx → React root mounted");
 
-    // ✅ NEW: Signal boot completion so Overlay 1 can dismiss
+    // Signal boot completion so Boot Overlay can dismiss
     window.bootDebug?.ready?.("main.jsx → app ready");
   } catch (err) {
     window.bootDebug?.error("main.jsx → React mount error: " + err?.message);
