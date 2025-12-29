@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>MyTube</title>
 
-    <!-- Favicon -->
     <link rel="icon" type="image/png" href="/MyTube-Piped-Frontend/favicon.png" />
   </head>
 
@@ -13,14 +12,7 @@
     <!-- React root -->
     <div id="root"></div>
 
-    <!-- Hidden global YouTube player mount (with container) -->
-    <div id="global-player-container" style="width:0;height:0;overflow:hidden;">
-      <div id="global-player"></div>
-    </div>
-
-    <!-- ------------------------------------------------------------
-         FIXED BOOT OVERLAY (v3)
-    ------------------------------------------------------------- -->
+    <!-- Boot error overlay -->
     <script>
       (function () {
         const overlay = document.createElement("div");
