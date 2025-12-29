@@ -16,6 +16,9 @@ import { GlobalPlayer } from "../../player/GlobalPlayer.js";
 
 const API_KEY = getApiKey();
 
+/* ------------------------------------------------------------
+   Shared card styles for Related videos
+------------------------------------------------------------- */
 const cardStyle = {
   width: "100%",
   marginBottom: "16px",
@@ -50,6 +53,9 @@ const descStyle = {
   lineHeight: 1.4
 };
 
+/* ------------------------------------------------------------
+   Component
+------------------------------------------------------------- */
 export default function Watch() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -68,11 +74,16 @@ export default function Watch() {
     relatedRef.current = related;
   }, [related]);
 
-  // Ensure GlobalPlayer knows #player exists (triggers retry loop)
+  /* ------------------------------------------------------------
+     Ensure GlobalPlayer knows #player exists (retry loop)
+  ------------------------------------------------------------- */
   useEffect(() => {
     GlobalPlayer.ensureMounted();
   }, []);
 
+  /* ------------------------------------------------------------
+     Load video + fetch metadata when ID changes
+  ------------------------------------------------------------- */
   useEffect(() => {
     if (!id) return;
 
@@ -83,6 +94,9 @@ export default function Watch() {
     fetchRelated(id);
   }, [id]);
 
+  /* ------------------------------------------------------------
+     Autonext (related)
+  ------------------------------------------------------------- */
   useEffect(() => {
     AutonextEngine.registerRelatedCallback(() => {
       debugBus.player("Watch.jsx → Autonext (related) triggered");
@@ -109,6 +123,9 @@ export default function Watch() {
     });
   }, [navigate, loadVideo]);
 
+  /* ------------------------------------------------------------
+     Fetch video details
+  ------------------------------------------------------------- */
   async function fetchVideoDetails(videoId) {
     try {
       const url =
@@ -130,6 +147,9 @@ export default function Watch() {
     }
   }
 
+  /* ------------------------------------------------------------
+     Fetch related videos (maxResults=5)
+  ------------------------------------------------------------- */
   async function fetchRelated(videoId) {
     try {
       const url =
@@ -151,6 +171,9 @@ export default function Watch() {
     }
   }
 
+  /* ------------------------------------------------------------
+     Loading state
+  ------------------------------------------------------------- */
   if (!video) {
     return (
       <div style={{ padding: "16px", color: "#fff" }}>
@@ -159,6 +182,9 @@ export default function Watch() {
     );
   }
 
+  /* ------------------------------------------------------------
+     Render
+  ------------------------------------------------------------- */
   const sn = video?.snippet ?? {};
   const title = sn?.title ?? "Untitled";
   const description = sn?.description ?? "";
@@ -211,7 +237,7 @@ export default function Watch() {
             padding: "10px 16px",
             background: "#222",
             color: "#fff",
-            border: "1px solid "#444",
+            border: "1px solid #444",
             borderRadius: "4px"
           }}
         >
@@ -219,6 +245,7 @@ export default function Watch() {
         </button>
       </div>
 
+      {/* Related videos */}
       <div style={{ padding: "16px" }}>
         <h3 style={{ marginBottom: "12px" }}>Related Videos</h3>
 
