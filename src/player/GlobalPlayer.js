@@ -2,6 +2,7 @@
  * File: GlobalPlayer.js
  * Path: src/player/GlobalPlayer.js
  * Description: Singleton wrapper around the YouTube IFrame Player API.
+ *              Mounts directly into #player on the Watch page.
  */
 
 import { debugBus } from "../debug/debugBus.js";
@@ -17,6 +18,11 @@ class GlobalPlayerClass {
     this._initStarted = false;
   }
 
+  /**
+   * Initialize the YouTube player.
+   * Called ONCE from PlayerContext, but the actual player is only
+   * created once #player exists in the DOM (Watch page).
+   */
   init({ onReady, onStateChange }) {
     if (this._initStarted) {
       debugBus.player("GlobalPlayer → init() ignored (already started)");
@@ -31,30 +37,50 @@ class GlobalPlayerClass {
 
     window.onYouTubeIframeAPIReady = () => {
       debugBus.player("GlobalPlayer → YT API ready");
-      this._createPlayer();
+      this._ensurePlayerCreated();
     };
 
     if (window.YT && window.YT.Player) {
       debugBus.player("GlobalPlayer → YT API already loaded");
-      this._createPlayer();
+      this._ensurePlayerCreated();
     }
   }
 
-  _createPlayer() {
+  /**
+   * Ensure player exists once #player is present in DOM.
+   */
+  _ensurePlayerCreated() {
     if (this.player) {
       debugBus.player("GlobalPlayer → Player already exists");
       return;
     }
 
-    const mount = document.getElementById("global-player");
+    const mount = document.getElementById("player");
     if (!mount) {
-      debugBus.player("GlobalPlayer → ERROR: #global-player not found");
+      debugBus.player("GlobalPlayer → #player not found yet, will wait for Watch page");
       return;
     }
 
-    debugBus.player("GlobalPlayer → Creating player…");
+    this._createPlayer(mount);
+  }
 
-    this.player = new window.YT.Player("global-player", {
+  /**
+   * Create the player inside the given mount.
+   */
+  _createPlayer(mount) {
+    if (this.player) {
+      debugBus.player("GlobalPlayer → Player already exists (createPlayer)");
+      return;
+    }
+
+    if (!mount) {
+      debugBus.player("GlobalPlayer → ERROR: mount element missing");
+      return;
+    }
+
+    debugBus.player("GlobalPlayer → Creating player in #player…");
+
+    this.player = new window.YT.Player(mount, {
       height: "100%",
       width: "100%",
       videoId: "",
@@ -69,12 +95,10 @@ class GlobalPlayerClass {
           debugBus.player("GlobalPlayer → Player ready");
           this.ready = true;
 
-          setTimeout(() => {
-            try {
-              this.player.setSize("100%", "100%");
-              debugBus.player("GlobalPlayer → setSize(100%,100%) after init");
-            } catch {}
-          }, 50);
+          try {
+            this.player.setSize("100%", "100%");
+            debugBus.player("GlobalPlayer → setSize(100%,100%) after init");
+          } catch {}
 
           if (typeof this.onReady === "function") {
             this.onReady();
@@ -99,8 +123,24 @@ class GlobalPlayerClass {
     });
   }
 
+  /**
+   * Public hook to allow Watch page to signal that #player exists.
+   */
+  ensureMounted() {
+    if (window.YT && window.YT.Player) {
+      this._ensurePlayerCreated();
+    }
+  }
+
   load(id) {
     if (!id) return;
+
+    if (!this.player) {
+      debugBus.player("GlobalPlayer → No player yet, will wait for #player and queue load(" + id + ")");
+      this.pendingLoad = id;
+      this._ensurePlayerCreated();
+      return;
+    }
 
     if (!this.ready) {
       debugBus.player("GlobalPlayer → Not ready, queuing load(" + id + ")");
@@ -144,3 +184,4 @@ class GlobalPlayerClass {
 }
 
 export const GlobalPlayer = new GlobalPlayerClass();
+window.GlobalPlayer = GlobalPlayer;
