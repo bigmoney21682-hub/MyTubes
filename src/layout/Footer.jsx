@@ -1,7 +1,8 @@
 /**
  * File: Footer.jsx
  * Path: src/layout/Footer.jsx
- * Description: Bottom navigation bar with a visually dominant Home button.
+ * Description: Bottom navigation bar with a visually dominant Home button,
+ *              centered icons/labels, and space-evenly distribution.
  */
 
 import React from "react";
@@ -42,7 +43,7 @@ export default function Footer() {
         background: "#111",
         borderTop: "1px solid #222",
         display: "flex",
-        justifyContent: "space-evenly", // ⭐ natural spacing
+        justifyContent: "space-evenly",   // ⭐ natural spacing
         alignItems: "center",
         zIndex: 1000,
         userSelect: "none"
@@ -58,13 +59,13 @@ export default function Footer() {
             style={{
               textDecoration: "none",
               color: active ? "#3ea6ff" : "#ccc",
-              fontSize: 13,
               display: "flex",
               flexDirection: "column",
-              alignItems: "center",
+              alignItems: "center",       // ⭐ centers icon + label
               justifyContent: "center",
-              padding: "0 10px", // ⭐ auto width, not flex:1
-              ...(tab.style || {}) // ⭐ Home gets its custom style
+              textAlign: "center",        // ⭐ ensures label text centers
+              padding: "0 10px",          // ⭐ auto width, not flex:1
+              ...(tab.style || {})        // ⭐ Home gets its custom style
             }}
           >
             {tab.label}
