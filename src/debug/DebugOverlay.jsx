@@ -44,6 +44,7 @@ export default function DebugOverlay() {
     CMD: []
   });
 
+  // Subscribe to debugBus
   useEffect(() => {
     const unsub = debugBus.subscribe((level, entry) => {
       setLogs((prev) => {
@@ -61,6 +62,7 @@ export default function DebugOverlay() {
     };
   }, []);
 
+  // Copy logs
   function handleCopy() {
     const text = logs[activeChannel]
       .map((l) => `[${formatTime(l.ts)}] ${l.msg}`)
@@ -70,6 +72,7 @@ export default function DebugOverlay() {
     debugBus.info("DebugOverlay → Logs copied to clipboard");
   }
 
+  // Render inspector for active tab
   function renderInspector() {
     const channelLogs = logs[activeChannel];
 
@@ -166,6 +169,7 @@ export default function DebugOverlay() {
         pointerEvents: "none"
       }}
     >
+      {/* Panel */}
       <div
         style={{
           position: "absolute",
@@ -186,10 +190,12 @@ export default function DebugOverlay() {
           pointerEvents: "auto"
         }}
       >
-        {/* Header */}
+
+        {/* HEADER ROW 1 — DEBUG + TABS */}
         <div
           style={{
             display: "flex",
+            flexWrap: "wrap",
             alignItems: "center",
             padding: "4px 6px",
             borderBottom: "1px solid #333",
@@ -205,6 +211,7 @@ export default function DebugOverlay() {
               onClick={() => setActiveChannel(ch)}
               style={{
                 marginRight: 4,
+                marginBottom: 4,
                 padding: "2px 6px",
                 fontSize: 10,
                 borderRadius: 4,
@@ -217,13 +224,23 @@ export default function DebugOverlay() {
               {ch}
             </button>
           ))}
+        </div>
 
-          <div style={{ flex: 1 }} />
-
+        {/* HEADER ROW 2 — ACTION BUTTONS */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "flex-end",
+            gap: 6,
+            padding: "4px 6px",
+            borderBottom: "1px solid #333",
+            background: "#111",
+            flexShrink: 0
+          }}
+        >
           <button
             onClick={handleCopy}
             style={{
-              marginRight: 4,
               padding: "2px 6px",
               fontSize: 10,
               borderRadius: 4,
@@ -264,6 +281,7 @@ export default function DebugOverlay() {
         </div>
       </div>
 
+      {/* Reopen button */}
       {!visible && (
         <button
           onClick={() => setVisible(true)}
