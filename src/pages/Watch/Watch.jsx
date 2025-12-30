@@ -88,7 +88,7 @@ export default function Watch() {
   useEffect(() => {
     if (!id) return;
 
-    debugBus.player("Watch.jsx → loadVideo(" + id + ")");
+    debugBus.log("PLAYER", `Watch.jsx → loadVideo(${id})`);
     loadVideo(id);
 
     fetchVideoDetails(id);
@@ -100,22 +100,22 @@ export default function Watch() {
   ------------------------------------------------------------- */
   useEffect(() => {
     AutonextEngine.registerRelatedCallback(() => {
-      debugBus.player("Watch.jsx → Autonext (related) triggered");
+      debugBus.log("PLAYER", "Watch.jsx → Autonext (related) triggered");
 
       const list = relatedRef.current;
       if (!Array.isArray(list) || list.length === 0) {
-        debugBus.player("Watch.jsx → No related videos available");
+        debugBus.log("PLAYER", "Watch.jsx → No related videos available");
         return;
       }
 
       const next = list[0]?.id ?? null;
 
       if (!next) {
-        debugBus.player("Watch.jsx → Related[0] missing ID");
+        debugBus.log("PLAYER", "Watch.jsx → Related[0] missing ID");
         return;
       }
 
-      debugBus.player("Watch.jsx → Autonext → " + next);
+      debugBus.log("PLAYER", `Watch.jsx → Autonext → ${next}`);
       navigate(`/watch/${next}`);
       loadVideo(next);
     });
@@ -137,10 +137,10 @@ export default function Watch() {
       setVideo(items[0] ?? null);
 
       if (!items.length) {
-        debugBus.player("Watch.jsx → fetchVideoDetails returned 0 items");
+        debugBus.log("PLAYER", "Watch.jsx → fetchVideoDetails returned 0 items");
       }
     } catch (err) {
-      debugBus.player("Watch.jsx → fetchVideoDetails error: " + (err?.message || err));
+      debugBus.log("PLAYER", "Watch.jsx → fetchVideoDetails error: " + (err?.message || err));
       setVideo(null);
     }
   }
@@ -161,7 +161,7 @@ export default function Watch() {
       const items = Array.isArray(data?.items) ? data.items : [];
 
       if (!items.length) {
-        debugBus.net("Watch.jsx → relatedToVideoId returned 0 items");
+        debugBus.log("NETWORK", "Watch.jsx → relatedToVideoId returned 0 items");
         setRelated([]);
         return;
       }
@@ -172,11 +172,11 @@ export default function Watch() {
         snippet: item.snippet ?? {}
       }));
 
-      debugBus.net(`Watch.jsx → Normalized ${normalized.length} related videos`);
+      debugBus.log("NETWORK", `Watch.jsx → Normalized ${normalized.length} related videos`);
       setRelated(normalized);
 
     } catch (err) {
-      debugBus.net("Watch.jsx → fetchRelated error: " + (err?.message || err));
+      debugBus.log("NETWORK", "Watch.jsx → fetchRelated error: " + (err?.message || err));
       setRelated([]);
     }
   }
@@ -316,4 +316,3 @@ export default function Watch() {
     </div>
   );
 }
-
