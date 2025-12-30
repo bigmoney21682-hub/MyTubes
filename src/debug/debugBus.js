@@ -16,7 +16,8 @@ export function debugLog(level, msg, data) {
     ts: Date.now()
   };
 
-  listeners.forEach((fn) => fn(entry));
+  // FIX: emit (level, entry)
+  listeners.forEach((fn) => fn(level, entry));
 }
 
 // ------------------------------------------------------------
@@ -59,7 +60,7 @@ function unsubscribe(fn) {
 }
 
 // ------------------------------------------------------------
-// Unified debug bus (THIS is what Home.jsx imports)
+// Unified debug bus
 // ------------------------------------------------------------
 export const debugBus = {
   log: debugLog,
