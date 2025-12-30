@@ -2,7 +2,7 @@
  * File: Watch.jsx
  * Path: src/pages/Watch/Watch.jsx
  * Description: Full video watch page with safe destructuring, normalized IDs,
- *              related videos (stacked layout), autonext integration, and
+ *              YouTube-only related fallback, autonext integration, and
  *              collapsible description.
  */
 
@@ -146,34 +146,66 @@ export default function Watch() {
   }
 
   /* ------------------------------------------------------------
-     Fetch related videos (normalized)
+     Fetch related videos (YouTube-only fallback)
   ------------------------------------------------------------- */
   async function fetchRelated(videoId) {
     try {
-      const url =
+      // 1️⃣ Primary: relatedToVideoId
+      const urlRelated =
         `https://www.googleapis.com/youtube/v3/search?` +
         `part=snippet&type=video&videoEmbeddable=true&relatedToVideoId=${videoId}` +
         `&maxResults=10&key=${API_KEY}`;
 
-      const res = await fetch(url);
-      const data = await res.json();
+      const res1 = await fetch(urlRelated);
+      const data1 = await res1.json();
 
-      const items = Array.isArray(data?.items) ? data.items : [];
+      const items1 = Array.isArray(data1?.items) ? data1.items : [];
 
-      if (!items.length) {
-        debugBus.log("NETWORK", "Watch.jsx → relatedToVideoId returned 0 items");
+      if (items1.length > 0) {
+        const normalized = items1.map((item) => ({
+          id: item.id?.videoId ?? item.id ?? null,
+          snippet: item.snippet ?? {}
+        }));
+
+        debugBus.log("NETWORK", `Watch.jsx → Related API returned ${normalized.length} items`);
+        setRelated(normalized);
+        return;
+      }
+
+      debugBus.log("NETWORK", "Watch.jsx → relatedToVideoId returned 0 items, falling back to keyword search");
+
+      // 2️⃣ Fallback: keyword search using video title
+      const title = video?.snippet?.title ?? "";
+
+      if (!title) {
+        debugBus.log("NETWORK", "Watch.jsx → No title available for fallback search");
         setRelated([]);
         return;
       }
 
-      // ⭐ Normalize shape so UI always works
-      const normalized = items.map((item) => ({
+      const urlKeyword =
+        `https://www.googleapis.com/youtube/v3/search?` +
+        `part=snippet&type=video&videoEmbeddable=true&q=${encodeURIComponent(title)}` +
+        `&maxResults=10&key=${API_KEY}`;
+
+      const res2 = await fetch(urlKeyword);
+      const data2 = await res2.json();
+
+      const items2 = Array.isArray(data2?.items) ? data2.items : [];
+
+      if (items2.length === 0) {
+        debugBus.log("NETWORK", "Watch.jsx → Keyword fallback also returned 0 items");
+        setRelated([]);
+        return;
+      }
+
+      const normalizedFallback = items2.map((item) => ({
         id: item.id?.videoId ?? item.id ?? null,
         snippet: item.snippet ?? {}
       }));
 
-      debugBus.log("NETWORK", `Watch.jsx → Normalized ${normalized.length} related videos`);
-      setRelated(normalized);
+      debugBus.log("NETWORK", `Watch.jsx → Keyword fallback returned ${normalizedFallback.length} items`);
+      setRelated(normalizedFallback);
 
     } catch (err) {
       debugBus.log("NETWORK", "Watch.jsx → fetchRelated error: " + (err?.message || err));
