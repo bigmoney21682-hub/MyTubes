@@ -1,14 +1,18 @@
 /**
  * File: App.jsx
  * Path: src/app/App.jsx
+ * Description: Main application shell with Footer, MiniPlayer, GlobalPlayer,
+ *              DebugOverlay, and full routing. Router is provided by main.jsx.
  */
 
 import React from "react";
 import { Routes, Route } from "react-router-dom";
 
+// Components
 import Header from "../components/Header.jsx";
 import Footer, { FOOTER_HEIGHT } from "../layout/Footer.jsx";
 
+// Pages
 import Home from "../pages/Home/Home.jsx";
 import Watch from "../pages/Watch/Watch.jsx";
 import Menu from "../pages/Menu.jsx";
@@ -16,8 +20,11 @@ import Playlists from "../pages/Playlists.jsx";
 import Shorts from "../pages/Shorts.jsx";
 import Subs from "../pages/Subs.jsx";
 
+// Player
 import { GlobalPlayer } from "../player/GlobalPlayer.js";
 import MiniPlayer from "../player/MiniPlayer.jsx";
+
+// Debug
 import DebugOverlay from "../debug/DebugOverlay.jsx";
 
 export default function App() {
@@ -31,13 +38,15 @@ export default function App() {
         paddingBottom: FOOTER_HEIGHT
       }}
     >
+      {/* Header */}
       <Header />
 
-      {/* GlobalPlayer is a singleton, imported for side effects only */}
+      {/* GlobalPlayer is a singleton imported for side effects */}
 
+      {/* MiniPlayer (fixed above footer) */}
       <MiniPlayer />
-      <DebugOverlay />
 
+      {/* Main Routes */}
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/watch/:id" element={<Watch />} />
@@ -47,6 +56,10 @@ export default function App() {
         <Route path="/subs" element={<Subs />} />
       </Routes>
 
+      {/* DebugOverlay (must mount AFTER Routes to avoid early Router access) */}
+      <DebugOverlay />
+
+      {/* Footer (uses useLocation, must mount after Router) */}
       <Footer />
     </div>
   );
