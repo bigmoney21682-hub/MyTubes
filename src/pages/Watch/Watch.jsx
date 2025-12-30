@@ -108,10 +108,7 @@ export default function Watch() {
         return;
       }
 
-      const next =
-        list[0]?.id?.videoId ??
-        list[0]?.id ??
-        null;
+      const next = list[0]?.id ?? null;
 
       if (!next) {
         debugBus.player("Watch.jsx → Related[0] missing ID");
@@ -149,25 +146,37 @@ export default function Watch() {
   }
 
   /* ------------------------------------------------------------
-     Fetch related videos (maxResults=5)
+     Fetch related videos (normalized)
   ------------------------------------------------------------- */
   async function fetchRelated(videoId) {
     try {
       const url =
         `https://www.googleapis.com/youtube/v3/search?` +
-        `part=snippet&type=video&videoEmbeddable=true&relatedToVideoId=${videoId}&maxResults=5&key=${API_KEY}`;
+        `part=snippet&type=video&videoEmbeddable=true&relatedToVideoId=${videoId}` +
+        `&maxResults=10&key=${API_KEY}`;
 
       const res = await fetch(url);
       const data = await res.json();
 
       const items = Array.isArray(data?.items) ? data.items : [];
-      setRelated(items);
 
       if (!items.length) {
-        debugBus.player("Watch.jsx → fetchRelated returned 0 items");
+        debugBus.network("Watch.jsx → relatedToVideoId returned 0 items");
+        setRelated([]);
+        return;
       }
+
+      // ⭐ Normalize shape so UI always works
+      const normalized = items.map((item) => ({
+        id: item.id?.videoId ?? item.id ?? null,
+        snippet: item.snippet ?? {}
+      }));
+
+      debugBus.network(`Watch.jsx → Normalized ${normalized.length} related videos`);
+      setRelated(normalized);
+
     } catch (err) {
-      debugBus.player("Watch.jsx → fetchRelated error: " + (err?.message || err));
+      debugBus.network("Watch.jsx → fetchRelated error: " + (err?.message || err));
       setRelated([]);
     }
   }
@@ -277,11 +286,7 @@ export default function Watch() {
         <h3 style={{ marginBottom: "12px" }}>Related Videos</h3>
 
         {related.map((item, i) => {
-          const vid =
-            item?.id?.videoId ??
-            item?.id ??
-            null;
-
+          const vid = item?.id ?? null;
           const rsn = item?.snippet ?? {};
           const thumb = rsn?.thumbnails?.medium?.url ?? "";
 
