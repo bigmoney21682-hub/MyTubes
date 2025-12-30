@@ -1,15 +1,13 @@
 /**
  * File: Footer.jsx
  * Path: src/layout/Footer.jsx
- * Description: Fixed bottom navigation bar with 5 equal-width buttons.
+ * Description: Bottom navigation bar with a visually dominant Home button.
  */
 
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 
-const footerHeight = 56;
-
-export const FOOTER_HEIGHT = footerHeight;
+export const FOOTER_HEIGHT = 56;
 
 export default function Footer() {
   const location = useLocation();
@@ -17,7 +15,18 @@ export default function Footer() {
   const tabs = [
     { to: "/menu", label: "📂 Menu" },
     { to: "/playlists", label: "🎵 Playlists" },
-    { to: "/", label: "🏠 Home" },
+
+    // ⭐ Home gets visual priority
+    {
+      to: "/",
+      label: "🏠 Home",
+      style: {
+        fontSize: 15,
+        fontWeight: 600,
+        paddingTop: 2
+      }
+    },
+
     { to: "/shorts", label: "🎬 Shorts" },
     { to: "/subs", label: "⭐ Subs" }
   ];
@@ -29,10 +38,12 @@ export default function Footer() {
         bottom: 0,
         left: 0,
         width: "100%",
-        height: footerHeight,
+        height: FOOTER_HEIGHT,
         background: "#111",
         borderTop: "1px solid #222",
         display: "flex",
+        justifyContent: "space-evenly", // ⭐ natural spacing
+        alignItems: "center",
         zIndex: 1000,
         userSelect: "none"
       }}
@@ -45,14 +56,15 @@ export default function Footer() {
             key={tab.to}
             to={tab.to}
             style={{
-              flex: 1,
               textDecoration: "none",
               color: active ? "#3ea6ff" : "#ccc",
-              fontSize: 12,
+              fontSize: 13,
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              justifyContent: "center"
+              justifyContent: "center",
+              padding: "0 10px", // ⭐ auto width, not flex:1
+              ...(tab.style || {}) // ⭐ Home gets its custom style
             }}
           >
             {tab.label}
