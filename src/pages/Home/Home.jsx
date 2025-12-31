@@ -8,7 +8,6 @@
 
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { debugBus } from "../../debug/debugBus.js";
 import { getApiKey } from "../../api/getApiKey.js";
 
 const API_KEY = getApiKey();
@@ -64,7 +63,8 @@ export default function Home() {
         `https://www.googleapis.com/youtube/v3/videos?` +
         `part=snippet,statistics&chart=mostPopular&maxResults=5&regionCode=US&key=${API_KEY}`;
 
-      debugBus.player("Home.jsx → fetchTrending: " + url);
+      // Correct logger
+      window.bootDebug?.player("Home.jsx → fetchTrending: " + url);
 
       const res = await fetch(url);
       const data = await res.json();
@@ -73,10 +73,12 @@ export default function Home() {
       setVideos(items);
 
       if (!items.length) {
-        debugBus.player("Home.jsx → fetchTrending returned 0 items");
+        window.bootDebug?.player("Home.jsx → fetchTrending returned 0 items");
       }
     } catch (err) {
-      debugBus.player("Home.jsx → fetchTrending error: " + (err?.message || err));
+      window.bootDebug?.player(
+        "Home.jsx → fetchTrending error: " + (err?.message || err)
+      );
       setVideos([]);
     }
   }
