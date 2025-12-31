@@ -35,22 +35,22 @@ export function PlayerProvider({ children }) {
   // Initialize GlobalPlayer ONCE
   // ------------------------------------------------------------
   useEffect(() => {
-    debugBus.player("PlayerContext → Initializing GlobalPlayer");
+    debugBus.log("PLAYER", "PlayerContext → Initializing GlobalPlayer");
 
     GlobalPlayer.init({
       onReady: () => {
-        debugBus.player("PlayerContext → GlobalPlayer ready");
+        debugBus.log("PLAYER", "PlayerContext → GlobalPlayer ready");
       },
       onStateChange: (state) => {
-        debugBus.player("PlayerContext → Player state: " + state);
+        debugBus.log("PLAYER", "PlayerContext → Player state: " + state);
 
         if (state === "ended") {
-          debugBus.player("PlayerContext → Video ended");
+          debugBus.log("PLAYER", "PlayerContext → Video ended");
 
           if (autonextMode === "playlist") {
             const next = QueueStore.next();
             if (next) {
-              debugBus.player("PlayerContext → Playlist autonext → " + next);
+              debugBus.log("PLAYER", "PlayerContext → Playlist autonext → " + next);
               loadVideo(next);
             }
           } else {
@@ -67,13 +67,13 @@ export function PlayerProvider({ children }) {
   function loadVideo(id) {
     if (!id) return;
 
-    debugBus.player("PlayerContext → loadVideo(" + id + ")");
+    debugBus.log("PLAYER", "PlayerContext → loadVideo(" + id + ")");
 
     try {
       setCurrentId(id);
       GlobalPlayer.load(id);
     } catch (err) {
-      debugBus.player("PlayerContext.loadVideo error: " + (err?.message || err));
+      debugBus.log("PLAYER", "PlayerContext.loadVideo error: " + (err?.message || err));
     }
   }
 
@@ -85,9 +85,9 @@ export function PlayerProvider({ children }) {
 
     try {
       QueueStore.add(id);
-      debugBus.player("PlayerContext → queueAdd(" + id + ")");
+      debugBus.log("PLAYER", "PlayerContext → queueAdd(" + id + ")");
     } catch (err) {
-      debugBus.player("PlayerContext.queueAdd error: " + (err?.message || err));
+      debugBus.log("PLAYER", "PlayerContext.queueAdd error: " + (err?.message || err));
     }
   }
 
