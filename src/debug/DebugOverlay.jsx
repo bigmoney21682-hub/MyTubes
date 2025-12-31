@@ -15,6 +15,34 @@ export default function DebugOverlay() {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState("network");
 
+  // ------------------------------------------------------------
+  // LOG STORAGE (simple internal buffer for now)
+  // ------------------------------------------------------------
+  const [logs] = useState([]);
+
+  // ------------------------------------------------------------
+  // COLOR MAP
+  // ------------------------------------------------------------
+  const colors = {
+    FETCH: "#66ccff",
+    ERROR_FETCH: "#ff6666",
+    NETWORK: "#cccccc",
+    PLAYER: "#ffcc66",
+    ROUTER: "#66ff66",
+    CONSOLE: "#ffffff"
+  };
+
+  // ------------------------------------------------------------
+  // TIMESTAMP FORMATTER
+  // ------------------------------------------------------------
+  const formatTime = (ts) => {
+    try {
+      return new Date(ts).toLocaleTimeString();
+    } catch {
+      return "";
+    }
+  };
+
   const tabs = [
     { id: "network", label: "Network" },
     { id: "player", label: "Player" },
@@ -87,10 +115,18 @@ export default function DebugOverlay() {
 
           {/* Content */}
           <div style={{ flex: 1, overflowY: "auto", padding: 8 }}>
-            {tab === "network" && <DebugNetwork />}
-            {tab === "player" && <DebugPlayer />}
-            {tab === "router" && <DebugRouter />}
-            {tab === "console" && <DebugConsole />}
+            {tab === "network" && (
+              <DebugNetwork logs={logs} colors={colors} formatTime={formatTime} />
+            )}
+            {tab === "player" && (
+              <DebugPlayer logs={logs} colors={colors} formatTime={formatTime} />
+            )}
+            {tab === "router" && (
+              <DebugRouter logs={logs} colors={colors} formatTime={formatTime} />
+            )}
+            {tab === "console" && (
+              <DebugConsole logs={logs} colors={colors} formatTime={formatTime} />
+            )}
           </div>
         </div>
       )}
