@@ -11,7 +11,6 @@ export default function DebugTabs({ active, setActive, getCurrentTabText }) {
     try {
       const text = getCurrentTabText();
       if (!text) return;
-
       navigator.clipboard.writeText(text);
       window.bootDebug?.log("CONSOLE", "Copied current tab to clipboard");
     } catch (err) {
