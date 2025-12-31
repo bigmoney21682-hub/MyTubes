@@ -10,7 +10,7 @@ import { debugBus } from "../debug/debugBus.js";
 import { getVideoDetails } from "./video.js"; // assumes you have this
 
 export async function fetchRelatedVideos(videoId) {
-  debugBus.network(`Related → Fetching for id=${videoId}`);
+  debugBus.log("NETWORK", `Related → Fetching for id=${videoId}`);
 
   // First attempt: relatedToVideoId
   const relatedData = await youtubeApiRequest("search", {
@@ -31,18 +31,24 @@ export async function fetchRelatedVideos(videoId) {
       published: item.snippet.publishedAt
     }));
 
-    debugBus.network(`Related → Found ${normalized.length} via relatedToVideoId`);
+    debugBus.log(
+      "NETWORK",
+      `Related → Found ${normalized.length} via relatedToVideoId`
+    );
     return normalized;
   }
 
-  debugBus.network("Related → relatedToVideoId failed, falling back to keyword search");
+  debugBus.log(
+    "NETWORK",
+    "Related → relatedToVideoId failed, falling back to keyword search"
+  );
 
   // Fallback: keyword search using video title
   const details = await getVideoDetails(videoId);
   const title = details?.title || "";
 
   if (!title) {
-    debugBus.network("Related → No title available for fallback search");
+    debugBus.log("NETWORK", "Related → No title available for fallback search");
     return [];
   }
 
@@ -55,7 +61,7 @@ export async function fetchRelatedVideos(videoId) {
   });
 
   if (!Array.isArray(searchData?.items)) {
-    debugBus.network("Related → Fallback search returned no items");
+    debugBus.log("NETWORK", "Related → Fallback search returned no items");
     return [];
   }
 
@@ -68,6 +74,9 @@ export async function fetchRelatedVideos(videoId) {
     published: item.snippet.publishedAt
   }));
 
-  debugBus.network(`Related → Found ${fallbackNormalized.length} via keyword fallback`);
+  debugBus.log(
+    "NETWORK",
+    `Related → Found ${fallbackNormalized.length} via keyword fallback`
+  );
   return fallbackNormalized;
 }
