@@ -1,198 +1,142 @@
 /**
  * File: DebugOverlay.jsx
  * Path: src/debug/DebugOverlay.jsx
- * Description: DebugOverlay v3 — non-blocking global debug UI.
- *              This version ensures the overlay NEVER blocks the app
- *              unless explicitly opened by the user.
+ * Description: Full debug overlay stacked above footer and below MiniPlayer.
+ *              Subscribes to debugBus and feeds logs into all inspectors.
  */
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
+import { FOOTER_HEIGHT } from "../layout/Footer.jsx";
 import { debugBus } from "./debugBus.js";
+import DebugNetwork from "./DebugNetwork.jsx";
+import DebugPlayer from "./DebugPlayer.jsx";
+import DebugRouter from "./DebugRouter.jsx";
+import DebugConsole from "./DebugConsole.jsx";
+import DebugTabs from "./DebugTabs.jsx";
 
 export default function DebugOverlay() {
-  const [visible, setVisible] = useState(false);
-  const [tab, setTab] = useState("console");
+  const [open, setOpen] = useState(false);
+  const [tab, setTab] = useState("network");
   const [logs, setLogs] = useState([]);
 
-  const scrollRef = useRef(null);
-
+  // ------------------------------------------------------------
   // Subscribe to debugBus
+  // ------------------------------------------------------------
   useEffect(() => {
-    const unsub = debugBus.subscribe((entry) => {
-      setLogs((prev) => [...prev, entry]);
+    const unsubscribe = debugBus.subscribe((entry, allLogs) => {
+      if (Array.isArray(allLogs)) {
+        setLogs(allLogs.slice());
+      }
     });
-    return () => unsub();
+    return unsubscribe;
   }, []);
 
-  // Auto-scroll
-  useEffect(() => {
-    if (!visible) return;
-    const el = scrollRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
-  }, [logs, visible]);
+  // ------------------------------------------------------------
+  // COLOR MAP
+  // ------------------------------------------------------------
+  const colors = {
+    FETCH: "#66ccff",
+    ERROR_FETCH: "#ff6666",
+    NETWORK: "#cccccc",
+    PLAYER: "#ffcc66",
+    ROUTER: "#66ff66",
+    CONSOLE: "#ffffff",
+    INFO: "#88c0ff",
+    WARN: "#ffcc66",
+    ERROR: "#ff6666",
+    BOOT: "#aaaaaa",
+    PERF: "#66ffcc",
+    CMD: "#ff99ff"
+  };
 
-  // Copy button
+  // ------------------------------------------------------------
+  // TIMESTAMP FORMATTER
+  // ------------------------------------------------------------
+  const formatTime = (ts) => {
+    try {
+      return new Date(ts).toLocaleTimeString();
+    } catch {
+      return "";
+    }
+  };
+
+  // ------------------------------------------------------------
+  // Copy active tab logs
+  // ------------------------------------------------------------
   function handleCopy() {
-    const filtered = logs
-      .filter((l) => {
-        if (tab === "console")
-          return ["CONSOLE", "INFO", "WARN", "ERROR", "BOOT", "FETCH", "RESPONSE"].includes(
-            l.level
-          );
-        if (tab === "network") return l.level === "NETWORK";
-        if (tab === "player") return l.level === "PLAYER";
-        if (tab === "router") return l.level === "ROUTER";
-        return false;
-      })
-      .map((l) => `[${l.time}] ${l.level} → ${l.msg}`);
+    const filtered = logs.filter((l) => {
+      if (!l) return false;
+      if (tab === "console") return ["CONSOLE", "INFO", "WARN", "ERROR"].includes(l.level);
+      if (tab === "router") return l.level === "ROUTER";
+      if (tab === "network") return ["NETWORK", "FETCH", "ERROR_FETCH"].includes(l.level);
+      if (tab === "player") return l.level === "PLAYER";
+      return false;
+    });
 
-    navigator.clipboard.writeText(filtered.join("\n"));
-  }
+    const text = filtered
+      .map((l) => `[${formatTime(l.ts)}] ${l.msg}`)
+      .join("\n");
 
-  // Tab button
-  function TabButton({ id, label }) {
-    return (
-      <button
-        onClick={() => setTab(id)}
-        style={{
-          padding: "6px 10px",
-          marginRight: "6px",
-          background: tab === id ? "#444" : "#222",
-          color: "#fff",
-          border: "1px solid #555",
-          borderRadius: "4px",
-          pointerEvents: "auto"
-        }}
-      >
-        {label}
-      </button>
-    );
+    navigator.clipboard.writeText(text);
   }
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        width: "100%",
-        height: "100%",
-        zIndex: 9999,
-
-        // ⭐ KEY FIX: Overlay container does NOT block the app
-        pointerEvents: "none"
-      }}
-    >
-      {/* Toggle button (always clickable) */}
+    <>
+      {/* Toggle button */}
       <button
-        onClick={() => setVisible((v) => !v)}
+        onClick={() => setOpen(!open)}
         style={{
           position: "fixed",
-          bottom: "80px",
-          right: "20px",
-          padding: "10px 14px",
-          background: "#111",
+          right: 12,
+          bottom: FOOTER_HEIGHT + 12,
+          zIndex: 2001,
+          background: "#222",
           color: "#fff",
           border: "1px solid #444",
-          borderRadius: "6px",
-          zIndex: 10000,
-          pointerEvents: "auto"
+          padding: "6px 10px",
+          borderRadius: 4,
+          fontSize: 12
         }}
       >
-        {visible ? "Close Debug" : "Debug"}
+        {open ? "Close Debug" : "Debug"}
       </button>
 
-      {/* Panel */}
-      {visible && (
+      {/* Overlay */}
+      {open && (
         <div
           style={{
             position: "fixed",
-            bottom: 0,
             left: 0,
+            bottom: FOOTER_HEIGHT,
             width: "100%",
-            height: "50%",
-            background: "rgba(0,0,0,0.92)",
-            borderTop: "2px solid #444",
-            padding: "10px",
+            height: "40%",
+            background: "#000",
+            borderTop: "1px solid #333",
+            zIndex: 2000,
             display: "flex",
-            flexDirection: "column",
-
-            // ⭐ Panel is interactive
-            pointerEvents: "auto"
+            flexDirection: "column"
           }}
         >
           {/* Tabs */}
-          <div style={{ marginBottom: "8px" }}>
-            <TabButton id="console" label="Console" />
-            <TabButton id="network" label="Network" />
-            <TabButton id="player" label="Player" />
-            <TabButton id="router" label="Router" />
-          </div>
+          <DebugTabs activeTab={tab} onChange={setTab} onCopy={handleCopy} />
 
-          {/* Log area */}
-          <div
-            ref={scrollRef}
-            style={{
-              flex: 1,
-              overflowY: "auto",
-              background: "#000",
-              padding: "8px",
-              border: "1px solid #333",
-              borderRadius: "4px",
-              fontSize: "13px",
-              lineHeight: 1.35
-            }}
-          >
-            {logs
-              .filter((l) => {
-                if (tab === "console")
-                  return ["CONSOLE", "INFO", "WARN", "ERROR", "BOOT", "FETCH", "RESPONSE"].includes(
-                    l.level
-                  );
-                if (tab === "network") return l.level === "NETWORK";
-                if (tab === "player") return l.level === "PLAYER";
-                if (tab === "router") return l.level === "ROUTER";
-                return false;
-              })
-              .map((l, i) => (
-                <div key={i} style={{ marginBottom: "4px" }}>
-                  <span style={{ opacity: 0.6 }}>[{l.time}]</span>{" "}
-                  <span style={{ color: "#0af" }}>{l.level}</span> →{" "}
-                  <span>{l.msg}</span>
-                </div>
-              ))}
-          </div>
-
-          {/* Buttons */}
-          <div style={{ marginTop: "8px", display: "flex", gap: "8px" }}>
-            <button
-              onClick={handleCopy}
-              style={{
-                padding: "6px 10px",
-                background: "#222",
-                color: "#fff",
-                border: "1px solid #444",
-                borderRadius: "4px"
-              }}
-            >
-              Copy
-            </button>
-
-            <button
-              onClick={() => setLogs([])}
-              style={{
-                padding: "6px 10px",
-                background: "#222",
-                color: "#fff",
-                border: "1px solid #444",
-                borderRadius: "4px"
-              }}
-            >
-              Clear
-            </button>
+          {/* Content */}
+          <div style={{ flex: 1, overflowY: "auto", padding: 8 }}>
+            {tab === "network" && (
+              <DebugNetwork logs={logs} colors={colors} formatTime={formatTime} />
+            )}
+            {tab === "player" && (
+              <DebugPlayer logs={logs} colors={colors} formatTime={formatTime} />
+            )}
+            {tab === "router" && (
+              <DebugRouter logs={logs} colors={colors} formatTime={formatTime} />
+            )}
+            {tab === "console" && (
+              <DebugConsole logs={logs} colors={colors} formatTime={formatTime} />
+            )}
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
