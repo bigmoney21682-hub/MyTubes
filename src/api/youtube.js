@@ -2,8 +2,11 @@
  * File: youtube.js
  * Path: src/api/youtube.js
  * Description: Unified YouTube Data API v3 client with primary→fallback
- *              key failover and DebugOverlay-friendly logging.
+ *              key failover, quota tracking, and key usage tracking.
  */
+
+import { recordQuotaUsage } from "../debug/quotaTracker.js";
+import { recordKeyUsage } from "../debug/keyUsageTracker.js";
 
 const PRIMARY_KEY = import.meta.env.VITE_YT_API_PRIMARY;
 const FALLBACK_KEY = import.meta.env.VITE_YT_API_FALLBACK1;
@@ -14,6 +17,13 @@ if (!PRIMARY_KEY) {
 if (!FALLBACK_KEY) {
   console.warn("VITE_YT_API_FALLBACK1 is not set (fallback disabled)");
 }
+
+// YouTube API quota costs
+const COSTS = {
+  videos: 1,
+  search: 100,
+  channels: 1
+};
 
 /**
  * Core YouTube API fetch with primary→fallback failover.
@@ -45,6 +55,12 @@ export async function youtubeApiRequest(endpoint, params) {
     }
 
     const data = await res.json();
+
+    // Track quota + key usage
+    const cost = COSTS[endpoint] ?? 1;
+    recordQuotaUsage(key, cost);
+    recordKeyUsage(key, label);
+
     window.bootDebug?.network(
       `YT API ${label} OK → endpoint=${endpoint}, items=${data.items?.length ?? 0}`
     );
