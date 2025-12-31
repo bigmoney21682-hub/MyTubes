@@ -1,38 +1,76 @@
 /**
  * File: DebugNetwork.jsx
  * Path: src/debug/DebugNetwork.jsx
- * Description: Unified Network inspector for DebugOverlay v3.
- *              Displays FETCH, ERROR_FETCH, and NETWORK logs.
+ * Description: Network inspector for DebugOverlay v3 with quota + key usage.
  */
 
+import { getQuotaSnapshot } from "./quotaTracker.js";
+import { getKeyUsageSnapshot } from "./keyUsageTracker.js";
+
 export default function DebugNetwork({ logs, colors, formatTime }) {
-  // Accept all network‑related channels
   const networkLogs = logs.filter(
-    (l) =>
-      l.level === "FETCH" ||
-      l.level === "ERROR_FETCH" ||
-      l.level === "NETWORK"
+    (l) => l.level === "NETWORK" || l.level === "FETCH" || l.level === "ERROR_FETCH"
   );
+
+  const quota = getQuotaSnapshot();
+  const keyUsage = getKeyUsageSnapshot();
 
   return (
     <div
       style={{
         display: "flex",
         flexDirection: "column",
-        gap: 8,
-        overflowX: "hidden",
+        gap: 12,
         overflowY: "auto",
         width: "100%",
-        boxSizing: "border-box",
-        whiteSpace: "normal",
-        wordBreak: "break-word",
-        minWidth: 0
+        paddingBottom: 20
       }}
     >
+      {/* Quota Panel */}
+      <div
+        style={{
+          background: "#111",
+          padding: "8px 10px",
+          borderRadius: 6,
+          fontSize: 12,
+          lineHeight: "16px"
+        }}
+      >
+        <div style={{ fontWeight: "bold", marginBottom: 6 }}>Quota Usage</div>
+        {Object.keys(quota).length === 0 && (
+          <div style={{ opacity: 0.6 }}>No quota usage yet.</div>
+        )}
+        {Object.entries(quota).map(([key, used]) => (
+          <div key={key}>
+            <strong>{key}:</strong> {used} units
+          </div>
+        ))}
+      </div>
+
+      {/* Key Usage Panel */}
+      <div
+        style={{
+          background: "#111",
+          padding: "8px 10px",
+          borderRadius: 6,
+          fontSize: 12,
+          lineHeight: "16px"
+        }}
+      >
+        <div style={{ fontWeight: "bold", marginBottom: 6 }}>API Key Usage</div>
+        {Object.keys(keyUsage).length === 0 && (
+          <div style={{ opacity: 0.6 }}>No API calls yet.</div>
+        )}
+        {Object.entries(keyUsage).map(([key, count]) => (
+          <div key={key}>
+            <strong>{key}:</strong> {count} calls
+          </div>
+        ))}
+      </div>
+
+      {/* Network Logs */}
       {networkLogs.length === 0 && (
-        <div style={{ color: "#888", fontSize: 12 }}>
-          No network activity yet.
-        </div>
+        <div style={{ color: "#888", fontSize: 12 }}>No network activity yet.</div>
       )}
 
       {networkLogs.map((log, i) => {
@@ -49,13 +87,9 @@ export default function DebugNetwork({ logs, colors, formatTime }) {
               lineHeight: "16px"
             }}
           >
-            {/* Timestamp */}
             <div style={{ opacity: 0.6 }}>{formatTime(ts)}</div>
-
-            {/* Main message */}
             <div style={{ fontWeight: "bold" }}>{msg}</div>
 
-            {/* Metadata */}
             {data && (
               <div
                 style={{
@@ -67,35 +101,30 @@ export default function DebugNetwork({ logs, colors, formatTime }) {
                   overflowX: "auto"
                 }}
               >
-                {/* URL */}
                 {data.url && (
                   <div style={{ marginBottom: 4 }}>
                     <strong>URL:</strong> {data.url}
                   </div>
                 )}
 
-                {/* Status */}
                 {data.status && (
                   <div style={{ marginBottom: 4 }}>
                     <strong>Status:</strong> {data.status}
                   </div>
                 )}
 
-                {/* Key used */}
-                {data.key && (
+                {data.method && (
                   <div style={{ marginBottom: 4 }}>
-                    <strong>Key:</strong> {data.key}
+                    <strong>Method:</strong> {data.method}
                   </div>
                 )}
 
-                {/* Quota cost */}
-                {data.cost !== undefined && (
+                {data.duration && (
                   <div style={{ marginBottom: 4 }}>
-                    <strong>Quota Cost:</strong> {data.cost} units
+                    <strong>Duration:</strong> {data.duration}ms
                   </div>
                 )}
 
-                {/* Error */}
                 {data.error && (
                   <div style={{ marginTop: 6, color: "#ff6666" }}>
                     <strong>Error:</strong> {data.error}
