@@ -10,7 +10,6 @@ import React, { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { usePlayer } from "../../player/PlayerContext.jsx";
 import { AutonextEngine } from "../../player/AutonextEngine.js";
-import { debugBus } from "../../debug/debugBus.js";
 import { getApiKey } from "../../api/getApiKey.js";
 import { GlobalPlayer } from "../../player/GlobalPlayer.js";
 
@@ -88,7 +87,7 @@ export default function Watch() {
   useEffect(() => {
     if (!id) return;
 
-    debugBus.log("PLAYER", `Watch.jsx → loadVideo(${id})`);
+    window.bootDebug?.player(`Watch.jsx → loadVideo(${id})`);
     loadVideo(id);
 
     fetchVideoDetails(id);
@@ -100,22 +99,22 @@ export default function Watch() {
   ------------------------------------------------------------- */
   useEffect(() => {
     AutonextEngine.registerRelatedCallback(() => {
-      debugBus.log("PLAYER", "Watch.jsx → Autonext (related) triggered");
+      window.bootDebug?.player("Watch.jsx → Autonext (related) triggered");
 
       const list = relatedRef.current;
       if (!Array.isArray(list) || list.length === 0) {
-        debugBus.log("PLAYER", "Watch.jsx → No related videos available");
+        window.bootDebug?.player("Watch.jsx → No related videos available");
         return;
       }
 
       const next = list[0]?.id ?? null;
 
       if (!next) {
-        debugBus.log("PLAYER", "Watch.jsx → Related[0] missing ID");
+        window.bootDebug?.player("Watch.jsx → Related[0] missing ID");
         return;
       }
 
-      debugBus.log("PLAYER", `Watch.jsx → Autonext → ${next}`);
+      window.bootDebug?.player(`Watch.jsx → Autonext → ${next}`);
       navigate(`/watch/${next}`);
       loadVideo(next);
     });
@@ -137,10 +136,12 @@ export default function Watch() {
       setVideo(items[0] ?? null);
 
       if (!items.length) {
-        debugBus.log("PLAYER", "Watch.jsx → fetchVideoDetails returned 0 items");
+        window.bootDebug?.player("Watch.jsx → fetchVideoDetails returned 0 items");
       }
     } catch (err) {
-      debugBus.log("PLAYER", "Watch.jsx → fetchVideoDetails error: " + (err?.message || err));
+      window.bootDebug?.player(
+        "Watch.jsx → fetchVideoDetails error: " + (err?.message || err)
+      );
       setVideo(null);
     }
   }
@@ -167,24 +168,32 @@ export default function Watch() {
           snippet: item.snippet ?? {}
         }));
 
-        debugBus.log("NETWORK", `Watch.jsx → Related API returned ${normalized.length} items`);
+        window.bootDebug?.network(
+          `Watch.jsx → Related API returned ${normalized.length} items`
+        );
         setRelated(normalized);
         return;
       }
 
-      debugBus.log("NETWORK", "Watch.jsx → relatedToVideoId returned 0 items, falling back to keyword search");
+      window.bootDebug?.network(
+        "Watch.jsx → relatedToVideoId returned 0 items, falling back to keyword search"
+      );
 
       // 2️⃣ Fallback: keyword search using video title
       const title = video?.snippet?.title;
 
       if (!title) {
-        debugBus.log("NETWORK", "Watch.jsx → Waiting for video title before fallback");
+        window.bootDebug?.network(
+          "Watch.jsx → Waiting for video title before fallback"
+        );
         return; // <-- DO NOT clear related; wait for video to load
       }
 
       const urlKeyword =
         `https://www.googleapis.com/youtube/v3/search?` +
-        `part=snippet&type=video&videoEmbeddable=true&q=${encodeURIComponent(title)}` +
+        `part=snippet&type=video&videoEmbeddable=true&q=${encodeURIComponent(
+          title
+        )}` +
         `&maxResults=10&key=${API_KEY}`;
 
       const res2 = await fetch(urlKeyword);
@@ -193,7 +202,9 @@ export default function Watch() {
       const items2 = Array.isArray(data2?.items) ? data2.items : [];
 
       if (items2.length === 0) {
-        debugBus.log("NETWORK", "Watch.jsx → Keyword fallback also returned 0 items");
+        window.bootDebug?.network(
+          "Watch.jsx → Keyword fallback also returned 0 items"
+        );
         setRelated([]);
         return;
       }
@@ -203,11 +214,14 @@ export default function Watch() {
         snippet: item.snippet ?? {}
       }));
 
-      debugBus.log("NETWORK", `Watch.jsx → Keyword fallback returned ${normalizedFallback.length} items`);
+      window.bootDebug?.network(
+        `Watch.jsx → Keyword fallback returned ${normalizedFallback.length} items`
+      );
       setRelated(normalizedFallback);
-
     } catch (err) {
-      debugBus.log("NETWORK", "Watch.jsx → fetchRelated error: " + (err?.message || err));
+      window.bootDebug?.network(
+        "Watch.jsx → fetchRelated error: " + (err?.message || err)
+      );
       setRelated([]);
     }
   }
@@ -217,7 +231,9 @@ export default function Watch() {
   ------------------------------------------------------------- */
   useEffect(() => {
     if (video && id) {
-      debugBus.log("NETWORK", "Watch.jsx → Retrying related fetch after video loaded");
+      window.bootDebug?.network(
+        "Watch.jsx → Retrying related fetch after video loaded"
+      );
       fetchRelated(id);
     }
   }, [video]);
