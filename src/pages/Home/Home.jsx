@@ -61,7 +61,7 @@ export default function Home() {
     try {
       const url =
         `https://www.googleapis.com/youtube/v3/videos?` +
-        `part=snippet,statistics&chart=mostPopular&maxResults=5&regionCode=US&key=${API_KEY}`;
+        `part=snippet,contentDetails,statistics&chart=mostPopular&maxResults=5&regionCode=US&key=${API_KEY}`;
 
       // Correct logger
       window.bootDebug?.player("Home.jsx → fetchTrending: " + url);
