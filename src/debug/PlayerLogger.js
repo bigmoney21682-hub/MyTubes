@@ -1,8 +1,7 @@
 /**
  * File: PlayerLogger.js
  * Path: src/debug/PlayerLogger.js
- * Description: Global player event logger that instruments <video> elements
- *              and logs all playback events into debugBus with level="PLAYER".
+ * Description: Logs all player events (HTML5, YouTube, Piped) into debugBus.
  */
 
 import { debugBus } from "./debugBus.js";
@@ -11,77 +10,77 @@ export function installPlayerLogger() {
   if (window.__playerLoggerInstalled) return;
   window.__playerLoggerInstalled = true;
 
-  // Correct usage: debugBus.log(level, msg)
-  debugBus.log("PLAYER", "PlayerLogger → Installed");
-
   // ------------------------------------------------------------
-  // Helper: safe log wrapper
+  // HTML5 <video> logger
   // ------------------------------------------------------------
-  function log(msg) {
-    debugBus.log("PLAYER", msg);
-  }
-
-  // ------------------------------------------------------------
-  // Helper: throttle timeupdate logs
-  // ------------------------------------------------------------
-  let lastTimeLog = 0;
-  function throttledTimeLog(video) {
-    const now = performance.now();
-    if (now - lastTimeLog > 500) {
-      lastTimeLog = now;
-      log(`timeupdate → ${video.currentTime.toFixed(2)}s`);
-    }
-  }
-
-  // ------------------------------------------------------------
-  // Instrument a <video> element
-  // ------------------------------------------------------------
-  function attachVideoListeners(video) {
+  const hookHTML5 = (video) => {
     if (!video || video.__playerLoggerAttached) return;
     video.__playerLoggerAttached = true;
 
-    log("Video element detected → attaching listeners");
+    const events = [
+      "play",
+      "pause",
+      "seeking",
+      "seeked",
+      "waiting",
+      "playing",
+      "ended",
+      "error",
+      "loadeddata",
+      "timeupdate"
+    ];
 
-    video.addEventListener("play", () => log("play"));
-    video.addEventListener("pause", () => log("pause"));
-    video.addEventListener("ended", () => log("ended"));
-    video.addEventListener("waiting", () => log("buffering…"));
-    video.addEventListener("error", () =>
-      log("error → " + video.error?.message)
-    );
-    video.addEventListener("seeking", () =>
-      log("seeking → " + video.currentTime.toFixed(2))
-    );
-    video.addEventListener("seeked", () =>
-      log("seeked → " + video.currentTime.toFixed(2))
-    );
-    video.addEventListener("ratechange", () =>
-      log("ratechange → " + video.playbackRate)
-    );
-    video.addEventListener("volumechange", () =>
-      log("volumechange → " + video.volume)
-    );
-    video.addEventListener("durationchange", () =>
-      log("durationchange → " + video.duration)
-    );
+    events.forEach((ev) => {
+      video.addEventListener(ev, () => {
+        debugBus.log("PLAYER", `HTML5 → ${ev}`, {
+          type: "html5",
+          event: ev,
+          currentTime: video.currentTime
+        });
+      });
+    });
+  };
 
-    video.addEventListener("timeupdate", () => throttledTimeLog(video));
-  }
-
-  // ------------------------------------------------------------
-  // Observe DOM for new <video> elements
-  // ------------------------------------------------------------
+  // Observe DOM for <video> elements
   const observer = new MutationObserver(() => {
-    const videos = document.querySelectorAll("video");
-    videos.forEach(attachVideoListeners);
+    document.querySelectorAll("video").forEach(hookHTML5);
   });
 
-  observer.observe(document.documentElement, {
-    childList: true,
-    subtree: true
-  });
+  observer.observe(document.body, { childList: true, subtree: true });
 
-  // Also attach to any video already present
-  const existingVideos = document.querySelectorAll("video");
-  existingVideos.forEach(attachVideoListeners);
+  // ------------------------------------------------------------
+  // YouTube IFrame API logger (if present)
+  // ------------------------------------------------------------
+  window.onYouTubeIframeAPIReady = function () {
+    debugBus.log("PLAYER", "YouTube API ready");
+  };
+
+  // ------------------------------------------------------------
+  // Piped player logger (if present)
+  // ------------------------------------------------------------
+  window.__pipedPlayerHook = function (player) {
+    if (!player || player.__playerLoggerAttached) return;
+    player.__playerLoggerAttached = true;
+
+    const pipedEvents = [
+      "play",
+      "pause",
+      "ended",
+      "error",
+      "timeupdate",
+      "waiting"
+    ];
+
+    pipedEvents.forEach((ev) => {
+      player.on(ev, () => {
+        debugBus.log("PLAYER", `PIPED → ${ev}`, {
+          type: "piped",
+          event: ev,
+          currentTime: player.currentTime
+        });
+      });
+    });
+  };
+
+  debugBus.log("PLAYER", "PlayerLogger installed");
 }
