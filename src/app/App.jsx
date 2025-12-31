@@ -38,15 +38,12 @@ export default function App() {
         paddingBottom: FOOTER_HEIGHT
       }}
     >
-      {/* Header */}
       <Header />
 
       {/* GlobalPlayer is a singleton imported for side effects */}
 
-      {/* MiniPlayer (fixed above footer) */}
       <MiniPlayer />
 
-      {/* Main Routes */}
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/watch/:id" element={<Watch />} />
@@ -56,10 +53,7 @@ export default function App() {
         <Route path="/subs" element={<Subs />} />
       </Routes>
 
-      {/* DebugOverlay (must mount AFTER Routes to avoid early Router access) */}
       <DebugOverlay />
-
-      {/* Footer (uses useLocation, must mount after Router) */}
       <Footer />
     </div>
   );
