@@ -12,6 +12,7 @@ import { usePlayer } from "../../player/PlayerContext.jsx";
 import { AutonextEngine } from "../../player/AutonextEngine.js";
 import { getApiKey } from "../../api/getApiKey.js";
 import { GlobalPlayer } from "../../player/GlobalPlayer.js";
+import { debugBus } from "../../debug/debugBus.js";   // ✅ FIXED
 
 const API_KEY = getApiKey();
 
@@ -87,7 +88,7 @@ export default function Watch() {
   useEffect(() => {
     if (!id) return;
 
-    window.bootDebug?.player(`Watch.jsx → loadVideo(${id})`);
+    debugBus.log("PLAYER", `Watch.jsx → loadVideo(${id})`);
     loadVideo(id);
 
     fetchVideoDetails(id);
@@ -99,22 +100,22 @@ export default function Watch() {
   ------------------------------------------------------------- */
   useEffect(() => {
     AutonextEngine.registerRelatedCallback(() => {
-      window.bootDebug?.player("Watch.jsx → Autonext (related) triggered");
+      debugBus.log("PLAYER", "Watch.jsx → Autonext (related) triggered");
 
       const list = relatedRef.current;
       if (!Array.isArray(list) || list.length === 0) {
-        window.bootDebug?.player("Watch.jsx → No related videos available");
+        debugBus.log("PLAYER", "Watch.jsx → No related videos available");
         return;
       }
 
       const next = list[0]?.id ?? null;
 
       if (!next) {
-        window.bootDebug?.player("Watch.jsx → Related[0] missing ID");
+        debugBus.log("PLAYER", "Watch.jsx → Related[0] missing ID");
         return;
       }
 
-      window.bootDebug?.player(`Watch.jsx → Autonext → ${next}`);
+      debugBus.log("PLAYER", `Watch.jsx → Autonext → ${next}`);
       navigate(`/watch/${next}`);
       loadVideo(next);
     });
@@ -136,10 +137,11 @@ export default function Watch() {
       setVideo(items[0] ?? null);
 
       if (!items.length) {
-        window.bootDebug?.player("Watch.jsx → fetchVideoDetails returned 0 items");
+        debugBus.log("PLAYER", "Watch.jsx → fetchVideoDetails returned 0 items");
       }
     } catch (err) {
-      window.bootDebug?.player(
+      debugBus.log(
+        "PLAYER",
         "Watch.jsx → fetchVideoDetails error: " + (err?.message || err)
       );
       setVideo(null);
@@ -168,14 +170,16 @@ export default function Watch() {
           snippet: item.snippet ?? {}
         }));
 
-        window.bootDebug?.network(
+        debugBus.log(
+          "NETWORK",
           `Watch.jsx → Related API returned ${normalized.length} items`
         );
         setRelated(normalized);
         return;
       }
 
-      window.bootDebug?.network(
+      debugBus.log(
+        "NETWORK",
         "Watch.jsx → relatedToVideoId returned 0 items, falling back to keyword search"
       );
 
@@ -183,10 +187,11 @@ export default function Watch() {
       const title = video?.snippet?.title;
 
       if (!title) {
-        window.bootDebug?.network(
+        debugBus.log(
+          "NETWORK",
           "Watch.jsx → Waiting for video title before fallback"
         );
-        return; // <-- DO NOT clear related; wait for video to load
+        return;
       }
 
       const urlKeyword =
@@ -202,7 +207,8 @@ export default function Watch() {
       const items2 = Array.isArray(data2?.items) ? data2.items : [];
 
       if (items2.length === 0) {
-        window.bootDebug?.network(
+        debugBus.log(
+          "NETWORK",
           "Watch.jsx → Keyword fallback also returned 0 items"
         );
         setRelated([]);
@@ -214,12 +220,14 @@ export default function Watch() {
         snippet: item.snippet ?? {}
       }));
 
-      window.bootDebug?.network(
+      debugBus.log(
+        "NETWORK",
         `Watch.jsx → Keyword fallback returned ${normalizedFallback.length} items`
       );
       setRelated(normalizedFallback);
     } catch (err) {
-      window.bootDebug?.network(
+      debugBus.log(
+        "NETWORK",
         "Watch.jsx → fetchRelated error: " + (err?.message || err)
       );
       setRelated([]);
@@ -231,7 +239,8 @@ export default function Watch() {
   ------------------------------------------------------------- */
   useEffect(() => {
     if (video && id) {
-      window.bootDebug?.network(
+      debugBus.log(
+        "NETWORK",
         "Watch.jsx → Retrying related fetch after video loaded"
       );
       fetchRelated(id);
