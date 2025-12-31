@@ -11,9 +11,9 @@ import DebugConsole from "./DebugConsole.jsx";
 import DebugNetwork from "./DebugNetwork.jsx";
 import DebugPlayer from "./DebugPlayer.jsx";
 import DebugRouter from "./DebugRouter.jsx";
-import { debugBus } from "./debugBus.js";   // ✅ Option A: direct import
+import { debugBus } from "./debugBus.js";
 
-export default function DebugOverlay() {    // ❌ removed debugBus prop
+export default function DebugOverlay() {
   const [visible, setVisible] = useState(false);
   const [active, setActive] = useState("Console");
   const [logs, setLogs] = useState([]);
@@ -39,6 +39,13 @@ export default function DebugOverlay() {    // ❌ removed debugBus prop
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  /* ------------------------------------------------------------
+     Allow external toggle via window.toggleDebug()
+  ------------------------------------------------------------- */
+  useEffect(() => {
+    window.toggleDebug = () => setVisible((v) => !v);
   }, []);
 
   /* ------------------------------------------------------------
@@ -121,14 +128,12 @@ export default function DebugOverlay() {    // ❌ removed debugBus prop
         backdropFilter: "blur(6px)"
       }}
     >
-      {/* Tabs + Copy */}
       <DebugTabs
         active={active}
         setActive={setActive}
         getCurrentTabText={getCurrentTabText}
       />
 
-      {/* Content */}
       <div
         style={{
           flex: 1,
