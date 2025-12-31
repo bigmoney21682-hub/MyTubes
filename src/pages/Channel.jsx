@@ -42,7 +42,10 @@ export default function Channel() {
       const items = Array.isArray(data?.items) ? data.items : [];
       setChannelInfo(items[0] ?? null);
     } catch (err) {
-      debugBus.player("Channel.jsx → fetchChannelInfo error: " + (err?.message || err));
+      debugBus.log(
+        "PLAYER",
+        "Channel.jsx → fetchChannelInfo error: " + (err?.message || err)
+      );
       setChannelInfo(null);
     }
   }
@@ -58,7 +61,10 @@ export default function Channel() {
 
       setVideos(Array.isArray(data?.items) ? data.items : []);
     } catch (err) {
-      debugBus.player("Channel.jsx → fetchChannelVideos error: " + (err?.message || err));
+      debugBus.log(
+        "PLAYER",
+        "Channel.jsx → fetchChannelVideos error: " + (err?.message || err)
+      );
       setVideos([]);
     }
   }
