@@ -1,151 +1,152 @@
 /**
  * File: DebugOverlay.jsx
  * Path: src/debug/DebugOverlay.jsx
- * Description: Full debug overlay stacked above footer and below MiniPlayer.
- *              Subscribes to debugBus and feeds logs into all inspectors.
+ * Description: Unified DebugOverlay v3 with tabbed inspectors and
+ *              Copy button that copies only the active tab's content.
  */
 
 import React, { useState, useEffect } from "react";
-import { FOOTER_HEIGHT } from "../layout/Footer.jsx";
-import { debugBus } from "./debugBus.js";
+import DebugTabs from "./DebugTabs.jsx";
+import DebugConsole from "./DebugConsole.jsx";
 import DebugNetwork from "./DebugNetwork.jsx";
 import DebugPlayer from "./DebugPlayer.jsx";
 import DebugRouter from "./DebugRouter.jsx";
-import DebugConsole from "./DebugConsole.jsx";
 
-export default function DebugOverlay() {
-  const [open, setOpen] = useState(false);
-  const [tab, setTab] = useState("network");
+export default function DebugOverlay({ debugBus }) {
+  const [visible, setVisible] = useState(false);
+  const [active, setActive] = useState("Console");
   const [logs, setLogs] = useState([]);
 
-  // ------------------------------------------------------------
-  // Subscribe to debugBus
-  // ------------------------------------------------------------
+  /* ------------------------------------------------------------
+     Subscribe to debugBus
+  ------------------------------------------------------------- */
   useEffect(() => {
-    const unsubscribe = debugBus.subscribe((entry, allLogs) => {
-      if (Array.isArray(allLogs)) {
-        setLogs(allLogs.slice());
-      }
+    const unsub = debugBus.subscribe((entry) => {
+      setLogs((prev) => [...prev, entry]);
     });
-    return unsubscribe;
+    return () => unsub();
+  }, [debugBus]);
+
+  /* ------------------------------------------------------------
+     Toggle overlay with backtick `
+  ------------------------------------------------------------- */
+  useEffect(() => {
+    function onKey(e) {
+      if (e.key === "`") {
+        setVisible((v) => !v);
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  // ------------------------------------------------------------
-  // COLOR MAP
-  // ------------------------------------------------------------
+  /* ------------------------------------------------------------
+     Format timestamp
+  ------------------------------------------------------------- */
+  function formatTime(ts) {
+    const d = new Date(ts);
+    return d.toLocaleTimeString();
+  }
+
+  /* ------------------------------------------------------------
+     Provide text for Copy button (active tab only)
+  ------------------------------------------------------------- */
+  function getCurrentTabText() {
+    const upper = active.toUpperCase();
+
+    const filtered = logs.filter((l) => {
+      if (active === "Console") return ["CONSOLE", "INFO", "WARN", "ERROR"].includes(l.level);
+      if (active === "Router") return l.level === "ROUTER";
+      if (active === "Network") return ["NETWORK", "FETCH", "ERROR_FETCH"].includes(l.level);
+      if (active === "Player") return l.level === "PLAYER";
+      return false;
+    });
+
+    return filtered
+      .map((l) => `[${formatTime(l.ts)}] ${l.msg}`)
+      .join("\n");
+  }
+
+  /* ------------------------------------------------------------
+     Colors per log level
+  ------------------------------------------------------------- */
   const colors = {
-    FETCH: "#66ccff",
-    ERROR_FETCH: "#ff6666",
-    NETWORK: "#cccccc",
-    PLAYER: "#ffcc66",
-    ROUTER: "#66ff66",
-    CONSOLE: "#ffffff",
-    INFO: "#88c0ff",
-    WARN: "#ffcc66",
-    ERROR: "#ff6666",
-    BOOT: "#aaaaaa",
-    PERF: "#66ffcc",
-    CMD: "#ff99ff"
+    CONSOLE: "#ccc",
+    INFO: "#6cf",
+    WARN: "#fc6",
+    ERROR: "#f66",
+    ROUTER: "#9f6",
+    NETWORK: "#6cf",
+    FETCH: "#6cf",
+    ERROR_FETCH: "#f66",
+    PLAYER: "#f6c"
   };
 
-  // ------------------------------------------------------------
-  // TIMESTAMP FORMATTER
-  // ------------------------------------------------------------
-  const formatTime = (ts) => {
-    try {
-      return new Date(ts).toLocaleTimeString();
-    } catch {
-      return "";
-    }
-  };
+  /* ------------------------------------------------------------
+     Render nothing if hidden
+  ------------------------------------------------------------- */
+  if (!visible) return null;
 
-  const tabs = [
-    { id: "network", label: "Network" },
-    { id: "player", label: "Player" },
-    { id: "router", label: "Router" },
-    { id: "console", label: "Console" }
-  ];
+  /* ------------------------------------------------------------
+     Render active tab content
+  ------------------------------------------------------------- */
+  let content = null;
 
+  if (active === "Console") {
+    content = (
+      <DebugConsole logs={logs} colors={colors} formatTime={formatTime} />
+    );
+  } else if (active === "Router") {
+    content = (
+      <DebugRouter logs={logs} colors={colors} formatTime={formatTime} />
+    );
+  } else if (active === "Network") {
+    content = (
+      <DebugNetwork logs={logs} colors={colors} formatTime={formatTime} />
+    );
+  } else if (active === "Player") {
+    content = (
+      <DebugPlayer logs={logs} colors={colors} formatTime={formatTime} />
+    );
+  }
+
+  /* ------------------------------------------------------------
+     Overlay container
+  ------------------------------------------------------------- */
   return (
-    <>
-      {/* Toggle button */}
-      <button
-        onClick={() => setOpen(!open)}
+    <div
+      style={{
+        position: "fixed",
+        bottom: 0,
+        left: 0,
+        width: "100%",
+        height: "45%",
+        background: "rgba(0,0,0,0.92)",
+        color: "#fff",
+        zIndex: 999999,
+        display: "flex",
+        flexDirection: "column",
+        borderTop: "1px solid #333",
+        backdropFilter: "blur(6px)"
+      }}
+    >
+      {/* Tabs + Copy */}
+      <DebugTabs
+        active={active}
+        setActive={setActive}
+        getCurrentTabText={getCurrentTabText}
+      />
+
+      {/* Content */}
+      <div
         style={{
-          position: "fixed",
-          right: 12,
-          bottom: FOOTER_HEIGHT + 12,
-          zIndex: 2001,
-          background: "#222",
-          color: "#fff",
-          border: "1px solid #444",
-          padding: "6px 10px",
-          borderRadius: 4,
-          fontSize: 12
+          flex: 1,
+          overflowY: "auto",
+          padding: "10px 12px"
         }}
       >
-        {open ? "Close Debug" : "Debug"}
-      </button>
-
-      {/* Overlay */}
-      {open && (
-        <div
-          style={{
-            position: "fixed",
-            left: 0,
-            bottom: FOOTER_HEIGHT,
-            width: "100%",
-            height: "40%",
-            background: "#000",
-            borderTop: "1px solid #333",
-            zIndex: 2000,
-            display: "flex",
-            flexDirection: "column"
-          }}
-        >
-          {/* Tabs */}
-          <div
-            style={{
-              display: "flex",
-              borderBottom: "1px solid #333",
-              background: "#111"
-            }}
-          >
-            {tabs.map((t) => (
-              <button
-                key={t.id}
-                onClick={() => setTab(t.id)}
-                style={{
-                  flex: 1,
-                  padding: "8px 0",
-                  background: tab === t.id ? "#222" : "transparent",
-                  color: "#fff",
-                  border: "none",
-                  fontSize: 12
-                }}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Content */}
-          <div style={{ flex: 1, overflowY: "auto", padding: 8 }}>
-            {tab === "network" && (
-              <DebugNetwork logs={logs} colors={colors} formatTime={formatTime} />
-            )}
-            {tab === "player" && (
-              <DebugPlayer logs={logs} colors={colors} formatTime={formatTime} />
-            )}
-            {tab === "router" && (
-              <DebugRouter logs={logs} colors={colors} formatTime={formatTime} />
-            )}
-            {tab === "console" && (
-              <DebugConsole logs={logs} colors={colors} formatTime={formatTime} />
-            )}
-          </div>
-        </div>
-      )}
-    </>
+        {content}
+      </div>
+    </div>
   );
 }
