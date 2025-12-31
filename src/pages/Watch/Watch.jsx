@@ -2,8 +2,8 @@
  * File: Watch.jsx
  * Path: src/pages/Watch/Watch.jsx
  * Description: Full video watch page with safe destructuring, normalized IDs,
- *              YouTube-only related fallback, autonext integration, and
- *              collapsible description.
+ *              YouTube-only related fallback, autonext integration, collapsible
+ *              description, and tap-to-show skip controls overlay.
  */
 
 import React, { useEffect, useState, useRef } from "react";
@@ -268,7 +268,7 @@ export default function Watch() {
       style={{
         paddingBottom: "80px",
         color: "#fff",
-        marginTop: "60px"   // ⭐ FIX: offset fixed header
+        marginTop: "60px"
       }}
     >
       {/* Player container (16:9) */}
@@ -290,6 +290,9 @@ export default function Watch() {
             height: "100%"
           }}
         ></div>
+
+        {/* Tap overlay with skip controls */}
+        <PlayerOverlay related={related} navigate={navigate} />
       </div>
 
       <h2 style={{ padding: "16px" }}>{title}</h2>
@@ -383,6 +386,100 @@ export default function Watch() {
           );
         })}
       </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------
+   Tap-to-show overlay with skip controls
+------------------------------------------------------------- */
+function PlayerOverlay({ related, navigate }) {
+  const [visible, setVisible] = React.useState(false);
+  const hideTimer = React.useRef(null);
+
+  function show() {
+    setVisible(true);
+
+    clearTimeout(hideTimer.current);
+    hideTimer.current = setTimeout(() => {
+      setVisible(false);
+    }, 2000);
+  }
+
+  function skipBack() {
+    const t = GlobalPlayer.player?.getCurrentTime?.() || 0;
+
+    if (t < 3 && related.length > 1) {
+      const prev = related[1]?.id;
+      if (prev) navigate(`/watch/${prev}`);
+    } else {
+      GlobalPlayer.player?.seekTo?.(0, true);
+    }
+  }
+
+  function skipNext() {
+    const next = related[0]?.id;
+    if (next) navigate(`/watch/${next}`);
+  }
+
+  return (
+    <div
+      onClick={show}
+      style={{
+        position: "absolute",
+        top: 0,
+        left: 0,
+        width: "100%",
+        height: "100%",
+        zIndex: 20,
+        cursor: "pointer"
+      }}
+    >
+      {visible && (
+        <div
+          style={{
+            position: "absolute",
+            bottom: "20px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            display: "flex",
+            gap: "20px",
+            zIndex: 30
+          }}
+        >
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              skipBack();
+            }}
+            style={{
+              padding: "10px 16px",
+              background: "rgba(0,0,0,0.7)",
+              color: "#fff",
+              border: "1px solid #444",
+              borderRadius: "6px"
+            }}
+          >
+            ⏮ Back
+          </button>
+
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              skipNext();
+            }}
+            style={{
+              padding: "10px 16px",
+              background: "rgba(0,0,0,0.7)",
+              color: "#fff",
+              border: "1px solid #444",
+              borderRadius: "6px"
+            }}
+          >
+            ⏭ Next
+          </button>
+        </div>
+      )}
     </div>
   );
 }
