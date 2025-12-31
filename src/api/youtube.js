@@ -5,8 +5,6 @@
  *              key failover and DebugOverlay-friendly logging.
  */
 
-import { debugBus } from "../debug/debugBus.js";
-
 const PRIMARY_KEY = import.meta.env.VITE_YT_API_PRIMARY;
 const FALLBACK_KEY = import.meta.env.VITE_YT_API_FALLBACK1;
 
@@ -33,24 +31,21 @@ export async function youtubeApiRequest(endpoint, params) {
     Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
     url.searchParams.set("key", key);
 
-    debugBus.log(
-      "NETWORK",
+    window.bootDebug?.network(
       `YT API ${label} → ${url.pathname}?${url.searchParams.toString()}`
     );
 
     const res = await fetch(url.toString());
 
     if (!res.ok) {
-      debugBus.log(
-        "NETWORK",
+      window.bootDebug?.network(
         `YT API ${label} ERROR → status=${res.status}`
       );
       return { ok: false, status: res.status, data: null };
     }
 
     const data = await res.json();
-    debugBus.log(
-      "NETWORK",
+    window.bootDebug?.network(
       `YT API ${label} OK → endpoint=${endpoint}, items=${data.items?.length ?? 0}`
     );
 
@@ -63,21 +58,17 @@ export async function youtubeApiRequest(endpoint, params) {
       const primary = await tryWithKey(PRIMARY_KEY, "PRIMARY");
       if (primary.ok) return primary.data;
 
-      // Failover conditions: quota exceeded, invalid key, rate limit, generic error
       if ([400, 403, 429].includes(primary.status)) {
-        debugBus.log(
-          "NETWORK",
+        window.bootDebug?.network(
           `YT API → Primary key failed with status=${primary.status}, attempting fallback`
         );
       } else {
-        debugBus.log(
-          "NETWORK",
+        window.bootDebug?.network(
           `YT API → Primary key non-success status=${primary.status}, attempting fallback`
         );
       }
     } catch (err) {
-      debugBus.log(
-        "NETWORK",
+      window.bootDebug?.network(
         `YT API PRIMARY EXCEPTION → ${err.message}`
       );
     }
@@ -89,19 +80,19 @@ export async function youtubeApiRequest(endpoint, params) {
       const fallback = await tryWithKey(FALLBACK_KEY, "FALLBACK1");
       if (fallback.ok) return fallback.data;
 
-      debugBus.log(
-        "NETWORK",
+      window.bootDebug?.network(
         `YT API → Fallback key failed with status=${fallback.status}`
       );
     } catch (err) {
-      debugBus.log(
-        "NETWORK",
+      window.bootDebug?.network(
         `YT API FALLBACK1 EXCEPTION → ${err.message}`
       );
     }
   }
 
   // 3) Total failure
-  debugBus.log("NETWORK", "YT API → All keys failed for endpoint " + endpoint);
+  window.bootDebug?.network(
+    "YT API → All keys failed for endpoint " + endpoint
+  );
   return null;
 }
