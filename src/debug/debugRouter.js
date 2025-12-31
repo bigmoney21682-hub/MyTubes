@@ -16,11 +16,16 @@ export function installRouterLogger(navigate, location) {
     // First load
     if (lastPath === null) {
       lastPath = path;
-      debugBus.log("ROUTER", "Initial route → " + path, {
-        path,
-        params: {},
-        search: location.search
-      });
+
+      // Delay initial router log so it doesn't interrupt first render
+      setTimeout(() => {
+        debugBus.log("ROUTER", "Initial route → " + path, {
+          path,
+          params: {},
+          search: location.search
+        });
+      }, 0);
+
       return;
     }
 
