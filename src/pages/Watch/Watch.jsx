@@ -432,7 +432,8 @@ function PlayerOverlay({ related, navigate }) {
         width: "100%",
         height: "100%",
         zIndex: 20,
-        cursor: "pointer"
+        cursor: "pointer",
+        pointerEvents: visible ? "auto" : "none"   // ⭐ FIX: YouTube play button works again
       }}
     >
       {visible && (
