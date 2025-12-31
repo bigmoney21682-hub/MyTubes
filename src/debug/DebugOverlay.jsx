@@ -1,8 +1,9 @@
 /**
  * File: DebugOverlay.jsx
  * Path: src/debug/DebugOverlay.jsx
- * Description: Minimal corrected version — ONLY fix is pointerEvents so the
- *              overlay no longer blocks the UI on boot.
+ * Description: Minimal corrected version — ONLY fixes:
+ *              1) pointerEvents so overlay doesn't block UI on boot
+ *              2) null guard so logs never crash on boot
  */
 
 import React, { useState, useEffect, useRef } from "react";
@@ -38,7 +39,7 @@ export default function DebugOverlay() {
         height: "100%",
         zIndex: 9999,
 
-        // ⭐ KEY FIX — overlay no longer blocks the app
+        // ⭐ FIX 1 — overlay no longer blocks UI
         pointerEvents: "none"
       }}
     >
@@ -56,7 +57,7 @@ export default function DebugOverlay() {
           borderRadius: "6px",
           zIndex: 10000,
 
-          // ⭐ Button must be interactive
+          // Button must be interactive
           pointerEvents: "auto"
         }}
       >
@@ -78,7 +79,7 @@ export default function DebugOverlay() {
             display: "flex",
             flexDirection: "column",
 
-            // ⭐ Panel must be interactive
+            // Panel must be interactive
             pointerEvents: "auto"
           }}
         >
@@ -96,13 +97,15 @@ export default function DebugOverlay() {
               lineHeight: 1.35
             }}
           >
-            {logs.map((l, i) => (
-              <div key={i} style={{ marginBottom: "4px" }}>
-                <span style={{ opacity: 0.6 }}>[{l.time}]</span>{" "}
-                <span style={{ color: "#0af" }}>{l.level}</span> →{" "}
-                <span>{l.msg}</span>
-              </div>
-            ))}
+            {logs
+              .filter(Boolean)   // ⭐ FIX 2 — remove null entries
+              .map((l, i) => (
+                <div key={i} style={{ marginBottom: "4px" }}>
+                  <span style={{ opacity: 0.6 }}>[{l.time}]</span>{" "}
+                  <span style={{ color: "#0af" }}>{l.level}</span> →{" "}
+                  <span>{l.msg}</span>
+                </div>
+              ))}
           </div>
 
           {/* Clear button */}
