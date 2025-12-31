@@ -56,7 +56,7 @@ export default function Search() {
   useEffect(() => {
     if (!query) return;
 
-    debugBus.player("Search.jsx → Searching: " + query);
+    debugBus.log("PLAYER", "Search.jsx → Searching: " + query);
     fetchResults(query);
   }, [query]);
 
@@ -68,7 +68,7 @@ export default function Search() {
           q
         )}&key=${API_KEY}`;
 
-      debugBus.player("Search.jsx → fetchResults: " + url);
+      debugBus.log("PLAYER", "Search.jsx → fetchResults: " + url);
 
       const res = await fetch(url);
       const data = await res.json();
@@ -77,10 +77,13 @@ export default function Search() {
       setResults(items);
 
       if (!items.length) {
-        debugBus.player("Search.jsx → fetchResults returned 0 items");
+        debugBus.log("PLAYER", "Search.jsx → fetchResults returned 0 items");
       }
     } catch (err) {
-      debugBus.player("Search.jsx → fetchResults error: " + (err?.message || err));
+      debugBus.log(
+        "PLAYER",
+        "Search.jsx → fetchResults error: " + (err?.message || err)
+      );
       setResults([]);
     }
   }
