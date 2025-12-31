@@ -16,7 +16,7 @@ export function installRouterLogger(navigate, location) {
     // First load
     if (lastPath === null) {
       lastPath = path;
-      debugBus.router("Initial route → " + path, {
+      debugBus.log("ROUTER", "Initial route → " + path, {
         path,
         params: {},
         search: location.search
@@ -36,7 +36,7 @@ export function installRouterLogger(navigate, location) {
 
       window.__lastRouterIdx = window.history.state?.idx ?? 0;
 
-      debugBus.router(`Route change → ${from} → ${to}`, {
+      debugBus.log("ROUTER", `Route change → ${from} → ${to}`, {
         from,
         to,
         direction,
@@ -46,6 +46,6 @@ export function installRouterLogger(navigate, location) {
       lastPath = path;
     }
   } catch (err) {
-    debugBus.router("Router logger error: " + (err?.message || err));
+    debugBus.log("ROUTER", "Router logger error: " + (err?.message || err));
   }
 }
