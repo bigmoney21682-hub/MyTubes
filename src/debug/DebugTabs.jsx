@@ -1,52 +1,77 @@
 /**
  * File: DebugTabs.jsx
  * Path: src/debug/DebugTabs.jsx
- * Description: Fixed tab bar for the debug overlay.
+ * Description: Tab bar for DebugOverlay with Copy button for current tab.
  */
 
-const TABS = [
-  { id: "console", label: "Console" },
-  { id: "network", label: "Network" },
-  { id: "player", label: "Player" },
-  { id: "router", label: "Router" },
-  { id: "perf", label: "Perf" },
-  { id: "cmd", label: "Cmd" }
-];
+export default function DebugTabs({ active, setActive, getCurrentTabText }) {
+  const tabs = ["Console", "Router", "Network", "Player"];
 
-export default function DebugTabs({ activeTab, onChange }) {
+  function copyCurrentTab() {
+    try {
+      const text = getCurrentTabText();
+      if (!text) return;
+
+      navigator.clipboard.writeText(text);
+      window.bootDebug?.log("CONSOLE", "Copied current tab to clipboard");
+    } catch (err) {
+      window.bootDebug?.error("Copy failed: " + err.message);
+    }
+  }
+
   return (
     <div
       style={{
         display: "flex",
         flexDirection: "row",
-        alignItems: "center",
-        gap: 4,
-        marginBottom: 6,
+        width: "100%",
+        background: "#111",
         borderBottom: "1px solid #333",
-        paddingBottom: 4,
-        overflowX: "hidden",
-        whiteSpace: "nowrap",
-        minWidth: 0
+        padding: "6px 8px",
+        alignItems: "center",
+        gap: 8,
+        overflowX: "auto"
       }}
     >
-      {TABS.map((tab) => (
+      {/* Tabs */}
+      {tabs.map((t) => (
         <button
-          key={tab.id}
-          onClick={() => onChange(tab.id)}
+          key={t}
+          onClick={() => setActive(t)}
           style={{
-            padding: "4px 8px",
-            background: tab.id === activeTab ? "#555" : "#222",
-            border: "1px solid #555",
+            padding: "6px 10px",
+            background: active === t ? "#333" : "#1a1a1a",
             color: "#fff",
+            border: "1px solid #444",
             borderRadius: 4,
-            cursor: "pointer",
-            fontSize: 11,
-            flexShrink: 0
+            fontSize: 12,
+            whiteSpace: "nowrap",
+            cursor: "pointer"
           }}
         >
-          {tab.label}
+          {t}
         </button>
       ))}
+
+      {/* Spacer pushes Copy button to the right */}
+      <div style={{ flex: 1 }} />
+
+      {/* Copy Button */}
+      <button
+        onClick={copyCurrentTab}
+        style={{
+          padding: "6px 10px",
+          background: "#222",
+          color: "#fff",
+          border: "1px solid #444",
+          borderRadius: 4,
+          fontSize: 12,
+          whiteSpace: "nowrap",
+          cursor: "pointer"
+        }}
+      >
+        Copy
+      </button>
     </div>
   );
 }
