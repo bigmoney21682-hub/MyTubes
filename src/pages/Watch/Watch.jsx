@@ -12,7 +12,7 @@ import { usePlayer } from "../../player/PlayerContext.jsx";
 import { AutonextEngine } from "../../player/AutonextEngine.js";
 import { getApiKey } from "../../api/getApiKey.js";
 import { GlobalPlayer } from "../../player/GlobalPlayer.js";
-import { debugBus } from "../../debug/debugBus.js";   // ✅ FIXED
+import { debugBus } from "../../debug/debugBus.js";
 
 const API_KEY = getApiKey();
 
@@ -92,7 +92,7 @@ export default function Watch() {
     loadVideo(id);
 
     fetchVideoDetails(id);
-    fetchRelated(id); // first attempt (may return 0)
+    fetchRelated(id);
   }, [id]);
 
   /* ------------------------------------------------------------
@@ -153,7 +153,6 @@ export default function Watch() {
   ------------------------------------------------------------- */
   async function fetchRelated(videoId) {
     try {
-      // 1️⃣ Primary: relatedToVideoId
       const urlRelated =
         `https://www.googleapis.com/youtube/v3/search?` +
         `part=snippet&type=video&videoEmbeddable=true&relatedToVideoId=${videoId}` +
@@ -183,7 +182,6 @@ export default function Watch() {
         "Watch.jsx → relatedToVideoId returned 0 items, falling back to keyword search"
       );
 
-      // 2️⃣ Fallback: keyword search using video title
       const title = video?.snippet?.title;
 
       if (!title) {
@@ -252,7 +250,7 @@ export default function Watch() {
   ------------------------------------------------------------- */
   if (!video) {
     return (
-      <div style={{ padding: "16px", color: "#fff" }}>
+      <div style={{ padding: "16px", color: "#fff", marginTop: "60px" }}>
         Loading video…
       </div>
     );
@@ -266,7 +264,13 @@ export default function Watch() {
   const description = sn?.description ?? "";
 
   return (
-    <div style={{ paddingBottom: "80px", color: "#fff" }}>
+    <div
+      style={{
+        paddingBottom: "80px",
+        color: "#fff",
+        marginTop: "60px"   // ⭐ FIX: offset fixed header
+      }}
+    >
       {/* Player container (16:9) */}
       <div
         style={{
