@@ -10,7 +10,7 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 // ⭐ NEW — cached trending API
-import { fetchTrendingVideos } from "../../api/trending.js";
+import { fetchTrending } from "../../api/trending.js";
 
 /* ------------------------------------------------------------
    Shared card styles
@@ -62,10 +62,10 @@ export default function Home() {
   ------------------------------------------------------------- */
   async function loadTrending() {
     try {
-      const list = await fetchTrendingVideos("US", 5);
+      const list = await fetchTrending("US");
 
       if (!Array.isArray(list)) {
-        window.bootDebug?.player("Home.jsx → fetchTrendingVideos returned invalid list");
+        window.bootDebug?.player("Home.jsx → fetchTrending returned invalid list");
         setVideos([]);
         return;
       }
@@ -83,7 +83,10 @@ export default function Home() {
         }
       }));
 
-      window.bootDebug?.player(`Home.jsx → Trending loaded (${normalized.length} items)`);
+      window.bootDebug?.player(
+        `Home.jsx → Trending loaded (${normalized.length} items)`
+      );
+
       setVideos(normalized);
     } catch (err) {
       window.bootDebug?.player("Home.jsx → loadTrending error: " + err?.message);
