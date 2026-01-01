@@ -4,14 +4,20 @@
  * Description: Fixed tab bar for the debug overlay with Copy button.
  */
 
-const TABS = [
+const BASE_TABS = [
   { id: "console", label: "Console" },
   { id: "router", label: "Router" },
   { id: "network", label: "Network" },
   { id: "player", label: "Player" }
 ];
 
-export default function DebugTabs({ activeTab, onChange, onCopy }) {
+export default function DebugTabs({ activeTab, onChange, onCopy, extraTabs = [] }) {
+  // ⭐ Merge built‑in tabs with extra tabs
+  const tabs = [
+    ...BASE_TABS,
+    ...extraTabs.map((id) => ({ id, label: id.charAt(0).toUpperCase() + id.slice(1) }))
+  ];
+
   return (
     <div
       style={{
@@ -27,7 +33,7 @@ export default function DebugTabs({ activeTab, onChange, onCopy }) {
         minWidth: 0
       }}
     >
-      {TABS.map((tab) => (
+      {tabs.map((tab) => (
         <button
           key={tab.id}
           onClick={() => onChange(tab.id)}
