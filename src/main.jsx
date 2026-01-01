@@ -4,6 +4,42 @@
  */
 console.log("MyTube main.jsx LOADED — version TEST-1");
 
+// ------------------------------------------------------------
+// 0. Media Session API: background audio + lockscreen controls
+//    (must run before React mounts)
+// ------------------------------------------------------------
+if ("mediaSession" in navigator) {
+  navigator.mediaSession.setActionHandler("play", () => {
+    document.querySelector("video")?.play();
+  });
+
+  navigator.mediaSession.setActionHandler("pause", () => {
+    document.querySelector("video")?.pause();
+  });
+
+  navigator.mediaSession.setActionHandler("stop", () => {
+    document.querySelector("video")?.pause();
+  });
+}
+
+// Helper to update lockscreen metadata from the player
+export function updateMediaSessionMetadata({ title, artist, artwork }) {
+  if (!("mediaSession" in navigator)) return;
+
+  navigator.mediaSession.metadata = new MediaMetadata({
+    title,
+    artist,
+    artwork: artwork
+      ? [
+          {
+            src: artwork,
+            sizes: "512x512",
+            type: "image/png",
+          },
+        ]
+      : [],
+  });
+}
 
 import "./index.css";
 import React from "react";
