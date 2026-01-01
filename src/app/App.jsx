@@ -32,6 +32,7 @@ export default function App() {
         minHeight: "100vh",
         background: "#000",
         color: "#fff",
+        paddingTop: "var(--header-height)",   // ⭐ FIXED HEADER OVERLAP
         paddingBottom: FOOTER_HEIGHT
       }}
     >
