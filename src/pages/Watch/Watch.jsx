@@ -10,14 +10,15 @@ import React, { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { usePlayer } from "../../player/PlayerContext.jsx";
 import { AutonextEngine } from "../../player/AutonextEngine.js";
-import { getApiKey } from "../../api/getApiKey.js";
 import { GlobalPlayer } from "../../player/GlobalPlayer.js";
 import { debugBus } from "../../debug/debugBus.js";
 
-// ⭐ Import Media Session metadata helper
+// Media Session metadata helper
 import { updateMediaSessionMetadata } from "../../main.jsx";
 
-const API_KEY = getApiKey();
+// ⭐ NEW — cached API imports
+import { getVideoDetails } from "../../api/video.js";
+import { fetchRelatedVideos } from "../../api/related.js";
 
 /* ------------------------------------------------------------
    Shared card styles for Related videos
@@ -94,8 +95,8 @@ export default function Watch() {
     debugBus.log("PLAYER", `Watch.jsx → loadVideo(${id})`);
     loadVideo(id);
 
-    fetchVideoDetails(id);
-    fetchRelated(id);
+    loadVideoDetails(id);
+    loadRelated(id);
   }, [id]);
 
   /* ------------------------------------------------------------
@@ -125,112 +126,65 @@ export default function Watch() {
   }, [navigate, loadVideo]);
 
   /* ------------------------------------------------------------
-     Fetch video details
+     ⭐ NEW — Cached video details
   ------------------------------------------------------------- */
-  async function fetchVideoDetails(videoId) {
+  async function loadVideoDetails(videoId) {
     try {
-      const url =
-        `https://www.googleapis.com/youtube/v3/videos?` +
-        `part=snippet,statistics&id=${videoId}&key=${API_KEY}`;
+      const details = await getVideoDetails(videoId);
 
-      const res = await fetch(url);
-      const data = await res.json();
-
-      const items = Array.isArray(data?.items) ? data.items : [];
-      setVideo(items[0] ?? null);
-
-      if (!items.length) {
-        debugBus.log("PLAYER", "Watch.jsx → fetchVideoDetails returned 0 items");
+      if (!details) {
+        debugBus.log("PLAYER", "Watch.jsx → getVideoDetails returned null");
+        setVideo(null);
+        return;
       }
+
+      setVideo({
+        snippet: {
+          title: details.title,
+          description: details.description,
+          channelId: details.channelId,
+          channelTitle: details.channelTitle,
+          publishedAt: details.publishedAt,
+          thumbnails: details.thumbnails
+        },
+        statistics: details.statistics
+      });
     } catch (err) {
-      debugBus.log(
-        "PLAYER",
-        "Watch.jsx → fetchVideoDetails error: " + (err?.message || err)
-      );
+      debugBus.log("PLAYER", "Watch.jsx → loadVideoDetails error: " + err?.message);
       setVideo(null);
     }
   }
 
   /* ------------------------------------------------------------
-     Fetch related videos (YouTube-only fallback)
+     ⭐ NEW — Cached related videos (reshaped to old snippet format)
   ------------------------------------------------------------- */
-  async function fetchRelated(videoId) {
+  async function loadRelated(videoId) {
     try {
-      const urlRelated =
-        `https://www.googleapis.com/youtube/v3/search?` +
-        `part=snippet&type=video&videoEmbeddable=true&relatedToVideoId=${videoId}` +
-        `&maxResults=10&key=${API_KEY}`;
+      const list = await fetchRelatedVideos(videoId);
 
-      const res1 = await fetch(urlRelated);
-      const data1 = await res1.json();
-
-      const items1 = Array.isArray(data1?.items) ? data1.items : [];
-
-      if (items1.length > 0) {
-        const normalized = items1.map((item) => ({
-          id: item.id?.videoId ?? item.id ?? null,
-          snippet: item.snippet ?? {}
-        }));
-
-        debugBus.log(
-          "NETWORK",
-          `Watch.jsx → Related API returned ${normalized.length} items`
-        );
-        setRelated(normalized);
-        return;
-      }
-
-      debugBus.log(
-        "NETWORK",
-        "Watch.jsx → relatedToVideoId returned 0 items, falling back to keyword search"
-      );
-
-      const title = video?.snippet?.title;
-
-      if (!title) {
-        debugBus.log(
-          "NETWORK",
-          "Watch.jsx → Waiting for video title before fallback"
-        );
-        return;
-      }
-
-      const urlKeyword =
-        `https://www.googleapis.com/youtube/v3/search?` +
-        `part=snippet&type=video&videoEmbeddable=true&q=${encodeURIComponent(
-          title
-        )}` +
-        `&maxResults=10&key=${API_KEY}`;
-
-      const res2 = await fetch(urlKeyword);
-      const data2 = await res2.json();
-
-      const items2 = Array.isArray(data2?.items) ? data2.items : [];
-
-      if (items2.length === 0) {
-        debugBus.log(
-          "NETWORK",
-          "Watch.jsx → Keyword fallback also returned 0 items"
-        );
+      if (!Array.isArray(list)) {
+        debugBus.log("NETWORK", "Watch.jsx → fetchRelatedVideos returned invalid list");
         setRelated([]);
         return;
       }
 
-      const normalizedFallback = items2.map((item) => ({
-        id: item.id?.videoId ?? item.id ?? null,
-        snippet: item.snippet ?? {}
+      // ⭐ Convert cached format → old snippet format
+      const normalized = list.map((item) => ({
+        id: item.id,
+        snippet: {
+          title: item.title,
+          channelTitle: item.author,
+          description: "",
+          thumbnails: {
+            medium: { url: item.thumbnail }
+          }
+        }
       }));
 
-      debugBus.log(
-        "NETWORK",
-        `Watch.jsx → Keyword fallback returned ${normalizedFallback.length} items`
-      );
-      setRelated(normalizedFallback);
+      debugBus.log("NETWORK", `Watch.jsx → Related loaded (${normalized.length} items)`);
+      setRelated(normalized);
     } catch (err) {
-      debugBus.log(
-        "NETWORK",
-        "Watch.jsx → fetchRelated error: " + (err?.message || err)
-      );
+      debugBus.log("NETWORK", "Watch.jsx → loadRelated error: " + err?.message);
       setRelated([]);
     }
   }
@@ -241,12 +195,8 @@ export default function Watch() {
   ------------------------------------------------------------- */
   useEffect(() => {
     if (video && id) {
-      debugBus.log(
-        "NETWORK",
-        "Watch.jsx → Retrying related fetch after video loaded"
-      );
+      debugBus.log("NETWORK", "Watch.jsx → Retrying related fetch after video loaded");
 
-      // ⭐ Update lockscreen metadata
       const sn = video?.snippet ?? {};
       updateMediaSessionMetadata({
         title: sn.title ?? "Untitled",
@@ -254,7 +204,7 @@ export default function Watch() {
         artwork: sn.thumbnails?.medium?.url ?? ""
       });
 
-      fetchRelated(id);
+      loadRelated(id);
     }
   }, [video]);
 
