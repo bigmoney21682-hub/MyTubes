@@ -19,10 +19,6 @@ class GlobalPlayerClass {
     this._mountCheckInterval = null;
   }
 
-  /**
-   * Initialize the YouTube player.
-   * Called ONCE from PlayerContext.
-   */
   init({ onReady, onStateChange }) {
     if (this._initStarted) {
       debugBus.log("PLAYER", "GlobalPlayer → init() ignored (already started)");
@@ -35,29 +31,23 @@ class GlobalPlayerClass {
 
     debugBus.log("PLAYER", "GlobalPlayer → Waiting for YT API…");
 
-    // YouTube API calls window.onYouTubeIframeAPIReady
     window.onYouTubeIframeAPIReady = () => {
       debugBus.log("PLAYER", "GlobalPlayer → YT API ready (callback)");
       this.ensureMounted();
     };
 
-    // If API already loaded
     if (window.YT && window.YT.Player) {
       debugBus.log("PLAYER", "GlobalPlayer → YT API already loaded");
       this.ensureMounted();
     }
   }
 
-  /**
-   * Ensure the player is created once #player exists.
-   * Retries for a short window so it can wait for the Watch page DOM.
-   */
   ensureMounted() {
     if (this.player) return;
     if (this._mountCheckInterval) return;
 
     let attempts = 0;
-    const maxAttempts = 50; // ~5 seconds
+    const maxAttempts = 50;
 
     this._mountCheckInterval = setInterval(() => {
       const mount = document.getElementById("player");
@@ -83,9 +73,6 @@ class GlobalPlayerClass {
     }, 100);
   }
 
-  /**
-   * Create the player inside the given mount.
-   */
   _createPlayer(mount) {
     if (this.player) {
       debugBus.log("PLAYER", "GlobalPlayer → Player already exists (createPlayer)");
@@ -116,8 +103,6 @@ class GlobalPlayerClass {
         controls: 1,
         rel: 0,
         playsinline: 1,
-
-        // ⭐ NEW: Remove YouTube links / branding (maximum allowed)
         modestbranding: 1,
         iv_load_policy: 3,
         showinfo: 0,
@@ -128,10 +113,7 @@ class GlobalPlayerClass {
           debugBus.log("PLAYER", "GlobalPlayer → Player ready");
           this.ready = true;
 
-          try {
-            this.player.setSize("100%", "100%");
-            debugBus.log("PLAYER", "GlobalPlayer → setSize(100%,100%) after init");
-          } catch {}
+          // ⭐ REMOVED: setSize() call that caused background pauses
 
           if (typeof this.onReady === "function") {
             this.onReady();
@@ -160,10 +142,6 @@ class GlobalPlayerClass {
     });
   }
 
-  /**
-   * Load a video by ID.
-   * Safe to call before ready — it will queue.
-   */
   load(id) {
     if (!id) return;
 
@@ -186,9 +164,6 @@ class GlobalPlayerClass {
     this._safeLoadNow(id);
   }
 
-  /**
-   * Internal: actually call loadVideoById safely.
-   */
   _safeLoadNow(id) {
     try {
       if (!this.player || !this.ready) {
@@ -203,20 +178,13 @@ class GlobalPlayerClass {
       debugBus.log("PLAYER", "GlobalPlayer → load(" + id + ")");
       this.player.loadVideoById(id);
 
-      setTimeout(() => {
-        try {
-          this.player.setSize("100%", "100%");
-          debugBus.log("PLAYER", "GlobalPlayer → setSize after load");
-        } catch {}
-      }, 50);
+      // ⭐ REMOVED: 50ms timeout + setSize() that caused background pauses
+
     } catch (err) {
       debugBus.log("PLAYER", "GlobalPlayer.load error: " + (err?.message || err));
     }
   }
 
-  /**
-   * Translate YT numeric states into readable strings.
-   */
   _translateState(code) {
     if (!window.YT || !window.YT.PlayerState) return "unknown";
 
