@@ -4,6 +4,8 @@
  * Description: Tracks YouTube API quota usage per API key.
  */
 
+import { debugBus } from "./debugBus.js";
+
 const quota = {};
 
 export function recordQuotaUsage(key, cost) {
@@ -11,7 +13,8 @@ export function recordQuotaUsage(key, cost) {
 
   quota[key] = (quota[key] || 0) + cost;
 
-  window.bootDebug?.network(
+  debugBus.log(
+    "NETWORK",
     `Quota → ${key} used ${cost} units (total=${quota[key]})`
   );
 }
