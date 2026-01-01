@@ -8,9 +8,9 @@
 
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { getApiKey } from "../../api/getApiKey.js";
 
-const API_KEY = getApiKey();
+// ⭐ NEW — cached trending API
+import { fetchTrendingVideos } from "../../api/trending.js";
 
 /* ------------------------------------------------------------
    Shared card styles
@@ -54,31 +54,39 @@ export default function Home() {
   const [expandedIndex, setExpandedIndex] = useState(null);
 
   useEffect(() => {
-    fetchTrending();
+    loadTrending();
   }, []);
 
-  async function fetchTrending() {
+  /* ------------------------------------------------------------
+     ⭐ NEW — Cached trending videos
+  ------------------------------------------------------------- */
+  async function loadTrending() {
     try {
-      const url =
-        `https://www.googleapis.com/youtube/v3/videos?` +
-        `part=snippet,contentDetails,statistics&chart=mostPopular&maxResults=5&regionCode=US&key=${API_KEY}`;
+      const list = await fetchTrendingVideos("US", 5);
 
-      // Correct logger
-      window.bootDebug?.player("Home.jsx → fetchTrending: " + url);
-
-      const res = await fetch(url);
-      const data = await res.json();
-
-      const items = Array.isArray(data?.items) ? data.items : [];
-      setVideos(items);
-
-      if (!items.length) {
-        window.bootDebug?.player("Home.jsx → fetchTrending returned 0 items");
+      if (!Array.isArray(list)) {
+        window.bootDebug?.player("Home.jsx → fetchTrendingVideos returned invalid list");
+        setVideos([]);
+        return;
       }
+
+      // Convert cached format → old snippet format
+      const normalized = list.map((item) => ({
+        id: item.id,
+        snippet: {
+          title: item.title,
+          channelTitle: item.author,
+          description: "",
+          thumbnails: {
+            medium: { url: item.thumbnail }
+          }
+        }
+      }));
+
+      window.bootDebug?.player(`Home.jsx → Trending loaded (${normalized.length} items)`);
+      setVideos(normalized);
     } catch (err) {
-      window.bootDebug?.player(
-        "Home.jsx → fetchTrending error: " + (err?.message || err)
-      );
+      window.bootDebug?.player("Home.jsx → loadTrending error: " + err?.message);
       setVideos([]);
     }
   }
