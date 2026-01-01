@@ -11,12 +11,8 @@ import { recordKeyUsage } from "../debug/keyUsageTracker.js";
 const PRIMARY_KEY = import.meta.env.VITE_YT_API_PRIMARY;
 const FALLBACK_KEY = import.meta.env.VITE_YT_API_FALLBACK1;
 
-if (!PRIMARY_KEY) {
-  console.error("VITE_YT_API_PRIMARY is not set");
-}
-if (!FALLBACK_KEY) {
-  console.warn("VITE_YT_API_FALLBACK1 is not set (fallback disabled)");
-}
+if (!PRIMARY_KEY) console.error("VITE_YT_API_PRIMARY is not set");
+if (!FALLBACK_KEY) console.warn("VITE_YT_API_FALLBACK1 is not set");
 
 // YouTube API quota costs
 const COSTS = {
@@ -25,19 +21,11 @@ const COSTS = {
   channels: 1
 };
 
-/**
- * Core YouTube API fetch with primary→fallback failover.
- *
- * @param {string} endpoint - e.g. "videos"
- * @param {Record<string, string>} params - query params (without key)
- * @returns {Promise<any|null>} - parsed JSON or null on total failure
- */
 export async function youtubeApiRequest(endpoint, params) {
   const baseUrl = `https://www.googleapis.com/youtube/v3/${endpoint}`;
 
   async function tryWithKey(key, label) {
     const url = new URL(baseUrl);
-
     Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
     url.searchParams.set("key", key);
 
@@ -48,27 +36,25 @@ export async function youtubeApiRequest(endpoint, params) {
     const res = await fetch(url.toString());
 
     // ------------------------------------------------------------
-    // ⭐ NEW: Detailed error reason logging BEFORE returning failure
+    // Detailed error logging
     // ------------------------------------------------------------
     if (!res.ok) {
+      const text = await res.text();
       let err = null;
-      try {
-        err = await res.json();
-      } catch (_) {}
+      try { err = JSON.parse(text); } catch {}
 
       const reason = err?.error?.errors?.[0]?.reason;
 
       window.bootDebug?.network(
-        `YT API ${label} ERROR → status=${res.status}, reason=${reason || "unknown"}`
+        `YT API ${label} ERROR → status=${res.status}, reason=${reason || "unknown"}, body=${text}`
       );
 
       return { ok: false, status: res.status, data: null };
     }
 
-    // Success path
+    // Success
     const data = await res.json();
 
-    // Track quota + key usage
     const cost = COSTS[endpoint] ?? 1;
     recordQuotaUsage(key, cost);
     recordKeyUsage(key, label);
@@ -80,47 +66,26 @@ export async function youtubeApiRequest(endpoint, params) {
     return { ok: true, status: res.status, data };
   }
 
-  // 1) Try primary key
+  // Primary
   if (PRIMARY_KEY) {
     try {
       const primary = await tryWithKey(PRIMARY_KEY, "PRIMARY");
       if (primary.ok) return primary.data;
-
-      if ([400, 403, 429].includes(primary.status)) {
-        window.bootDebug?.network(
-          `YT API → Primary key failed with status=${primary.status}, attempting fallback`
-        );
-      } else {
-        window.bootDebug?.network(
-          `YT API → Primary key non-success status=${primary.status}, attempting fallback`
-        );
-      }
     } catch (err) {
-      window.bootDebug?.network(
-        `YT API PRIMARY EXCEPTION → ${err.message}`
-      );
+      window.bootDebug?.network(`YT API PRIMARY EXCEPTION → ${err.message}`);
     }
   }
 
-  // 2) Try fallback key if available
+  // Fallback
   if (FALLBACK_KEY) {
     try {
       const fallback = await tryWithKey(FALLBACK_KEY, "FALLBACK1");
       if (fallback.ok) return fallback.data;
-
-      window.bootDebug?.network(
-        `YT API → Fallback key failed with status=${fallback.status}`
-      );
     } catch (err) {
-      window.bootDebug?.network(
-        `YT API FALLBACK1 EXCEPTION → ${err.message}`
-      );
+      window.bootDebug?.network(`YT API FALLBACK1 EXCEPTION → ${err.message}`);
     }
   }
 
-  // 3) Total failure
-  window.bootDebug?.network(
-    "YT API → All keys failed for endpoint " + endpoint
-  );
+  window.bootDebug?.network("YT API → All keys failed for endpoint " + endpoint);
   return null;
 }
