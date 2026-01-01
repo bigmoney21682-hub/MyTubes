@@ -16,11 +16,11 @@ import { debugBus } from "../../debug/debugBus.js";
 // Media Session metadata helper
 import { updateMediaSessionMetadata } from "../../main.jsx";
 
-// ⭐ Cached API imports
+// Cached API imports
 import { getVideoDetails } from "../../api/video.js";
 import { fetchRelatedVideos } from "../../api/related.js";
 
-// ⭐ Playlists
+// Playlists
 import { usePlaylists } from "../../contexts/PlaylistContext.jsx";
 
 /* ------------------------------------------------------------
@@ -112,22 +112,12 @@ export default function Watch() {
   ------------------------------------------------------------- */
   useEffect(() => {
     AutonextEngine.registerRelatedCallback(() => {
-      debugBus.log("PLAYER", "Watch.jsx → Autonext (related) triggered");
-
       const list = relatedRef.current;
-      if (!Array.isArray(list) || list.length === 0) {
-        debugBus.log("PLAYER", "Watch.jsx → No related videos available");
-        return;
-      }
+      if (!Array.isArray(list) || list.length === 0) return;
 
-      const next = list[0]?.id ?? null;
+      const next = list[0]?.id;
+      if (!next) return;
 
-      if (!next) {
-        debugBus.log("PLAYER", "Watch.jsx → Related[0] missing ID");
-        return;
-      }
-
-      debugBus.log("PLAYER", `Watch.jsx → Autonext → ${next}`);
       navigate(`/watch/${next}`);
       loadVideo(next);
     });
@@ -141,7 +131,6 @@ export default function Watch() {
       const details = await getVideoDetails(videoId);
 
       if (!details) {
-        debugBus.log("PLAYER", "Watch.jsx → getVideoDetails returned null");
         setVideo(null);
         return;
       }
@@ -157,21 +146,19 @@ export default function Watch() {
         },
         statistics: details.statistics
       });
-    } catch (err) {
-      debugBus.log("PLAYER", "Watch.jsx → loadVideoDetails error: " + err?.message);
+    } catch {
       setVideo(null);
     }
   }
 
   /* ------------------------------------------------------------
-     Cached related videos (reshaped to old snippet format)
+     Cached related videos
   ------------------------------------------------------------- */
   async function loadRelated(videoId) {
     try {
       const list = await fetchRelatedVideos(videoId);
 
       if (!Array.isArray(list)) {
-        debugBus.log("NETWORK", "Watch.jsx → fetchRelatedVideos returned invalid list");
         setRelated([]);
         return;
       }
@@ -188,10 +175,8 @@ export default function Watch() {
         }
       }));
 
-      debugBus.log("NETWORK", `Watch.jsx → Related loaded (${normalized.length} items)`);
       setRelated(normalized);
-    } catch (err) {
-      debugBus.log("NETWORK", "Watch.jsx → loadRelated error: " + err?.message);
+    } catch {
       setRelated([]);
     }
   }
@@ -201,8 +186,6 @@ export default function Watch() {
   ------------------------------------------------------------- */
   useEffect(() => {
     if (video && id) {
-      debugBus.log("NETWORK", "Watch.jsx → Retrying related fetch after video loaded");
-
       const sn = video?.snippet ?? {};
       updateMediaSessionMetadata({
         title: sn.title ?? "Untitled",
@@ -249,11 +232,6 @@ export default function Watch() {
       thumbnail: sn.thumbnails?.medium?.url ?? ""
     });
 
-    debugBus.log(
-      "PLAYLIST",
-      `Watch.jsx → Added ${id} to playlist "${playlist.name}"`
-    );
-
     alert(`Added to playlist: ${playlist.name}`);
   }
 
@@ -280,16 +258,19 @@ export default function Watch() {
       style={{
         paddingBottom: "80px",
         color: "#fff",
-        marginTop: "60px"
+        marginTop: "calc(56.25vw + var(--header-height))"  // ⭐ PUSH CONTENT DOWN
       }}
     >
-      {/* Player container (16:9) */}
+      {/* ⭐ FIXED PLAYER AT TOP */}
       <div
         style={{
+          position: "fixed",
+          top: "var(--header-height)",
+          left: 0,
           width: "100%",
-          position: "relative",
-          paddingTop: "56.25%",
-          background: "#000"
+          height: "56.25vw", // 16:9 ratio
+          background: "#000",
+          zIndex: 10
         }}
       >
         <div
@@ -303,7 +284,6 @@ export default function Watch() {
           }}
         ></div>
 
-        {/* Tap overlay with skip controls */}
         <PlayerOverlay related={related} navigate={navigate} />
       </div>
 
