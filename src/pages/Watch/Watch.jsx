@@ -16,9 +16,12 @@ import { debugBus } from "../../debug/debugBus.js";
 // Media Session metadata helper
 import { updateMediaSessionMetadata } from "../../main.jsx";
 
-// ⭐ NEW — cached API imports
+// ⭐ Cached API imports
 import { getVideoDetails } from "../../api/video.js";
 import { fetchRelatedVideos } from "../../api/related.js";
+
+// ⭐ Playlists
+import { usePlaylists } from "../../contexts/PlaylistContext.jsx";
 
 /* ------------------------------------------------------------
    Shared card styles for Related videos
@@ -69,6 +72,11 @@ export default function Watch() {
   const queueAdd = player.queueAdd ?? (() => {});
   const autonextMode = player.autonextMode ?? "related";
   const setAutonextMode = player.setAutonextMode ?? (() => {});
+
+  const { playlists, addVideoToPlaylist } = usePlaylists() ?? {
+    playlists: [],
+    addVideoToPlaylist: () => {}
+  };
 
   const [video, setVideo] = useState(null);
   const [related, setRelated] = useState([]);
@@ -126,7 +134,7 @@ export default function Watch() {
   }, [navigate, loadVideo]);
 
   /* ------------------------------------------------------------
-     ⭐ NEW — Cached video details
+     Cached video details
   ------------------------------------------------------------- */
   async function loadVideoDetails(videoId) {
     try {
@@ -156,7 +164,7 @@ export default function Watch() {
   }
 
   /* ------------------------------------------------------------
-     ⭐ NEW — Cached related videos (reshaped to old snippet format)
+     Cached related videos (reshaped to old snippet format)
   ------------------------------------------------------------- */
   async function loadRelated(videoId) {
     try {
@@ -168,7 +176,6 @@ export default function Watch() {
         return;
       }
 
-      // ⭐ Convert cached format → old snippet format
       const normalized = list.map((item) => ({
         id: item.id,
         snippet: {
@@ -190,8 +197,7 @@ export default function Watch() {
   }
 
   /* ------------------------------------------------------------
-     2nd attempt: run fallback AFTER video details load
-     ⭐ Also update Media Session metadata here
+     Retry related after video load + update Media Session
   ------------------------------------------------------------- */
   useEffect(() => {
     if (video && id) {
@@ -207,6 +213,49 @@ export default function Watch() {
       loadRelated(id);
     }
   }, [video]);
+
+  /* ------------------------------------------------------------
+     Add to Playlist
+  ------------------------------------------------------------- */
+  function handleAddToPlaylist() {
+    if (!id) return;
+
+    if (!playlists || playlists.length === 0) {
+      alert("You have no playlists yet. Create one first.");
+      return;
+    }
+
+    const names = playlists.map((p, i) => `${i + 1}. ${p.name}`).join("\n");
+    const choice = prompt(
+      "Add to which playlist?\n\n" + names + "\n\nEnter number:"
+    );
+
+    if (!choice) return;
+
+    const index = parseInt(choice, 10) - 1;
+    const playlist = playlists[index];
+
+    if (!playlist) {
+      alert("Invalid playlist number.");
+      return;
+    }
+
+    const sn = video?.snippet ?? {};
+
+    addVideoToPlaylist(playlist.id, {
+      id,
+      title: sn.title ?? "Untitled",
+      author: sn.channelTitle ?? "Unknown Channel",
+      thumbnail: sn.thumbnails?.medium?.url ?? ""
+    });
+
+    debugBus.log(
+      "PLAYLIST",
+      `Watch.jsx → Added ${id} to playlist "${playlist.name}"`
+    );
+
+    alert(`Added to playlist: ${playlist.name}`);
+  }
 
   /* ------------------------------------------------------------
      Loading state
@@ -302,7 +351,7 @@ export default function Watch() {
         </select>
       </div>
 
-      <div style={{ padding: "16px" }}>
+      <div style={{ padding: "16px", display: "flex", gap: "8px" }}>
         <button
           onClick={() => queueAdd(id)}
           style={{
@@ -314,6 +363,19 @@ export default function Watch() {
           }}
         >
           + Add to Queue
+        </button>
+
+        <button
+          onClick={handleAddToPlaylist}
+          style={{
+            padding: "10px 16px",
+            background: "#222",
+            color: "#3ea6ff",
+            border: "1px solid #444",
+            borderRadius: "4px"
+          }}
+        >
+          + Playlist
         </button>
       </div>
 
