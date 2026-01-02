@@ -6,6 +6,10 @@
  *              and minimal quota usage.
  */
 
+console.log("PRIMARY KEY:", import.meta.env.VITE_YT_API_PRIMARY);
+console.log("FALLBACK KEY:", import.meta.env.VITE_YT_API_FALLBACK1);
+
+
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
