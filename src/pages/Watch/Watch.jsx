@@ -2,10 +2,12 @@
  * File: Watch.jsx
  * Path: src/pages/Watch/Watch.jsx
  * Description:
- *   Fully optimized Watch page using YouTubeAPI.js
- *   Includes:
- *     - Stable autonext (Fix A)
- *     - Playlist metadata hydration (Fix B)
+ *   Fully optimized Watch page with:
+ *     - Full ID normalization
+ *     - Crash-proof autonext
+ *     - Crash-proof related list
+ *     - Crash-proof playlist mode
+ *     - Stable YouTube API loader
  */
 
 import React, {
@@ -28,6 +30,8 @@ import {
   fetchRelated,
   fetchTrending
 } from "../../api/YouTubeAPI.js";
+
+import { normalizeId } from "../../utils/normalizeId.js";
 
 /* ------------------------------------------------------------
    MEMOIZED PLAYER CONTAINER
@@ -78,7 +82,11 @@ export default function Watch() {
   const location = useLocation();
   const navigate = useNavigate();
 
+  /* ------------------------------------------------------------
+     NORMALIZED VIDEO ID
+  ------------------------------------------------------------ */
   const rawId = params.id;
+  const id = useMemo(() => normalizeId({ id: rawId }), [rawId]);
 
   const searchParams = useMemo(
     () => new URLSearchParams(location.search),
@@ -87,14 +95,6 @@ export default function Watch() {
 
   const srcParam = searchParams.get("src");
   const playlistIdFromURL = searchParams.get("pl");
-
-  const id = useMemo(() => {
-    if (!rawId) return "";
-    if (typeof rawId === "string") return rawId;
-    if (rawId.videoId) return rawId.videoId;
-    if (rawId.id) return rawId.id;
-    return String(rawId);
-  }, [rawId]);
 
   const isPlaylistMode = Boolean(playlistIdFromURL);
 
@@ -280,7 +280,10 @@ export default function Watch() {
         const nextIndex = (index + 1) % playlist.videos.length;
         const nextVideo = playlist.videos[nextIndex];
 
-        navigate(`/watch/${nextVideo.id}?src=playlist&pl=${effectivePlaylistId}`);
+        const nextId = normalizeId(nextVideo);
+        if (!nextId) return;
+
+        navigate(`/watch/${nextId}?src=playlist&pl=${effectivePlaylistId}`);
       };
 
       AutonextEngine.registerPlaylistCallback(playlistHandler);
@@ -298,7 +301,7 @@ export default function Watch() {
       if (!list.length) return;
 
       const next = list[0];
-      const vidId = next.id?.videoId || next.id;
+      const vidId = normalizeId(next);
       if (!vidId) return;
 
       navigate(`/watch/${vidId}?src=related`);
@@ -536,11 +539,14 @@ export default function Watch() {
 
             <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
               {relatedList.map((item) => {
-                const vidId = item.id?.videoId || item.id;
+                const vidId = normalizeId(item);
+                if (!vidId) {
+                  console.warn("Invalid related item:", item);
+                  return null;
+                }
+
                 const thumb = item.snippet?.thumbnails?.medium?.url;
                 const title = item.snippet?.title;
-
-                if (!vidId) return null;
 
                 return (
                   <div
@@ -551,7 +557,11 @@ export default function Watch() {
                       cursor: "pointer"
                     }}
                     onClick={() =>
-                      navigate(`/watch/${vidId}?src=${autonextSource}${effectivePlaylistId ? `&pl=${effectivePlaylistId}` : ""}`)
+                      navigate(
+                        `/watch/${vidId}?src=${autonextSource}${
+                          effectivePlaylistId ? `&pl=${effectivePlaylistId}` : ""
+                        }`
+                      )
                     }
                   >
                     <img
