@@ -108,8 +108,8 @@ function mount() {
     window.bootDebug?.ready?.("main.jsx → app ready");
 
     // ⭐ IMPORTANT:
-    // GlobalPlayer.ensureMounted() is intentionally NOT called here.
-    // Watch.jsx mounts the player ONLY when the #player div exists.
+    // DO NOT mount GlobalPlayer here.
+    // Watch.jsx mounts the player ONLY when #player exists.
 
   } catch (err) {
     window.bootDebug?.error("main.jsx → React mount error: " + err?.message);
