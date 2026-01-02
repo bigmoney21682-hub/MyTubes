@@ -1,51 +1,62 @@
-// File: src/player/PlayerContext.jsx
+/**
+ * File: src/player/PlayerContext.jsx
+ * Description:
+ *   Global player state shared across the app.
+ *   Handles:
+ *     - Current video ID
+ *     - Autonext mode (playlist / related / trending)
+ *     - Active playlist ID (if any)
+ *     - loadVideo() → forwards to GlobalPlayer
+ */
 
-import React, {
-  createContext,
-  useContext,
-  useRef,
-  useState,
-  useCallback
-} from "react";
-
+import React, { createContext, useContext, useState, useCallback } from "react";
 import { GlobalPlayer } from "./GlobalPlayer.js";
-import { AutonextEngine } from "./AutonextEngine.js";
 import { debugBus } from "../debug/debugBus.js";
 
 const PlayerContext = createContext(null);
 
 export function PlayerProvider({ children }) {
-  const [autonextMode, setAutonextModeState] = useState("related");
-  const [activePlaylistId, setActivePlaylistIdState] = useState(null);
+  // ------------------------------------------------------------
+  // Core state
+  // ------------------------------------------------------------
+  const [currentVideoId, setCurrentVideoId] = useState(null);
 
-  const setAutonextMode = useCallback((mode) => {
-    setAutonextModeState(mode);
-    AutonextEngine.setMode(mode);
-  }, []);
+  // "playlist" | "related" | "trending"
+  const [autonextMode, setAutonextMode] = useState("related");
 
-  const setActivePlaylistId = useCallback((id) => {
-    setActivePlaylistIdState(id);
-  }, []);
+  // Active playlist ID (only used when autonextMode === "playlist")
+  const [activePlaylistId, setActivePlaylistId] = useState(null);
 
+  // ------------------------------------------------------------
+  // Load video into GlobalPlayer
+  // ------------------------------------------------------------
   const loadVideo = useCallback((id) => {
     if (!id) return;
-    debugBus.log("PlayerContext → loadVideo(" + id + ")");
+
+    debugBus.player("PlayerContext → loadVideo(" + id + ")");
+    setCurrentVideoId(id);
+
+    // Forward to GlobalPlayer
     GlobalPlayer.load(id);
   }, []);
 
-  const value = useRef({
-    loadVideo,
-    autonextMode,
-    activePlaylistId,
-    setAutonextMode,
-    setActivePlaylistId
-  });
+  // ------------------------------------------------------------
+  // Exposed API
+  // ------------------------------------------------------------
+  const value = {
+    currentVideoId,
 
-  value.current.autonextMode = autonextMode;
-  value.current.activePlaylistId = activePlaylistId;
+    autonextMode,
+    setAutonextMode,
+
+    activePlaylistId,
+    setActivePlaylistId,
+
+    loadVideo
+  };
 
   return (
-    <PlayerContext.Provider value={value.current}>
+    <PlayerContext.Provider value={value}>
       {children}
     </PlayerContext.Provider>
   );
