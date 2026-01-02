@@ -7,13 +7,10 @@
 const listeners = new Set();
 const logs = [];
 
-/**
- * Publish a log entry into the bus.
- * level: string (e.g. "NETWORK", "PLAYER", "ROUTER", "CONSOLE", etc.)
- * msg: string
- * data: optional metadata object
- */
-function log(level, msg, data = null) {
+/* ------------------------------------------------------------
+   Core log emitter
+------------------------------------------------------------- */
+function emit(level, msg, data = null) {
   const entry = {
     level,
     msg,
@@ -23,48 +20,83 @@ function log(level, msg, data = null) {
 
   logs.push(entry);
 
-  // Notify all subscribers with the new entry and full log snapshot
   for (const fn of listeners) {
     try {
       fn(entry, logs);
     } catch (err) {
-      // Never let a subscriber break the bus
-      // eslint-disable-next-line no-console
       console.error("debugBus subscriber error:", err);
     }
   }
 }
 
-/**
- * Subscribe to log updates.
- * fn(entry, allLogs) is called for every new log.
- * Returns an unsubscribe function.
- */
+/* ------------------------------------------------------------
+   Category helpers (REQUIRED by your app)
+------------------------------------------------------------- */
+function log(msg, data) {
+  emit("LOG", msg, data);
+}
+
+function info(msg, data) {
+  emit("INFO", msg, data);
+}
+
+function warn(msg, data) {
+  emit("WARN", msg, data);
+}
+
+function error(msg, data) {
+  emit("ERROR", msg, data);
+}
+
+function player(msg, data) {
+  emit("PLAYER", msg, data);
+}
+
+function router(msg, data) {
+  emit("ROUTER", msg, data);
+}
+
+function perf(msg, data) {
+  emit("PERF", msg, data);
+}
+
+function cmd(msg, data) {
+  emit("CMD", msg, data);
+}
+
+/* ------------------------------------------------------------
+   Subscription API
+------------------------------------------------------------- */
 function subscribe(fn) {
   listeners.add(fn);
-  // Immediately send current logs so late subscribers see history
+
   if (logs.length > 0) {
     try {
       fn(null, logs);
     } catch (err) {
-      // eslint-disable-next-line no-console
       console.error("debugBus initial subscriber error:", err);
     }
   }
-  return () => {
-    listeners.delete(fn);
-  };
+
+  return () => listeners.delete(fn);
 }
 
-/**
- * Get a shallow copy of all logs.
- */
 function getLogs() {
   return logs.slice();
 }
 
+/* ------------------------------------------------------------
+   Export unified debug bus
+------------------------------------------------------------- */
 export const debugBus = {
   log,
+  info,
+  warn,
+  error,
+  player,
+  router,
+  perf,
+  cmd,
   subscribe,
   getLogs
 };
