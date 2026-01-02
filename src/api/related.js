@@ -8,6 +8,7 @@ import { youtubeApiRequest } from "./youtube.js";
 import { getVideoDetails } from "./video.js";
 import { getCachedRelated, setCachedRelated } from "../cache/relatedCache.js";
 import { debugBus } from "../debug/debugBus.js";
+import { normalizeId } from "../utils/normalizeId.js"; // ⭐ CRITICAL
 
 export async function fetchRelatedVideos(videoId) {
   if (!videoId) return [];
@@ -33,18 +34,23 @@ export async function fetchRelatedVideos(videoId) {
   let list = [];
 
   if (Array.isArray(relatedData?.items)) {
-    list = relatedData.items.map((item) => ({
-      id: item.id?.videoId,
-      title: item.snippet?.title,
-      author: item.snippet?.channelTitle,
-      channelId: item.snippet?.channelId,
-      thumbnail: item.snippet?.thumbnails?.medium?.url,
-      published: item.snippet?.publishedAt
-    }));
-  }
+    list = relatedData.items
+      .map((item) => {
+        const id = normalizeId(item);
 
-  // Remove current video
-  list = list.filter((v) => v.id && v.id !== videoId);
+        if (!id || id === videoId) return null;
+
+        return {
+          id,
+          title: item.snippet?.title,
+          author: item.snippet?.channelTitle,
+          channelId: item.snippet?.channelId,
+          thumbnail: item.snippet?.thumbnails?.medium?.url,
+          published: item.snippet?.publishedAt
+        };
+      })
+      .filter(Boolean);
+  }
 
   if (list.length > 0) {
     setCachedRelated(videoId, list);
@@ -70,17 +76,23 @@ export async function fetchRelatedVideos(videoId) {
   let fallback = [];
 
   if (Array.isArray(searchData?.items)) {
-    fallback = searchData.items.map((item) => ({
-      id: item.id?.videoId,
-      title: item.snippet?.title,
-      author: item.snippet?.channelTitle,
-      channelId: item.snippet?.channelId,
-      thumbnail: item.snippet?.thumbnails?.medium?.url,
-      published: item.snippet?.publishedAt
-    }));
-  }
+    fallback = searchData.items
+      .map((item) => {
+        const id = normalizeId(item);
 
-  fallback = fallback.filter((v) => v.id && v.id !== videoId);
+        if (!id || id === videoId) return null;
+
+        return {
+          id,
+          title: item.snippet?.title,
+          author: item.snippet?.channelTitle,
+          channelId: item.snippet?.channelId,
+          thumbnail: item.snippet?.thumbnails?.medium?.url,
+          published: item.snippet?.publishedAt
+        };
+      })
+      .filter(Boolean);
+  }
 
   setCachedRelated(videoId, fallback);
 
