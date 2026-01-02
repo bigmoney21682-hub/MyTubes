@@ -7,6 +7,13 @@
  */
 
 export default function DebugRouter({ logs, colors, formatTime }) {
+  // Safely render any value (string, number, object)
+  function renderValue(v) {
+    if (v == null) return "";
+    if (typeof v === "object") return JSON.stringify(v);
+    return String(v);
+  }
+
   return (
     <div
       style={{
@@ -41,16 +48,18 @@ export default function DebugRouter({ logs, colors, formatTime }) {
             lineHeight: "16px"
           }}
         >
+          {/* Timestamp */}
           <div style={{ opacity: 0.6 }}>
             {formatTime(log.ts)}
           </div>
 
-          <div>{log.msg}</div>
+          {/* Main message (SAFE) */}
+          <div>{renderValue(log.msg)}</div>
 
-          {/* Optional metadata */}
+          {/* Optional metadata (SAFE) */}
           {log.meta && (
             <div style={{ opacity: 0.7, fontSize: 11, marginTop: 2 }}>
-              {JSON.stringify(log.meta)}
+              {renderValue(log.meta)}
             </div>
           )}
         </div>
