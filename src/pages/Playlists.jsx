@@ -2,7 +2,8 @@
  * File: Playlists.jsx
  * Path: src/pages/Playlists.jsx
  * Description: Lists all playlists with video counts, rename/delete
- *              controls, and navigation into individual Playlist pages.
+ *              controls aligned to the right, and navigation into
+ *              individual Playlist pages.
  */
 
 import React from "react";
@@ -58,35 +59,39 @@ export default function Playlists() {
             key={p.id}
             style={{
               paddingBottom: "12px",
-              borderBottom: "1px solid #333"
+              borderBottom: "1px solid #333",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center"
             }}
           >
-            {/* Playlist name as a button */}
-            <Link
-              to={`/playlist/${p.id}`}
-              style={{
-                display: "inline-block",
-                padding: "10px 14px",
-                background: "#222",
-                border: "1px solid #444",
-                borderRadius: "6px",
-                color: "#fff",
-                textDecoration: "none",
-                fontSize: "15px",
-                fontWeight: "bold",
-                marginBottom: "6px"
-              }}
-            >
-              {p.name}
-            </Link>
+            {/* LEFT SIDE: Playlist name + count */}
+            <div>
+              <Link
+                to={`/playlist/${p.id}`}
+                style={{
+                  display: "inline-block",
+                  padding: "10px 14px",
+                  background: "#222",
+                  border: "1px solid #444",
+                  borderRadius: "6px",
+                  color: "#fff",
+                  textDecoration: "none",
+                  fontSize: "15px",
+                  fontWeight: "bold",
+                  marginBottom: "6px"
+                }}
+              >
+                {p.name}
+              </Link>
 
-            {/* Video count */}
-            <div style={{ fontSize: 13, opacity: 0.7, marginTop: "4px" }}>
-              {p.videos.length} videos
+              <div style={{ fontSize: 13, opacity: 0.7, marginTop: "4px" }}>
+                {p.videos.length} videos
+              </div>
             </div>
 
-            {/* Rename + Delete buttons */}
-            <div style={{ marginTop: "10px", display: "flex", gap: "10px" }}>
+            {/* RIGHT SIDE: Rename + Delete */}
+            <div style={{ display: "flex", gap: "10px" }}>
               <button
                 onClick={() => handleRename(p.id, p.name)}
                 style={{
