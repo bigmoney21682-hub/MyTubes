@@ -1,10 +1,10 @@
 /**
  * File: src/pages/Watch/Watch.jsx
  * Description:
- *   Watch page with popup isolation:
- *   - Popup state moved to useRef (no re-render of player container)
- *   - uiTick used only to refresh popup UI
- *   - Prevents NotFoundError from YT.Player
+ *   Watch page with:
+ *     - Popup isolation (useRef)
+ *     - Correct autonext callback registration
+ *     - Stable GlobalPlayer integration
  */
 
 import React, { useEffect, useState, useMemo, useRef } from "react";
@@ -59,7 +59,7 @@ export default function Watch() {
   );
 
   // ------------------------------------------------------------
-  // Popup isolation: useRef + uiTick
+  // Popup isolation
   // ------------------------------------------------------------
   const showSourceMenuRef = useRef(false);
   const showPlaylistPickerRef = useRef(false);
@@ -206,54 +206,54 @@ export default function Watch() {
   }, [id]);
 
   // ------------------------------------------------------------
-  // AutonextEngine callback registration
+  // AutonextEngine callback registration (FIXED)
   // ------------------------------------------------------------
   useEffect(() => {
     const effectivePlaylistId = selectedPlaylistId || playlistIdFromURL || null;
 
-    const playlistHandler = () => {
-      if (autonextSource !== "playlist") return;
-      if (!effectivePlaylistId) return;
+    // Playlist mode ONLY
+    if (autonextSource === "playlist" && effectivePlaylistId) {
+      const playlistHandler = () => {
+        const playlist = playlists.find((p) => p.id === effectivePlaylistId);
+        if (!playlist) return;
 
-      const playlist = playlists.find((p) => p.id === effectivePlaylistId);
-      if (!playlist) return;
+        const index = playlist.videos.findIndex((v) => v.id === id);
+        if (index === -1) return;
 
-      const index = playlist.videos.findIndex((v) => v.id === id);
-      if (index === -1) return;
+        const nextIndex = (index + 1) % playlist.videos.length;
+        const nextVideo = playlist.videos[nextIndex];
 
-      const nextIndex = (index + 1) % playlist.videos.length;
-      const nextVideo = playlist.videos[nextIndex];
+        navigate(`/watch/${nextVideo.id}?src=playlist&pl=${effectivePlaylistId}`);
+      };
 
-      navigate(`/watch/${nextVideo.id}?src=playlist&pl=${effectivePlaylistId}`);
-    };
+      AutonextEngine.registerPlaylistCallback(playlistHandler);
+      AutonextEngine.registerRelatedCallback(null);
 
+      return () => {
+        AutonextEngine.registerPlaylistCallback(null);
+        AutonextEngine.registerRelatedCallback(null);
+      };
+    }
+
+    // Related or Trending mode ONLY
     const relatedHandler = () => {
-      if (autonextSource === "related") {
-        const list = related.length ? related : trending;
-        if (!list.length) return;
+      const list =
+        autonextSource === "trending"
+          ? trending
+          : related.length
+          ? related
+          : trending;
 
-        const next = list[0];
-        const vidId = next.id?.videoId || next.id;
-        if (!vidId) return;
+      if (!list.length) return;
 
-        navigate(`/watch/${vidId}?src=related`);
-        return;
-      }
+      const next = list[0];
+      const vidId = next.id?.videoId || next.id;
+      if (!vidId) return;
 
-      if (autonextSource === "trending") {
-        const list = trending;
-        if (!list.length) return;
-
-        const next = list[0];
-        const vidId = next.id?.videoId || next.id;
-        if (!vidId) return;
-
-        navigate(`/watch/${vidId}?src=trending`);
-        return;
-      }
+      navigate(`/watch/${vidId}?src=${autonextSource}`);
     };
 
-    AutonextEngine.registerPlaylistCallback(playlistHandler);
+    AutonextEngine.registerPlaylistCallback(null);
     AutonextEngine.registerRelatedCallback(relatedHandler);
 
     return () => {
@@ -546,3 +546,4 @@ export default function Watch() {
     </div>
   );
 }
+
