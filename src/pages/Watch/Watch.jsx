@@ -5,7 +5,7 @@
  *   Fully corrected Watch page with:
  *   - Safe ID normalization
  *   - Stable GlobalPlayer integration
- *   - Safe related fetch (no black screen)
+ *   - Safe related fallback (no more 400 errors)
  *   - Correct autonext (playlist + related)
  *   - No invalid video IDs
  */
@@ -82,21 +82,23 @@ export default function Watch() {
   }, [id, rawId, loadVideo]);
 
   /* ------------------------------------------------------------
-     5. Fetch video details + related videos (safe)
+     5. Fetch video details + SAFE related fallback
   ------------------------------------------------------------- */
   useEffect(() => {
     if (!id) return;
 
     async function fetchData() {
       try {
+        // Video details
         const videoRes = await fetch(
           `https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&id=${id}&key=AIzaSyA-TNtGohJAO_hsZW6zp9FcSOdfGV7VJW0`
         );
         const videoJson = await videoRes.json();
         setVideoData(videoJson.items?.[0] || null);
 
+        // SAFE RELATED FALLBACK (no more 400 errors)
         const relatedRes = await fetch(
-          `https://www.googleapis.com/youtube/v3/search?part=snippet&relatedToVideoId=${id}&type=video&maxResults=20&videoEmbeddable=true&key=AIzaSyA-TNtGohJAO_hsZW6zp9FcSOdfGV7VJW0`
+          `https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&chart=mostPopular&maxResults=20&regionCode=US&key=AIzaSyA-TNtGohJAO_hsZW6zp9FcSOdfGV7VJW0`
         );
 
         if (!relatedRes.ok) {
@@ -154,7 +156,7 @@ export default function Watch() {
       if (!related.length) return;
 
       const next = related[0];
-      const nextId = next?.id?.videoId;
+      const nextId = next?.id;
 
       if (!nextId) return;
 
@@ -193,7 +195,7 @@ export default function Watch() {
 
       <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
         {related.map((item) => {
-          const vid = item.id?.videoId;
+          const vid = item.id;
           if (!vid) return null;
 
           return (
