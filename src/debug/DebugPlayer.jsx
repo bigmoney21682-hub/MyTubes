@@ -9,6 +9,13 @@ export default function DebugPlayer({ logs, colors, formatTime }) {
   // Filter only player logs
   const playerLogs = logs.filter((l) => l.level === "PLAYER");
 
+  // Safely render any value (string, number, object)
+  function renderValue(v) {
+    if (v == null) return "";
+    if (typeof v === "object") return JSON.stringify(v);
+    return String(v);
+  }
+
   return (
     <div
       style={{
@@ -47,8 +54,8 @@ export default function DebugPlayer({ logs, colors, formatTime }) {
             {/* Timestamp */}
             <div style={{ opacity: 0.6 }}>{formatTime(ts)}</div>
 
-            {/* Main message */}
-            <div style={{ fontWeight: "bold" }}>{msg}</div>
+            {/* Main message (SAFE) */}
+            <div style={{ fontWeight: "bold" }}>{renderValue(msg)}</div>
 
             {/* Metadata */}
             {data && (
@@ -64,7 +71,7 @@ export default function DebugPlayer({ logs, colors, formatTime }) {
               >
                 {Object.entries(data).map(([key, value]) => (
                   <div key={key} style={{ marginBottom: 4 }}>
-                    <strong>{key}:</strong> {String(value)}
+                    <strong>{key}:</strong> {renderValue(value)}
                   </div>
                 ))}
               </div>
