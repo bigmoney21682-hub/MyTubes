@@ -1,6 +1,7 @@
 // File: src/player/GlobalPlayer.js
 
 import { debugBus } from "../debug/debugBus.js";
+import { AutonextEngine } from "./AutonextEngine.js";
 
 let player = null;
 let apiReady = false;
@@ -22,11 +23,17 @@ function onYouTubeIframeAPIReady() {
         playsinline: 1
       },
       events: {
-        onReady: (event) => {
+        onReady: () => {
           debugBus.log("Player ready");
         },
         onStateChange: (event) => {
           debugBus.log(String(event.data));
+
+          // 0 = ENDED
+          if (event.data === window.YT.PlayerState.ENDED) {
+            debugBus.log("Player state → ENDED, calling AutonextEngine.handleEnded()");
+            AutonextEngine.handleEnded();
+          }
         },
         onError: (event) => {
           debugBus.error("Player error", event.data);
@@ -54,7 +61,7 @@ if (typeof window !== "undefined") {
 
 export const GlobalPlayer = {
   ensureMounted() {
-    // no-op here; mounting is handled by Watch.jsx having #player in DOM
+    // no-op; #player div in Watch.jsx is enough
   },
 
   load(id) {
