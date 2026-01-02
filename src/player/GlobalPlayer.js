@@ -1,4 +1,13 @@
-// File: src/player/GlobalPlayer.js
+/**
+ * File: src/player/GlobalPlayer.js
+ * Description:
+ *   Singleton wrapper around the YouTube IFrame API.
+ *   Handles:
+ *     - API readiness
+ *     - Lazy player creation
+ *     - Safe video loading (only after ready)
+ *     - Autonext integration
+ */
 
 import { debugBus } from "../debug/debugBus.js";
 import { AutonextEngine } from "./AutonextEngine.js";
@@ -8,14 +17,18 @@ let apiReady = false;
 let playerReady = false;
 let pendingLoads = [];
 
-/* YouTube API ready */
+/* ------------------------------------------------------------
+   Called by Watch.jsx when the YouTube API is ready
+------------------------------------------------------------- */
 function onApiReady() {
   debugBus.info("YouTube API ready (GlobalPlayer)");
   apiReady = true;
   ensurePlayer();
 }
 
-/* Ensure player exists */
+/* ------------------------------------------------------------
+   Ensure player exists (lazy creation)
+------------------------------------------------------------- */
 function ensurePlayer() {
   if (!apiReady) return false;
   if (player) return true;
@@ -60,6 +73,7 @@ function ensurePlayer() {
         },
         onStateChange: (event) => {
           debugBus.player("Player state → " + event.data);
+
           if (event.data === window.YT.PlayerState.ENDED) {
             AutonextEngine.handleEnded();
           }
@@ -76,7 +90,9 @@ function ensurePlayer() {
   return true;
 }
 
-/* Only call loadVideoById when safe */
+/* ------------------------------------------------------------
+   Only call loadVideoById when safe
+------------------------------------------------------------- */
 function trySafeLoad(id) {
   if (!player) {
     debugBus.warn("GlobalPlayer.trySafeLoad → no player instance");
@@ -104,7 +120,9 @@ function trySafeLoad(id) {
   }
 }
 
-/* Public API */
+/* ------------------------------------------------------------
+   Public API
+------------------------------------------------------------- */
 export const GlobalPlayer = {
   onApiReady,
 
@@ -126,7 +144,6 @@ export const GlobalPlayer = {
       return;
     }
 
-    // 🔑 No direct loadVideoById here anymore
     trySafeLoad(id);
   }
 };
