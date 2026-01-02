@@ -1,4 +1,16 @@
-import React, { useState } from "react";
+/**
+ * File: VideoActions.jsx
+ * Path: src/components/VideoActions.jsx
+ * Description:
+ *   Action bar for video items.
+ *   Provides:
+ *     - Add to Queue
+ *     - Add to Playlist (popup isolated via useRef)
+ *   Popup isolation ensures this component never triggers a re-render
+ *   of the Watch.jsx player container, preventing YT iframe unmounts.
+ */
+
+import React, { useRef, useState } from "react";
 import { usePlaylists } from "../contexts/PlaylistContext.jsx";
 import { usePlayer } from "../player/PlayerContext.jsx";
 import PlaylistPickerModal from "./PlaylistPickerModal.jsx";
@@ -8,14 +20,22 @@ export default function VideoActions({ videoId, videoSnippet }) {
   const player = usePlayer();
   const queueAdd = player?.queueAdd ?? (() => {});
 
-  const [showPicker, setShowPicker] = useState(false);
+  // Popup isolation
+  const showPickerRef = useRef(false);
+  const [uiTick, setUiTick] = useState(0);
 
-  function handleAddToPlaylist() {
+  function openPicker() {
     if (!playlists || playlists.length === 0) {
       alert("You have no playlists yet. Create one first.");
       return;
     }
-    setShowPicker(true);
+    showPickerRef.current = true;
+    setUiTick(x => x + 1);
+  }
+
+  function closePicker() {
+    showPickerRef.current = false;
+    setUiTick(x => x + 1);
   }
 
   return (
@@ -36,7 +56,7 @@ export default function VideoActions({ videoId, videoSnippet }) {
         </button>
 
         <button
-          onClick={handleAddToPlaylist}
+          onClick={openPicker}
           style={{
             padding: "8px 12px",
             background: "#222",
@@ -50,7 +70,7 @@ export default function VideoActions({ videoId, videoSnippet }) {
         </button>
       </div>
 
-      {showPicker && (
+      {showPickerRef.current && (
         <PlaylistPickerModal
           playlists={playlists}
           onSelect={(playlist) => {
@@ -61,10 +81,10 @@ export default function VideoActions({ videoId, videoSnippet }) {
               thumbnail: videoSnippet?.thumbnails?.medium?.url ?? ""
             });
 
-            setShowPicker(false);
+            closePicker();
             alert(`Added to playlist: ${playlist.name}`);
           }}
-          onClose={() => setShowPicker(false)}
+          onClose={closePicker}
         />
       )}
     </>
