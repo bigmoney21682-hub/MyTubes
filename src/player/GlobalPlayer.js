@@ -1,13 +1,4 @@
-/**
- * File: src/player/GlobalPlayer.js
- * Description:
- *   Singleton wrapper around the YouTube IFrame API.
- *   Handles:
- *     - API readiness
- *     - Lazy player creation
- *     - Safe video loading (only after ready)
- *     - Autonext integration
- */
+// File: src/player/GlobalPlayer.js
 
 import { debugBus } from "../debug/debugBus.js";
 import { AutonextEngine } from "./AutonextEngine.js";
@@ -17,19 +8,14 @@ let apiReady = false;
 let playerReady = false;
 let pendingLoads = [];
 
-/* ------------------------------------------------------------
-   Called by Watch.jsx when the YouTube API is ready
-------------------------------------------------------------- */
+/* YouTube API ready */
 function onApiReady() {
   debugBus.info("YouTube API ready (GlobalPlayer)");
   apiReady = true;
-
   ensurePlayer();
 }
 
-/* ------------------------------------------------------------
-   Ensure player exists (lazy creation)
-------------------------------------------------------------- */
+/* Ensure player exists */
 function ensurePlayer() {
   if (!apiReady) return false;
   if (player) return true;
@@ -61,24 +47,19 @@ function ensurePlayer() {
           debugBus.player("Player ready");
           playerReady = true;
 
-          // Flush any queued loads now that we know
-          // the underlying player is fully initialized.
-          if (pendingLoads.length > 0) {
-            debugBus.player(
-              "GlobalPlayer → flushing queued loads: " + pendingLoads.length
-            );
-          }
-
           const queue = [...pendingLoads];
           pendingLoads = [];
 
-          queue.forEach((id) => {
-            trySafeLoad(id);
-          });
+          if (queue.length) {
+            debugBus.player(
+              "GlobalPlayer → flushing queued loads: " + queue.length
+            );
+          }
+
+          queue.forEach((id) => trySafeLoad(id));
         },
         onStateChange: (event) => {
           debugBus.player("Player state → " + event.data);
-
           if (event.data === window.YT.PlayerState.ENDED) {
             AutonextEngine.handleEnded();
           }
@@ -95,9 +76,7 @@ function ensurePlayer() {
   return true;
 }
 
-/* ------------------------------------------------------------
-   Internal helper: only call loadVideoById when safe
-------------------------------------------------------------- */
+/* Only call loadVideoById when safe */
 function trySafeLoad(id) {
   if (!player) {
     debugBus.warn("GlobalPlayer.trySafeLoad → no player instance");
@@ -125,9 +104,7 @@ function trySafeLoad(id) {
   }
 }
 
-/* ------------------------------------------------------------
-   Public API
-------------------------------------------------------------- */
+/* Public API */
 export const GlobalPlayer = {
   onApiReady,
 
@@ -149,11 +126,7 @@ export const GlobalPlayer = {
       return;
     }
 
-    // At this point we know:
-    // - API is ready
-    // - Player instance exists
-    // But it might not be fully ready on iOS yet,
-    // so we always go through trySafeLoad.
+    // 🔑 No direct loadVideoById here anymore
     trySafeLoad(id);
   }
 };
