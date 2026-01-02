@@ -7,6 +7,26 @@
 import { debugBus } from "../debug/debugBus.js";
 
 let stateListeners = [];
+let apiReady = false;
+
+// ------------------------------------------------------------
+// Load YouTube IFrame API ONCE
+// ------------------------------------------------------------
+(function loadYouTubeAPI() {
+  if (window.YT && window.YT.Player) {
+    apiReady = true;
+    return;
+  }
+
+  const tag = document.createElement("script");
+  tag.src = "https://www.youtube.com/iframe_api";
+  document.head.appendChild(tag);
+
+  window.onYouTubeIframeAPIReady = () => {
+    apiReady = true;
+    debugBus.log("YouTube API ready");
+  };
+})();
 
 export const GlobalPlayer = {
   player: null,
@@ -49,6 +69,12 @@ export const GlobalPlayer = {
       return;
     }
 
+    if (!apiReady) {
+      debugBus.log("GlobalPlayer", "YT API not ready, retrying…");
+      setTimeout(() => this.load(id), 100);
+      return;
+    }
+
     debugBus.log("GlobalPlayer", `Loading video ${id}`);
 
     // Destroy previous instance if needed
@@ -65,6 +91,9 @@ export const GlobalPlayer = {
         rel: 0
       },
       events: {
+        onReady: () => {
+          debugBus.log("GlobalPlayer", "Player ready");
+        },
         onStateChange: (event) => {
           this._emitState(event.data);
         }
