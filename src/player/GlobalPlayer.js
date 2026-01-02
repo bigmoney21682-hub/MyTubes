@@ -5,7 +5,7 @@
  *   Handles:
  *     - API readiness
  *     - Lazy player creation
- *     - Safe video loading
+ *     - Safe video loading (only after ready)
  *     - Autonext integration
  */
 
@@ -14,6 +14,7 @@ import { AutonextEngine } from "./AutonextEngine.js";
 
 let player = null;
 let apiReady = false;
+let playerReady = false;
 let pendingLoads = [];
 
 /* ------------------------------------------------------------
@@ -24,14 +25,6 @@ function onApiReady() {
   apiReady = true;
 
   ensurePlayer();
-
-  // Flush queued loads
-  if (pendingLoads.length > 0) {
-    debugBus.info("GlobalPlayer → flushing queued loads: " + pendingLoads.length);
-  }
-
-  pendingLoads.forEach((id) => GlobalPlayer.load(id));
-  pendingLoads = [];
 }
 
 /* ------------------------------------------------------------
@@ -51,6 +44,8 @@ function ensurePlayer() {
   debugBus.info("GlobalPlayer.ensurePlayer → creating YT.Player");
 
   try {
+    playerReady = false;
+
     player = new window.YT.Player("player", {
       height: "220",
       width: "100%",
@@ -64,6 +59,22 @@ function ensurePlayer() {
       events: {
         onReady: () => {
           debugBus.player("Player ready");
+          playerReady = true;
+
+          // Flush any queued loads now that we know
+          // the underlying player is fully initialized.
+          if (pendingLoads.length > 0) {
+            debugBus.player(
+              "GlobalPlayer → flushing queued loads: " + pendingLoads.length
+            );
+          }
+
+          const queue = [...pendingLoads];
+          pendingLoads = [];
+
+          queue.forEach((id) => {
+            trySafeLoad(id);
+          });
         },
         onStateChange: (event) => {
           debugBus.player("Player state → " + event.data);
@@ -82,6 +93,36 @@ function ensurePlayer() {
   }
 
   return true;
+}
+
+/* ------------------------------------------------------------
+   Internal helper: only call loadVideoById when safe
+------------------------------------------------------------- */
+function trySafeLoad(id) {
+  if (!player) {
+    debugBus.warn("GlobalPlayer.trySafeLoad → no player instance");
+    pendingLoads.push(id);
+    return;
+  }
+
+  if (!playerReady || typeof player.loadVideoById !== "function") {
+    debugBus.info(
+      "GlobalPlayer.trySafeLoad → player not ready or loadVideoById missing, queueing " +
+        id
+    );
+    pendingLoads.push(id);
+    return;
+  }
+
+  debugBus.player("GlobalPlayer.trySafeLoad → loadVideoById(" + id + ")");
+
+  try {
+    player.loadVideoById(id);
+  } catch (err) {
+    debugBus.error(
+      "GlobalPlayer.trySafeLoad → loadVideoById failed: " + err?.message
+    );
+  }
 }
 
 /* ------------------------------------------------------------
@@ -108,12 +149,11 @@ export const GlobalPlayer = {
       return;
     }
 
-    debugBus.player("Loading video " + id);
-
-    try {
-      player.loadVideoById(id);
-    } catch (err) {
-      debugBus.error("GlobalPlayer.load → loadVideoById failed: " + err?.message);
-    }
+    // At this point we know:
+    // - API is ready
+    // - Player instance exists
+    // But it might not be fully ready on iOS yet,
+    // so we always go through trySafeLoad.
+    trySafeLoad(id);
   }
 };
