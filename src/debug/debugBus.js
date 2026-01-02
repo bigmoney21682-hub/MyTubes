@@ -1,14 +1,17 @@
 /**
  * File: debugBus.js
  * Path: src/debug/debugBus.js
- * Description: Central debug event bus. Stores all logs and notifies subscribers.
+ * Description:
+ *   Central debug event bus.
+ *   Stores all logs and notifies subscribers.
+ *   Provides category helpers used across the entire app.
  */
 
 const listeners = new Set();
 const logs = [];
 
 /* ------------------------------------------------------------
-   Core log emitter
+   Core emitter
 ------------------------------------------------------------- */
 function emit(level, msg, data = null) {
   const entry = {
@@ -70,6 +73,7 @@ function cmd(msg, data) {
 function subscribe(fn) {
   listeners.add(fn);
 
+  // Send full history immediately to new subscribers
   if (logs.length > 0) {
     try {
       fn(null, logs);
