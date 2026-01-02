@@ -1,14 +1,4 @@
-/**
- * File: src/pages/Watch/Watch.jsx
- * Description:
- *   Stable Watch page with:
- *   - Playlist + Related autonext
- *   - Autonext toggle
- *   - Add to playlist button
- *   - Correct autonext lifecycle (prevents stale callbacks)
- *   - Correct defaulting logic
- *   - Stable video loading
- */
+// File: src/pages/Watch/Watch.jsx
 
 import React, { useEffect, useState, useMemo } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
@@ -21,50 +11,49 @@ import { usePlaylists } from "../../contexts/PlaylistContext.jsx";
 import { debugBus } from "../../debug/debugBus.js";
 
 export default function Watch() {
-  /* ------------------------------------------------------------
-     1. Normalize route ID
-  ------------------------------------------------------------- */
+  // ------------------------------------------------------------
+  // 1. Normalize route ID
+  // ------------------------------------------------------------
   const params = useParams();
   const rawId = params.id;
 
-  const id =
-    typeof rawId === "string"
-      ? rawId
-      : rawId?.id || rawId?.videoId || "";
+  const id = useMemo(() => {
+    if (!rawId) return "";
+    if (typeof rawId === "string") return rawId;
+
+    // Handles cases like { videoId: "abc" } or { id: "abc" }
+    if (rawId.videoId) return rawId.videoId;
+    if (rawId.id) return rawId.id;
+
+    return String(rawId);
+  }, [rawId]);
 
   const navigate = useNavigate();
   const location = useLocation();
 
-  const {
-    loadVideo,
-    setAutonextMode,
-    setActivePlaylistId
-  } = usePlayer();
-
+  const { loadVideo, setAutonextMode, setActivePlaylistId } = usePlayer();
   const { playlists, openAddToPlaylist } = usePlaylists();
 
   const [videoData, setVideoData] = useState(null);
   const [related, setRelated] = useState([]);
-
   const [autonextEnabled, setAutonextEnabled] = useState(true);
 
-  /* Detect playlist mode */
   const playlistIdFromURL = useMemo(() => {
     return new URLSearchParams(location.search).get("pl");
   }, [location.search]);
 
   const isPlaylistMode = Boolean(playlistIdFromURL);
 
-  /* ------------------------------------------------------------
-     2. Ensure GlobalPlayer mounts
-  ------------------------------------------------------------- */
+  // ------------------------------------------------------------
+  // 2. Ensure GlobalPlayer mounts
+  // ------------------------------------------------------------
   useEffect(() => {
     GlobalPlayer.ensureMounted();
   }, []);
 
-  /* ------------------------------------------------------------
-     3. Determine autonext mode (playlist or related)
-  ------------------------------------------------------------- */
+  // ------------------------------------------------------------
+  // 3. Set autonext mode based on URL
+  // ------------------------------------------------------------
   useEffect(() => {
     if (isPlaylistMode) {
       setAutonextMode("playlist");
@@ -77,19 +66,18 @@ export default function Watch() {
     }
   }, [isPlaylistMode, playlistIdFromURL, setAutonextMode, setActivePlaylistId]);
 
-  /* ------------------------------------------------------------
-     4. Load video (once per ID)
-  ------------------------------------------------------------- */
+  // ------------------------------------------------------------
+  // 4. Load video when ID changes
+  // ------------------------------------------------------------
   useEffect(() => {
     if (!id) return;
     debugBus.log("Watch.jsx → load(" + id + ")");
     loadVideo(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
+  }, [id, loadVideo]);
 
-  /* ------------------------------------------------------------
-     5. Fetch video details + related fallback
-  ------------------------------------------------------------- */
+  // ------------------------------------------------------------
+  // 5. Fetch video details + related
+  // ------------------------------------------------------------
   useEffect(() => {
     if (!id) return;
 
@@ -112,7 +100,8 @@ export default function Watch() {
 
         const relatedJson = await relatedRes.json();
         setRelated(relatedJson.items || []);
-      } catch {
+      } catch (err) {
+        debugBus.error("Watch.jsx → fetch error", err);
         setRelated([]);
       }
     }
@@ -120,12 +109,9 @@ export default function Watch() {
     fetchData();
   }, [id]);
 
-  /* ------------------------------------------------------------
-     6. FULL AUTONEXT LIFECYCLE (restored)
-     - Prevents stale callbacks
-     - Prevents "r is not a function"
-     - Re-registers on ID change, mode change, related change
-  ------------------------------------------------------------- */
+  // ------------------------------------------------------------
+  // 6. Autonext lifecycle (playlist + related)
+  // ------------------------------------------------------------
   useEffect(() => {
     debugBus.log("Autonext lifecycle → registering callbacks");
 
@@ -142,7 +128,6 @@ export default function Watch() {
       const nextVideo = playlist.videos[nextIndex];
 
       navigate(`/watch/${nextVideo.id}?src=playlist&pl=${playlistIdFromURL}`);
-      loadVideo(nextVideo.id);
     };
 
     const relatedHandler = () => {
@@ -154,7 +139,6 @@ export default function Watch() {
       if (!nextId) return;
 
       navigate(`/watch/${nextId}?src=related`);
-      loadVideo(nextId);
     };
 
     AutonextEngine.registerPlaylistCallback(playlistHandler);
@@ -171,13 +155,12 @@ export default function Watch() {
     playlists,
     playlistIdFromURL,
     autonextEnabled,
-    navigate,
-    loadVideo
+    navigate
   ]);
 
-  /* ------------------------------------------------------------
-     7. UI Handlers
-  ------------------------------------------------------------- */
+  // ------------------------------------------------------------
+  // 7. UI handlers
+  // ------------------------------------------------------------
   const handleToggleAutonext = () => {
     const next = !autonextEnabled;
     setAutonextEnabled(next);
@@ -194,12 +177,11 @@ export default function Watch() {
     });
   };
 
-  /* ------------------------------------------------------------
-     8. Render
-  ------------------------------------------------------------- */
+  // ------------------------------------------------------------
+  // 8. Render
+  // ------------------------------------------------------------
   return (
     <div style={{ padding: "16px", color: "#fff" }}>
-      {/* Player container */}
       <div
         id="player"
         style={{
@@ -210,7 +192,6 @@ export default function Watch() {
         }}
       />
 
-      {/* Video title */}
       {videoData && (
         <div style={{ marginBottom: "12px" }}>
           <h2 style={{ fontSize: "18px", fontWeight: "600" }}>
@@ -222,7 +203,6 @@ export default function Watch() {
         </div>
       )}
 
-      {/* Controls row */}
       <div
         style={{
           display: "flex",
@@ -264,7 +244,6 @@ export default function Watch() {
         </span>
       </div>
 
-      {/* Related list */}
       <h3 style={{ marginBottom: "10px" }}>Related Videos</h3>
 
       <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
