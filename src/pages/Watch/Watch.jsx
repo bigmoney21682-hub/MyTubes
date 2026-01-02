@@ -76,7 +76,8 @@ export default function Watch() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const src = params.get("src");
+
+  const src = params.get("src");          // "playlist" or "related"
   const playlistIdFromNav = params.get("pl");
 
   const player = usePlayer() ?? {};
@@ -107,9 +108,11 @@ export default function Watch() {
   }, []);
 
   /* ------------------------------------------------------------
-     Force autonext mode based on navigation source
+     ⭐ FIXED: Force autonext mode ONLY after src is available
   ------------------------------------------------------------- */
   useEffect(() => {
+    if (src === null) return; // ⭐ Prevent premature "related" mode
+
     if (src === "playlist") {
       setAutonextMode("playlist");
       AutonextEngine.setMode("playlist");
@@ -404,7 +407,7 @@ export default function Watch() {
               padding: "8px 12px",
               background: autonextMode === "playlist" ? "#3ea6ff" : "#222",
               color: autonextMode === "playlist" ? "#000" : "#fff",
-              border: "1px solid #444",
+              border: "1px solid "#444",
               borderRadius: "4px",
               fontSize: "13px"
             }}
