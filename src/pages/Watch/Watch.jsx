@@ -1,13 +1,22 @@
 /**
- * File: src/pages/Watch/Watch.jsx
+ * File: Watch.jsx
+ * Path: src/pages/Watch/Watch.jsx
  * Description:
- *   Watch page with:
- *     - Popup isolation (useRef)
- *     - Correct autonext callback registration
- *     - Stable GlobalPlayer integration
+ *   Main video watch page.
+ *   Provides:
+ *     - Stable YouTube player container (memoized)
+ *     - Popup isolation for Autonext menu + Playlist picker
+ *     - Correct autonext callback registration (playlist / related / trending)
+ *     - Fully stable continuous play pipeline
+ *     - Zero unmounts of #player → prevents NotFoundError
  */
 
-import React, { useEffect, useState, useMemo, useRef } from "react";
+import React, {
+  useEffect,
+  useState,
+  useMemo,
+  useRef
+} from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 
 import { usePlayer } from "../../player/PlayerContext.jsx";
@@ -18,6 +27,23 @@ import { usePlaylists } from "../../contexts/PlaylistContext.jsx";
 import { debugBus } from "../../debug/debugBus.js";
 
 const YT_API_KEY = "AIzaSyA-TNtGohJAO_hsZW6zp9FcSOdfGV7VJW0";
+
+/* ------------------------------------------------------------
+   MEMOIZED PLAYER CONTAINER (prevents iframe unmount)
+------------------------------------------------------------ */
+const PlayerContainer = React.memo(() => {
+  return (
+    <div
+      id="player"
+      style={{
+        width: "100%",
+        height: "220px",
+        background: "#000",
+        marginBottom: "12px"
+      }}
+    />
+  );
+});
 
 export default function Watch() {
   const params = useParams();
@@ -58,9 +84,9 @@ export default function Watch() {
     isPlaylistMode ? "playlist" : "related"
   );
 
-  // ------------------------------------------------------------
-  // Popup isolation
-  // ------------------------------------------------------------
+  /* ------------------------------------------------------------
+     POPUP ISOLATION (useRef + uiTick)
+------------------------------------------------------------ */
   const showSourceMenuRef = useRef(false);
   const showPlaylistPickerRef = useRef(false);
   const [uiTick, setUiTick] = useState(0);
@@ -85,9 +111,9 @@ export default function Watch() {
     setUiTick((x) => x + 1);
   }
 
-  // ------------------------------------------------------------
-  // Autonext mode correction
-  // ------------------------------------------------------------
+  /* ------------------------------------------------------------
+     Autonext mode correction
+------------------------------------------------------------ */
   useEffect(() => {
     setAutonextSource((prev) => {
       if (prev === "playlist" && !isPlaylistMode && !selectedPlaylistId) {
@@ -97,9 +123,9 @@ export default function Watch() {
     });
   }, [isPlaylistMode, selectedPlaylistId]);
 
-  // ------------------------------------------------------------
-  // YouTube API loader
-  // ------------------------------------------------------------
+  /* ------------------------------------------------------------
+     YouTube API loader
+------------------------------------------------------------ */
   useEffect(() => {
     if (window.YT && window.YT.Player) {
       debugBus.log("YT API already loaded (Watch.jsx)");
@@ -123,9 +149,9 @@ export default function Watch() {
     };
   }, []);
 
-  // ------------------------------------------------------------
-  // Autonext mode → PlayerContext
-  // ------------------------------------------------------------
+  /* ------------------------------------------------------------
+     Autonext mode → PlayerContext
+------------------------------------------------------------ */
   useEffect(() => {
     if (autonextSource === "playlist" && (selectedPlaylistId || playlistIdFromURL)) {
       setAutonextMode("playlist");
@@ -145,18 +171,18 @@ export default function Watch() {
     setActivePlaylistId
   ]);
 
-  // ------------------------------------------------------------
-  // Load video into GlobalPlayer
-  // ------------------------------------------------------------
+  /* ------------------------------------------------------------
+     Load video into GlobalPlayer
+------------------------------------------------------------ */
   useEffect(() => {
     if (!id) return;
     debugBus.player("PlayerContext → loadVideo(" + id + ")");
     loadVideo(id);
   }, [id, loadVideo]);
 
-  // ------------------------------------------------------------
-  // Fetch video + related + trending
-  // ------------------------------------------------------------
+  /* ------------------------------------------------------------
+     Fetch video + related + trending
+------------------------------------------------------------ */
   useEffect(() => {
     if (!id) return;
 
@@ -181,9 +207,7 @@ export default function Watch() {
 
           relatedItems = relatedJson.items;
         } catch (innerErr) {
-          debugBus.warn(
-            "Watch.jsx → related search failed, will rely on trending"
-          );
+          debugBus.warn("Watch.jsx → related search failed, will rely on trending");
         }
 
         setRelated(relatedItems);
@@ -205,9 +229,9 @@ export default function Watch() {
     fetchData();
   }, [id]);
 
-  // ------------------------------------------------------------
-  // AutonextEngine callback registration (FIXED)
-  // ------------------------------------------------------------
+  /* ------------------------------------------------------------
+     AutonextEngine callback registration (FIXED)
+------------------------------------------------------------ */
   useEffect(() => {
     const effectivePlaylistId = selectedPlaylistId || playlistIdFromURL || null;
 
@@ -271,9 +295,9 @@ export default function Watch() {
     navigate
   ]);
 
-  // ------------------------------------------------------------
-  // Related list selection
-  // ------------------------------------------------------------
+  /* ------------------------------------------------------------
+     Related list selection
+------------------------------------------------------------ */
   const effectivePlaylistId = selectedPlaylistId || playlistIdFromURL || null;
 
   const relatedList = useMemo(() => {
@@ -313,9 +337,9 @@ export default function Watch() {
     return "Related";
   }, [autonextSource]);
 
-  // ------------------------------------------------------------
-  // Popup styles
-  // ------------------------------------------------------------
+  /* ------------------------------------------------------------
+     Popup styles
+------------------------------------------------------------ */
   const overlayStyle = {
     position: "fixed",
     top: 0,
@@ -350,18 +374,15 @@ export default function Watch() {
     cursor: "pointer"
   };
 
-  // ------------------------------------------------------------
-  // Render
-  // ------------------------------------------------------------
+  /* ------------------------------------------------------------
+     Render
+------------------------------------------------------------ */
   return (
     <div style={{ padding: "16px", color: "#fff" }}>
       {/* Autonext Source Menu */}
       {showSourceMenuRef.current && (
         <div style={overlayStyle} onClick={closeSourceMenu}>
-          <div
-            style={menuStyle}
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div style={menuStyle} onClick={(e) => e.stopPropagation()}>
             <h3 style={{ marginBottom: "12px", fontSize: "16px" }}>
               Autonext Source
             </h3>
@@ -402,10 +423,7 @@ export default function Watch() {
       {/* Playlist Picker */}
       {showPlaylistPickerRef.current && (
         <div style={overlayStyle} onClick={closePlaylistPicker}>
-          <div
-            style={menuStyle}
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div style={menuStyle} onClick={(e) => e.stopPropagation()}>
             <h3 style={{ marginBottom: "12px", fontSize: "16px" }}>
               Choose Playlist
             </h3>
@@ -433,16 +451,8 @@ export default function Watch() {
         </div>
       )}
 
-      {/* Player Container */}
-      <div
-        id="player"
-        style={{
-          width: "100%",
-          height: "220px",
-          background: "#000",
-          marginBottom: "12px"
-        }}
-      />
+      {/* MEMOIZED PLAYER */}
+      <PlayerContainer />
 
       {/* Video Info */}
       {videoData && (
@@ -546,4 +556,3 @@ export default function Watch() {
     </div>
   );
 }
-
