@@ -1,14 +1,13 @@
 /**
- * File: Watch.jsx
- * Path: src/pages/Watch/Watch.jsx
+ * File: src/pages/Watch/Watch.jsx
  * Description:
- *   Watch page with:
- *   - Stable video loading
- *   - Full autonext lifecycle restored
- *   - Playlist + Related autonext only
+ *   Stable Watch page with:
+ *   - Playlist + Related autonext
  *   - Autonext toggle
  *   - Add to playlist button
- *   - Source indicator
+ *   - Correct autonext lifecycle (prevents stale callbacks)
+ *   - Correct defaulting logic
+ *   - Stable video loading
  */
 
 import React, { useEffect, useState, useMemo } from "react";
@@ -122,11 +121,10 @@ export default function Watch() {
   }, [id]);
 
   /* ------------------------------------------------------------
-     6. FULL AUTONEXT LIFECYCLE RESTORED
-     - Cleanup old callbacks
-     - Register new callbacks
-     - Prevent stale references
-     - Prevent "r is not a function"
+     6. FULL AUTONEXT LIFECYCLE (restored)
+     - Prevents stale callbacks
+     - Prevents "r is not a function"
+     - Re-registers on ID change, mode change, related change
   ------------------------------------------------------------- */
   useEffect(() => {
     debugBus.log("Autonext lifecycle → registering callbacks");
