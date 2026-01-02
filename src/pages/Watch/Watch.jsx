@@ -25,6 +25,10 @@ export default function Watch() {
      1. Normalize route ID (fixes [object Object])
   ------------------------------------------------------------- */
   const params = useParams();
+
+  debugBus.log("Watch.jsx → raw route param", params.id);
+debugBus.log("Watch.jsx → typeof param", typeof params.id);
+
   const rawId = params.id;
 
   const id =
