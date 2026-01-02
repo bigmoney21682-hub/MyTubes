@@ -1,9 +1,8 @@
 /**
  * File: Playlists.jsx
  * Path: src/pages/Playlists.jsx
- * Description: Lists all playlists with video counts and navigation
- *              into individual Playlist pages. Playlist names are
- *              now styled as clickable buttons.
+ * Description: Lists all playlists with video counts, rename/delete
+ *              controls, and navigation into individual Playlist pages.
  */
 
 import React from "react";
@@ -11,7 +10,7 @@ import { Link } from "react-router-dom";
 import { usePlaylists } from "../contexts/PlaylistContext.jsx";
 
 export default function Playlists() {
-  const { playlists, addPlaylist } = usePlaylists();
+  const { playlists, addPlaylist, renamePlaylist, deletePlaylist } = usePlaylists();
 
   function handleCreate() {
     const name = prompt("Name your playlist:");
@@ -19,10 +18,22 @@ export default function Playlists() {
     addPlaylist(name);
   }
 
+  function handleRename(id, currentName) {
+    const name = prompt("Rename playlist:", currentName);
+    if (!name) return;
+    renamePlaylist(id, name);
+  }
+
+  function handleDelete(id) {
+    if (!confirm("Delete this playlist?")) return;
+    deletePlaylist(id);
+  }
+
   return (
     <div style={{ padding: "16px", color: "#fff" }}>
       <h2 style={{ marginBottom: "16px" }}>Your Playlists</h2>
 
+      {/* Create new playlist */}
       <button
         onClick={handleCreate}
         style={{
@@ -72,6 +83,37 @@ export default function Playlists() {
             {/* Video count */}
             <div style={{ fontSize: 13, opacity: 0.7, marginTop: "4px" }}>
               {p.videos.length} videos
+            </div>
+
+            {/* Rename + Delete buttons */}
+            <div style={{ marginTop: "10px", display: "flex", gap: "10px" }}>
+              <button
+                onClick={() => handleRename(p.id, p.name)}
+                style={{
+                  padding: "6px 10px",
+                  background: "#333",
+                  color: "#fff",
+                  border: "1px solid #555",
+                  borderRadius: "4px",
+                  fontSize: "13px"
+                }}
+              >
+                Rename
+              </button>
+
+              <button
+                onClick={() => handleDelete(p.id)}
+                style={{
+                  padding: "6px 10px",
+                  background: "#400",
+                  color: "#fff",
+                  border: "1px solid #600",
+                  borderRadius: "4px",
+                  fontSize: "13px"
+                }}
+              >
+                Delete
+              </button>
             </div>
           </div>
         ))}
