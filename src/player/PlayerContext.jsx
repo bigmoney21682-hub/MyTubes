@@ -1,86 +1,74 @@
 /**
  * File: PlayerContext.jsx
  * Path: src/player/PlayerContext.jsx
- * Description: Global player state + autonext mode controller +
- *              active playlist tracking for continuous playlist play.
+ * Description:
+ *   Stable global player context providing:
+ *   - loadVideo(id)
+ *   - autonext mode
+ *   - active playlist ID
+ *   - no StrictMode reload loops
  */
 
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useEffect
-} from "react";
-
+import React, { createContext, useContext, useRef, useState, useCallback } from "react";
 import { GlobalPlayer } from "./GlobalPlayer.js";
+import { AutonextEngine } from "./AutonextEngine.js";
 import { debugBus } from "../debug/debugBus.js";
 
 const PlayerContext = createContext(null);
 
-export function usePlayer() {
-  return useContext(PlayerContext);
-}
-
 export function PlayerProvider({ children }) {
   /* ------------------------------------------------------------
-     Core player state
+     1. Autonext mode + playlist state
   ------------------------------------------------------------- */
-  const [currentId, setCurrentId] = useState(null);
-  const [playerState, setPlayerState] = useState("paused");
+  const [autonextMode, setAutonextModeState] = useState("related"); // "related" | "playlist"
+  const [activePlaylistId, setActivePlaylistIdState] = useState(null);
 
-  /* ------------------------------------------------------------
-     Autonext mode (related | playlist)
-     (Watch.jsx handles actual autonext logic)
-  ------------------------------------------------------------- */
-  const [autonextMode, setAutonextModeState] = useState("related");
-
-  function setAutonextMode(mode) {
-    debugBus.log("PLAYER", `Autonext mode → ${mode}`);
+  const setAutonextMode = useCallback((mode) => {
     setAutonextModeState(mode);
-  }
+    AutonextEngine.setMode(mode);
+  }, []);
 
-  /* ------------------------------------------------------------
-     Active playlist ID (for continuous playlist play)
-  ------------------------------------------------------------- */
-  const [activePlaylistId, setActivePlaylistId] = useState(null);
-
-  /* ------------------------------------------------------------
-     Load video
-  ------------------------------------------------------------- */
-  function loadVideo(id) {
-    setCurrentId(id);
-    GlobalPlayer.load(id);
-  }
-
-  /* ------------------------------------------------------------
-     Player state listener
-     (Watch.jsx handles autonext trigger)
-  ------------------------------------------------------------- */
-  useEffect(() => {
-    GlobalPlayer.onStateChange((state) => {
-      setPlayerState(state);
-      debugBus.log("PlayerContext → Player state:", state);
-    });
+  const setActivePlaylistId = useCallback((id) => {
+    setActivePlaylistIdState(id);
   }, []);
 
   /* ------------------------------------------------------------
-     Provide context
+     2. Stable loadVideo() function
+        - NEVER changes identity
+        - Prevents infinite reload loops
   ------------------------------------------------------------- */
+  const loadVideo = useCallback((id) => {
+    if (!id) {
+      debugBus.error("PlayerContext → loadVideo called with invalid id:", id);
+      return;
+    }
+
+    debugBus.log("PlayerContext → loadVideo(" + id + ")");
+    GlobalPlayer.load(id);
+  }, []);
+
+  /* ------------------------------------------------------------
+     3. Provide stable context value
+  ------------------------------------------------------------- */
+  const value = useRef({
+    loadVideo,
+    autonextMode,
+    activePlaylistId,
+    setAutonextMode,
+    setActivePlaylistId
+  });
+
+  // Update mutable fields without changing object identity
+  value.current.autonextMode = autonextMode;
+  value.current.activePlaylistId = activePlaylistId;
+
   return (
-    <PlayerContext.Provider
-      value={{
-        currentId,
-        playerState,
-        loadVideo,
-
-        autonextMode,
-        setAutonextMode,
-
-        activePlaylistId,
-        setActivePlaylistId
-      }}
-    >
+    <PlayerContext.Provider value={value.current}>
       {children}
     </PlayerContext.Provider>
   );
+}
+
+export function usePlayer() {
+  return useContext(PlayerContext);
 }
