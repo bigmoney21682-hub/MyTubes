@@ -95,7 +95,8 @@ export default function Watch() {
   }, []);
 
   /* ------------------------------------------------------------
-     Load video + fetch metadata when ID changes
+     Load video + fetch metadata + related when ID changes
+     ⭐ FIX: Related loads ONLY here (no second fetch)
   ------------------------------------------------------------- */
   useEffect(() => {
     if (!id) return;
@@ -104,7 +105,7 @@ export default function Watch() {
     loadVideo(id);
 
     loadVideoDetails(id);
-    loadRelated(id);
+    loadRelated(id); // ⭐ Only call once
   }, [id]);
 
   /* ------------------------------------------------------------
@@ -182,7 +183,7 @@ export default function Watch() {
   }
 
   /* ------------------------------------------------------------
-     Retry related after video load + update Media Session
+     Media Session metadata ONLY (no second related fetch)
   ------------------------------------------------------------- */
   useEffect(() => {
     if (video && id) {
@@ -192,10 +193,8 @@ export default function Watch() {
         artist: sn.channelTitle ?? "Unknown Channel",
         artwork: sn.thumbnails?.medium?.url ?? ""
       });
-
-      loadRelated(id);
     }
-  }, [video]);
+  }, [video, id]);
 
   /* ------------------------------------------------------------
      Add to Playlist
@@ -258,7 +257,7 @@ export default function Watch() {
       style={{
         paddingBottom: "80px",
         color: "#fff",
-        marginTop: "calc(56.25vw + var(--header-height))"  // ⭐ PUSH CONTENT DOWN
+        marginTop: "calc(56.25vw + var(--header-height))"
       }}
     >
       {/* ⭐ FIXED PLAYER AT TOP */}
@@ -268,7 +267,7 @@ export default function Watch() {
           top: "var(--header-height)",
           left: 0,
           width: "100%",
-          height: "56.25vw", // 16:9 ratio
+          height: "56.25vw",
           background: "#000",
           zIndex: 10
         }}
