@@ -8,7 +8,6 @@
 
 import React, {
   useEffect,
-  useLayoutEffect,
   useState,
   useRef
 } from "react";
@@ -103,15 +102,11 @@ export default function Watch() {
     relatedRef.current = related;
   }, [related]);
 
-  useLayoutEffect(() => {
-    GlobalPlayer.ensureMounted();
-  }, []);
-
   /* ------------------------------------------------------------
      ⭐ FIXED: Force autonext mode ONLY after src is available
   ------------------------------------------------------------- */
   useEffect(() => {
-    if (src === null) return; // ⭐ Prevent premature "related" mode
+    if (src === null) return; // Prevent premature "related" mode
 
     if (src === "playlist") {
       setAutonextMode("playlist");
@@ -127,24 +122,16 @@ export default function Watch() {
   }, [src, playlistIdFromNav]);
 
   /* ------------------------------------------------------------
-     Load video + related
+     Load video + related (single stable load)
   ------------------------------------------------------------- */
   useEffect(() => {
     if (!id) return;
 
-    const wait = setInterval(() => {
-      if (GlobalPlayer.mounted) {
-        clearInterval(wait);
+    debugBus.log("PLAYER", `Watch.jsx → loadVideo(${id})`);
+    loadVideo(id);
 
-        debugBus.log("PLAYER", `Watch.jsx → loadVideo(${id})`);
-        loadVideo(id);
-
-        loadVideoDetails(id);
-        loadRelated(id);
-      }
-    }, 50);
-
-    return () => clearInterval(wait);
+    loadVideoDetails(id);
+    loadRelated(id);
   }, [id, loadVideo]);
 
   /* ------------------------------------------------------------
@@ -407,7 +394,7 @@ export default function Watch() {
               padding: "8px 12px",
               background: autonextMode === "playlist" ? "#3ea6ff" : "#222",
               color: autonextMode === "playlist" ? "#000" : "#fff",
-              border: "1px solid #444",   // ⭐ FIXED LINE
+              border: "1px solid #444",
               borderRadius: "4px",
               fontSize: "13px"
             }}
