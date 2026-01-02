@@ -8,15 +8,19 @@ let apiReady = false;
 let pendingLoads = [];
 
 /* ------------------------------------------------------------
-   Called by YouTube API script
+   Called by Watch.jsx when the YouTube API is ready
 ------------------------------------------------------------- */
-window.onYouTubeIframeAPIReady = () => {
+function onApiReady() {
   debugBus.log("YouTube API ready (GlobalPlayer)");
   apiReady = true;
 
+  // Try to create the player now that API is ready
+  ensurePlayer();
+
+  // Flush any queued loads
   pendingLoads.forEach((id) => GlobalPlayer.load(id));
   pendingLoads = [];
-};
+}
 
 /* ------------------------------------------------------------
    Ensure player exists (lazy creation)
@@ -27,11 +31,12 @@ function ensurePlayer() {
 
   const container = document.getElementById("player");
   if (!container) {
+    debugBus.log("GlobalPlayer.ensurePlayer → #player missing, retrying…");
     setTimeout(ensurePlayer, 50);
     return false;
   }
 
-  debugBus.log("Creating YT.Player");
+  debugBus.log("GlobalPlayer.ensurePlayer → creating YT.Player");
 
   player = new window.YT.Player("player", {
     height: "220",
@@ -44,11 +49,14 @@ function ensurePlayer() {
       playsinline: 1
     },
     events: {
-      onReady: () => debugBus.log("Player ready"),
+      onReady: () => {
+        debugBus.log("Player ready");
+      },
       onStateChange: (event) => {
         debugBus.log(String(event.data));
 
         if (event.data === window.YT.PlayerState.ENDED) {
+          debugBus.log("Player state → ENDED → AutonextEngine.handleEnded()");
           AutonextEngine.handleEnded();
         }
       },
@@ -62,27 +70,36 @@ function ensurePlayer() {
 }
 
 /* ------------------------------------------------------------
-   GlobalPlayer API
+   Public API
 ------------------------------------------------------------- */
 export const GlobalPlayer = {
+  // Called by Watch.jsx when the API script fires its callback
+  onApiReady,
+
   ensureMounted() {
-    // no-op
+    // no-op for now; kept for compatibility
   },
 
   load(id) {
     if (!id) return;
 
     if (!apiReady) {
+      debugBus.log("GlobalPlayer.load → API not ready, queueing " + id);
       pendingLoads.push(id);
       return;
     }
 
     if (!ensurePlayer()) {
+      debugBus.log("GlobalPlayer.load → player not ready, queueing " + id);
       pendingLoads.push(id);
       return;
     }
 
     debugBus.log("Loading video " + id);
-    player.loadVideoById(id);
+    try {
+      player.loadVideoById(id);
+    } catch (err) {
+      debugBus.error("GlobalPlayer.load error:", err);
+    }
   }
 };
