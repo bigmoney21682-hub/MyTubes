@@ -1,130 +1,116 @@
 /**
  * File: Search.jsx
  * Path: src/pages/Search.jsx
- * Description: Search results page using cached YouTube Data API wrapper
- *              with stacked 16:9 thumbnails and quota‑safe behavior.
+ * Description: Search page with Smart SearchCache (TTL + reuse counter).
  */
 
-import React, { useEffect, useState } from "react";
-import { useLocation, Link } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
+
+import { searchVideos } from "../api/search.js"; // your existing API wrapper
 import { debugBus } from "../debug/debugBus.js";
 
-// ⭐ NEW — cached search API
-import { searchVideos } from "../api/search.js";
-
-const cardStyle = {
-  width: "100%",
-  marginBottom: "20px",
-  textDecoration: "none",
-  color: "#fff",
-  display: "block"
-};
-
-const thumbStyle = {
-  width: "100%",
-  aspectRatio: "16 / 9",
-  objectFit: "cover",
-  borderRadius: "8px",
-  marginBottom: "8px"
-};
-
-const titleStyle = {
-  fontSize: "16px",
-  fontWeight: "bold",
-  marginBottom: "4px"
-};
-
-const channelStyle = {
-  fontSize: "13px",
-  opacity: 0.7,
-  marginBottom: "6px"
-};
-
-const descStyle = {
-  fontSize: "13px",
-  opacity: 0.8,
-  lineHeight: 1.4
-};
+// Smart cache
+import {
+  getSearchCache,
+  setSearchCache
+} from "../cache/SearchCache.js";
 
 export default function Search() {
-  const location = useLocation();
-  const [results, setResults] = useState([]);
-
-  const params = new URLSearchParams(location.search);
+  const [params] = useSearchParams();
   const query = params.get("q") || "";
 
+  const [loading, setLoading] = useState(false);
+  const [results, setResults] = useState([]);
+
+  // ------------------------------------------------------------
+  // Load search results when query changes
+  // ------------------------------------------------------------
   useEffect(() => {
-    if (!query) return;
+    if (!query.trim()) {
+      setResults([]);
+      return;
+    }
 
-    debugBus.log("PLAYER", "Search.jsx → Searching: " + query);
-    loadResults(query);
-  }, [query]);
+    async function runSearch() {
+      setLoading(true);
 
-  /* ------------------------------------------------------------
-     ⭐ NEW — Cached search
-  ------------------------------------------------------------- */
-  async function loadResults(q) {
-    try {
-      const list = await searchVideos(q, 20);
-
-      if (!Array.isArray(list)) {
-        debugBus.log("PLAYER", "Search.jsx → searchVideos returned invalid list");
-        setResults([]);
+      // 1. Try cache first
+      const cached = getSearchCache(query);
+      if (cached) {
+        debugBus.log("NETWORK", `SearchCache → HIT for "${query}"`);
+        setResults(cached);
+        setLoading(false);
         return;
       }
 
-      // Convert cached format → old snippet format
-      const normalized = list.map((item) => ({
-        id: { videoId: item.id },
-        snippet: {
-          title: item.title,
-          channelTitle: item.author,
-          description: "",
-          thumbnails: {
-            medium: { url: item.thumbnail }
-          }
-        }
-      }));
+      // 2. Cache MISS → call API
+      debugBus.log("NETWORK", `SearchCache → MISS for "${query}"`);
 
-      debugBus.log("PLAYER", `Search.jsx → Loaded ${normalized.length} results`);
-      setResults(normalized);
-    } catch (err) {
-      debugBus.log("PLAYER", "Search.jsx → loadResults error: " + err?.message);
-      setResults([]);
+      const data = await searchVideos(query);
+
+      if (data && data.items) {
+        setSearchCache(query, data.items);
+        setResults(data.items);
+      } else {
+        setResults([]);
+      }
+
+      setLoading(false);
     }
-  }
 
+    runSearch();
+  }, [query]);
+
+  // ------------------------------------------------------------
+  // UI
+  // ------------------------------------------------------------
   return (
-    <div style={{ padding: "16px", color: "#fff" }}>
-      <h2 style={{ marginBottom: "12px" }}>
-        Search results for: {query || "…"}
-      </h2>
+    <div style={{ padding: "12px" }}>
+      <h2 style={{ marginBottom: 12 }}>Search: {query}</h2>
 
-      {results.map((item, i) => {
-        const vid = item?.id?.videoId;
-        const sn = item?.snippet ?? {};
-        const thumb = sn?.thumbnails?.medium?.url ?? "";
+      {loading && <div style={{ color: "#888" }}>Loading…</div>}
 
-        if (!vid) return null;
+      {!loading && results.length === 0 && (
+        <div style={{ color: "#888" }}>No results found.</div>
+      )}
 
-        return (
-          <Link
-            key={vid + "_" + i}
-            to={`/watch/${vid}`}
-            style={cardStyle}
-          >
-            <img
-              src={thumb}
-              alt={sn.title ?? "Video thumbnail"}
-              style={thumbStyle}
-            />
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        {results.map((item) => {
+          const video = item.id?.videoId || item.id;
+          const snippet = item.snippet;
 
-            <div style={titleStyle}>{sn.title ?? "Untitled"}</div>
-            <div style={channelStyle}>{sn.channelTitle ?? "Unknown Channel"}</div>
-            <div style={descStyle}>{sn.description ?? ""}</div>
-          </Link>
-        );
-      })}
+          return (
+            <a
+              key={video}
+              href={`#/watch?v=${video}`}
+              style={{
+                display: "flex",
+                gap: 12,
+                textDecoration: "none",
+                color: "#fff",
+                borderBottom: "1px solid #333",
+                paddingBottom: 12
+              }}
+            >
+              <img
+                src={snippet?.thumbnails?.medium?.url}
+                alt=""
+                style={{ width: 160, height: 90, objectFit: "cover" }}
+              />
+
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: "bold", marginBottom: 4 }}>
+                  {snippet?.title}
+                </div>
+                <div style={{ fontSize: 12, opacity: 0.7 }}>
+                  {snippet?.channelTitle}
+                </div>
+              </div>
+            </a>
+          );
+        })}
+      </div>
     </div>
   );
 }
