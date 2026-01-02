@@ -40,7 +40,7 @@ export function updateMediaSessionMetadata({ title, artist, artwork }) {
 }
 
 import "./index.css";
-import React, { useEffect } from "react";
+import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 
@@ -79,9 +79,6 @@ import { PlayerProvider } from "./player/PlayerContext.jsx";
 import { PlaylistProvider } from "./contexts/PlaylistContext.jsx";
 import DebugOverlay from "./debug/DebugOverlay.jsx";
 
-// ⭐ GlobalPlayer must be mounted ONCE here
-import { GlobalPlayer } from "./player/GlobalPlayer.js";
-
 function mount() {
   window.bootDebug?.boot("main.jsx → React root mounting");
 
@@ -110,13 +107,9 @@ function mount() {
     window.bootDebug?.boot("main.jsx → React root mounted");
     window.bootDebug?.ready?.("main.jsx → app ready");
 
-    // ------------------------------------------------------------
-    // ⭐ CRITICAL FIX: Mount the YouTube player once, globally
-    // ------------------------------------------------------------
-    setTimeout(() => {
-      window.bootDebug?.boot("main.jsx → mounting GlobalPlayer");
-      GlobalPlayer.ensureMounted();
-    }, 0);
+    // ⭐ IMPORTANT:
+    // GlobalPlayer.ensureMounted() is intentionally NOT called here.
+    // Watch.jsx mounts the player ONLY when the #player div exists.
 
   } catch (err) {
     window.bootDebug?.error("main.jsx → React mount error: " + err?.message);
