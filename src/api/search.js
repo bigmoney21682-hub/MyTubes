@@ -2,16 +2,12 @@
  * File: search.js
  * Path: src/api/search.js
  * Description: Thin wrapper around YouTube Search API.
- * Uses youtubeApiRequest() with clean logging + safe params.
  */
 
 import { youtubeApiRequest } from "./youtube.js";
 import { debugBus } from "../debug/debugBus.js";
+import { normalizeId } from "../utils/normalizeId.js";
 
-/**
- * Performs a YouTube search for videos.
- * Returns: { items: [...] } or null
- */
 export async function searchVideos(query) {
   if (!query || !query.trim()) {
     debugBus.log("NETWORK", `SearchAPI → SKIP (empty query)`);
@@ -30,15 +26,27 @@ export async function searchVideos(query) {
 
   const data = await youtubeApiRequest("search", params);
 
-  if (!data) {
+  if (!data || !Array.isArray(data.items)) {
     debugBus.log("NETWORK", `SearchAPI → FAIL for "${query}"`);
-    return null;
+    return { items: [] };
   }
+
+  const normalizedItems = data.items
+    .map((item) => {
+      const id = normalizeId(item);
+      if (!id) return null;
+
+      return {
+        ...item,
+        id
+      };
+    })
+    .filter(Boolean);
 
   debugBus.log(
     "NETWORK",
-    `SearchAPI → OK for "${query}", items=${data.items?.length ?? 0}`
+    `SearchAPI → OK for "${query}", normalized=${normalizedItems.length}`
   );
 
-  return data;
+  return { items: normalizedItems };
 }
