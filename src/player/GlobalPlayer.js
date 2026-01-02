@@ -1,6 +1,7 @@
 /**
  * File: GlobalPlayer.js
- * Description: Centralized YouTube/Piped player wrapper with event dispatch.
+ * Path: src/player/GlobalPlayer.js
+ * Description: Centralized YouTube IFrame Player wrapper with event dispatch.
  */
 
 import { debugBus } from "../debug/debugBus.js";
@@ -40,7 +41,7 @@ export const GlobalPlayer = {
   },
 
   /* ------------------------------------------------------------
-     Load a video into the player
+     Load a video into the YouTube IFrame Player
   ------------------------------------------------------------- */
   load(id) {
     if (!this.mounted) {
@@ -55,17 +56,19 @@ export const GlobalPlayer = {
       this.player.destroy();
     }
 
-    // Create new player
-    this.player = new window.PipedPlayer("#player", {
-      id,
-      autoplay: true,
-      controls: true,
-      related: false
-    });
-
-    // Hook into player events
-    this.player.on("stateChange", (state) => {
-      this._emitState(state);
+    // Create new YouTube IFrame Player
+    this.player = new window.YT.Player("player", {
+      videoId: id,
+      playerVars: {
+        autoplay: 1,
+        controls: 1,
+        rel: 0
+      },
+      events: {
+        onStateChange: (event) => {
+          this._emitState(event.data);
+        }
+      }
     });
   }
 };
