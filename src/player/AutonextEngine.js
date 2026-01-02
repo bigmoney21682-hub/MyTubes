@@ -1,96 +1,52 @@
 /**
  * File: AutonextEngine.js
- * Path: src/player/AutonextEngine.js
- * Description: Centralized autonext dispatcher for multiple modes.
- *
- * Supports:
- *   - "related"
- *   - "playlist"
- *   - "trending" (placeholder)
- *   - "music" (placeholder)
- *
- * Guarantees:
- *   - Only ONE callback per mode
- *   - No stale closures
- *   - No double triggers
- *   - No crashes if callback missing
+ * Description: Handles autonext logic for related + playlist modes.
  */
 
-class AutonextEngineClass {
-  constructor() {
-    // Each mode gets its own callback
-    this.callbacks = {
-      related: null,
-      playlist: null,
-      trending: null,
-      music: null
-    };
-  }
+import { debugBus } from "../debug/debugBus.js";
+import { QueueStore } from "./QueueStore.js";
 
-  /**
-   * Register a callback for a specific autonext mode.
-   * Example:
-   *   AutonextEngine.register("related", () => { ... })
-   */
-  register(mode, cb) {
-    if (typeof cb !== "function") {
-      window.bootDebug?.player(
-        `AutonextEngine → register(${mode}) ignored (not a function)`
-      );
-      return;
-    }
+let mode = "related";
+let relatedCallback = null;
 
-    if (!this.callbacks.hasOwnProperty(mode)) {
-      window.bootDebug?.player(
-        `AutonextEngine → register(${mode}) ignored (unknown mode)`
-      );
-      return;
-    }
+export const AutonextEngine = {
+  /* ------------------------------------------------------------
+     Set mode (related | playlist)
+  ------------------------------------------------------------- */
+  setMode(m) {
+    mode = m;
+    debugBus.log("AutonextEngine", `Mode set → ${mode}`);
+  },
 
-    this.callbacks[mode] = cb;
-    window.bootDebug?.player(
-      `AutonextEngine → callback registered for mode="${mode}"`
-    );
-  }
-
-  /**
-   * Trigger autonext for the given mode.
-   * Called by PlayerContext when the video ends.
-   */
-  trigger(mode) {
-    const cb = this.callbacks[mode];
-
-    if (!cb) {
-      window.bootDebug?.player(
-        `AutonextEngine → No callback registered for mode="${mode}"`
-      );
-      return;
-    }
-
-    try {
-      window.bootDebug?.player(
-        `AutonextEngine → Triggering callback for mode="${mode}"`
-      );
-      cb();
-    } catch (err) {
-      window.bootDebug?.player(
-        `AutonextEngine → Error in ${mode} callback: ${err?.message || err}`
-      );
-    }
-  }
-
-  /**
-   * Convenience: legacy API for "related" mode.
-   * Keeps your existing Watch.jsx code working.
-   */
+  /* ------------------------------------------------------------
+     Register related-mode callback
+  ------------------------------------------------------------- */
   registerRelatedCallback(cb) {
-    this.register("related", cb);
-  }
+    relatedCallback = cb;
+  },
 
-  triggerRelated() {
-    this.trigger("related");
-  }
-}
+  /* ------------------------------------------------------------
+     Trigger autonext
+  ------------------------------------------------------------- */
+  trigger() {
+    debugBus.log("AutonextEngine", `Triggering callback for mode="${mode}"`);
 
-export const AutonextEngine = new AutonextEngineClass();
-window.AutonextEngine = AutonextEngine;
+    if (mode === "playlist") {
+      const next = QueueStore.next();
+      if (next) {
+        debugBus.log("AutonextEngine", `Playlist next → ${next}`);
+        window.location.href = `/watch/${next}`;
+      } else {
+        debugBus.log("AutonextEngine", "Playlist ended");
+      }
+      return;
+    }
+
+    // Related mode
+    if (relatedCallback) {
+      relatedCallback();
+    } else {
+      debugBus.log("AutonextEngine", "No related callback registered");
+    }
+  }
+};
