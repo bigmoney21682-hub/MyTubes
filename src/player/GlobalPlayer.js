@@ -1,109 +1,72 @@
-/**
- * File: GlobalPlayer.js
- * Path: src/player/GlobalPlayer.js
- * Description: Centralized YouTube IFrame Player wrapper with event dispatch.
- */
+// File: src/player/GlobalPlayer.js
 
 import { debugBus } from "../debug/debugBus.js";
 
-let stateListeners = [];
+let player = null;
+let apiReady = false;
+let pendingLoads = [];
 
-/* ------------------------------------------------------------
-   Load YouTube IFrame API ONCE
-------------------------------------------------------------- */
-(function loadYouTubeAPI() {
-  debugBus.log("YouTube", "Loader executed");
+function onYouTubeIframeAPIReady() {
+  debugBus.log("YouTube API ready");
+  apiReady = true;
 
-  if (window.YT && window.YT.Player) {
-    debugBus.log("YouTube", "YT already available");
-    return;
-  }
-
-  if (!document.querySelector('script[src="https://www.youtube.com/iframe_api"]')) {
-    debugBus.log("YouTube", "Injecting iframe_api script");
-
-    const tag = document.createElement("script");
-    tag.src = "https://www.youtube.com/iframe_api";
-    document.head.appendChild(tag);
-
-    debugBus.log("YouTube", "iframe_api appended");
-  }
-
-  window.onYouTubeIframeAPIReady = () => {
-    debugBus.log("YouTube API ready");
-  };
-})();
-
-/* ------------------------------------------------------------
-   GlobalPlayer API
-------------------------------------------------------------- */
-export const GlobalPlayer = {
-  player: null,
-  mounted: false,
-
-  onStateChange(cb) {
-    stateListeners.push(cb);
-  },
-
-  _emitState(state) {
-    debugBus.log("GlobalPlayer → State:", state);
-    stateListeners.forEach((cb) => cb(state));
-  },
-
-  ensureMounted() {
-    if (this.mounted) return;
-
-    const el = document.getElementById("player");
-    if (!el) {
-      debugBus.log("GlobalPlayer", "ensureMounted → #player not found");
-      return;
-    }
-
-    this.mounted = true;
-    debugBus.log("GlobalPlayer", "Mounted");
-  },
-
-  load(id) {
-    debugBus.log("GlobalPlayer", `load(${id}) called`);
-
-    if (!this.mounted) {
-      debugBus.log("GlobalPlayer", "load() called before mounted");
-      return;
-    }
-
-    if (!window.YT || !window.YT.Player) {
-      debugBus.log("GlobalPlayer", "YT API not ready, retrying…");
-      setTimeout(() => this.load(id), 100);
-      return;
-    }
-
-    const videoId = typeof id === "string" ? id : "";
-    if (!videoId) {
-      debugBus.error("GlobalPlayer", "Invalid video id passed to load()");
-      return;
-    }
-
-    debugBus.log("GlobalPlayer", `Loading video ${videoId}`);
-
-    if (this.player?.destroy) {
-      this.player.destroy();
-    }
-
-    this.player = new window.YT.Player("player", {
-      videoId,
+  if (!player) {
+    player = new window.YT.Player("player", {
+      height: "220",
+      width: "100%",
+      videoId: "",
       playerVars: {
-        autoplay: 1,
+        autoplay: 0,
         controls: 1,
-        rel: 0
+        rel: 0,
+        playsinline: 1
       },
       events: {
-        onReady: () => {
-          debugBus.log("GlobalPlayer", "Player ready");
+        onReady: (event) => {
+          debugBus.log("Player ready");
         },
         onStateChange: (event) => {
-          this._emitState(event.data);
+          debugBus.log(String(event.data));
+        },
+        onError: (event) => {
+          debugBus.error("Player error", event.data);
         }
       }
     });
+  }
+
+  pendingLoads.forEach((id) => load(id));
+  pendingLoads = [];
+}
+
+if (typeof window !== "undefined") {
+  if (!window.onYouTubeIframeAPIReady) {
+    window.onYouTubeIframeAPIReady = onYouTubeIframeAPIReady;
+  }
+
+  if (!document.getElementById("youtube-iframe-api")) {
+    const tag = document.createElement("script");
+    tag.id = "youtube-iframe-api";
+    tag.src = "https://www.youtube.com/iframe_api";
+    document.head.appendChild(tag);
+  }
+}
+
+export const GlobalPlayer = {
+  ensureMounted() {
+    // no-op here; mounting is handled by Watch.jsx having #player in DOM
+  },
+
+  load(id) {
+    if (!id) return;
+
+    if (!apiReady || !player) {
+      debugBus.log("YT API not ready, queueing load(" + id + ")");
+      pendingLoads.push(id);
+      return;
+    }
+
+    debugBus.log("Loading video " + id);
+    player.loadVideoById(id);
   }
 };
