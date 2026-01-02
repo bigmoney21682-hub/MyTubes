@@ -1,4 +1,13 @@
-// File: src/pages/Watch/Watch.jsx
+/**
+ * File: src/pages/Watch/Watch.jsx
+ * Description:
+ *   Stable Watch page with:
+ *   - YouTube API script loader
+ *   - Lazy player creation
+ *   - Playlist + Related autonext
+ *   - Autonext toggle
+ *   - Add to playlist button
+ */
 
 import React, { useEffect, useState, useMemo } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
@@ -20,11 +29,8 @@ export default function Watch() {
   const id = useMemo(() => {
     if (!rawId) return "";
     if (typeof rawId === "string") return rawId;
-
-    // Handles cases like { videoId: "abc" } or { id: "abc" }
     if (rawId.videoId) return rawId.videoId;
     if (rawId.id) return rawId.id;
-
     return String(rawId);
   }, [rawId]);
 
@@ -45,29 +51,43 @@ export default function Watch() {
   const isPlaylistMode = Boolean(playlistIdFromURL);
 
   // ------------------------------------------------------------
-  // 2. Ensure GlobalPlayer mounts
+  // 2. Load YouTube API script (correct place)
   // ------------------------------------------------------------
   useEffect(() => {
-    GlobalPlayer.ensureMounted();
+    if (window.YT && window.YT.Player) {
+      debugBus.log("YT API already loaded");
+      GlobalPlayer.ensureMounted();
+      return;
+    }
+
+    debugBus.log("Injecting YouTube API script");
+
+    const tag = document.createElement("script");
+    tag.src = "https://www.youtube.com/iframe_api";
+    tag.id = "youtube-iframe-api";
+    document.body.appendChild(tag);
+
+    window.onYouTubeIframeAPIReady = () => {
+      debugBus.log("YouTube API ready (Watch.jsx)");
+      GlobalPlayer.ensureMounted();
+    };
   }, []);
 
   // ------------------------------------------------------------
-  // 3. Set autonext mode based on URL
+  // 3. Set autonext mode
   // ------------------------------------------------------------
   useEffect(() => {
     if (isPlaylistMode) {
       setAutonextMode("playlist");
       setActivePlaylistId(playlistIdFromURL);
-      debugBus.log("Mode set → playlist");
     } else {
       setAutonextMode("related");
       setActivePlaylistId(null);
-      debugBus.log("Mode set → related");
     }
   }, [isPlaylistMode, playlistIdFromURL, setAutonextMode, setActivePlaylistId]);
 
   // ------------------------------------------------------------
-  // 4. Load video when ID changes
+  // 4. Load video
   // ------------------------------------------------------------
   useEffect(() => {
     if (!id) return;
@@ -76,7 +96,7 @@ export default function Watch() {
   }, [id, loadVideo]);
 
   // ------------------------------------------------------------
-  // 5. Fetch video details + related
+  // 5. Fetch video + related
   // ------------------------------------------------------------
   useEffect(() => {
     if (!id) return;
@@ -92,17 +112,10 @@ export default function Watch() {
         const relatedRes = await fetch(
           `https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&chart=mostPopular&maxResults=20&regionCode=US&key=AIzaSyA-TNtGohJAO_hsZW6zp9FcSOdfGV7VJW0`
         );
-
-        if (!relatedRes.ok) {
-          setRelated([]);
-          return;
-        }
-
         const relatedJson = await relatedRes.json();
         setRelated(relatedJson.items || []);
       } catch (err) {
-        debugBus.error("Watch.jsx → fetch error", err);
-        setRelated([]);
+        debugBus.error("Watch.jsx fetch error", err);
       }
     }
 
@@ -110,16 +123,14 @@ export default function Watch() {
   }, [id]);
 
   // ------------------------------------------------------------
-  // 6. Autonext lifecycle (playlist + related)
+  // 6. Autonext lifecycle
   // ------------------------------------------------------------
   useEffect(() => {
-    debugBus.log("Autonext lifecycle → registering callbacks");
-
     const playlistHandler = () => {
       if (!autonextEnabled) return;
 
       const playlist = playlists.find((p) => p.id === playlistIdFromURL);
-      if (!playlist || !playlist.videos.length) return;
+      if (!playlist) return;
 
       const index = playlist.videos.findIndex((v) => v.id === id);
       if (index === -1) return;
@@ -135,50 +146,22 @@ export default function Watch() {
       if (!related.length) return;
 
       const next = related[0];
-      const nextId = next?.id;
-      if (!nextId) return;
+      if (!next?.id) return;
 
-      navigate(`/watch/${nextId}?src=related`);
+      navigate(`/watch/${next.id}?src=related`);
     };
 
     AutonextEngine.registerPlaylistCallback(playlistHandler);
     AutonextEngine.registerRelatedCallback(relatedHandler);
 
     return () => {
-      debugBus.log("Autonext lifecycle → cleanup");
       AutonextEngine.registerPlaylistCallback(null);
       AutonextEngine.registerRelatedCallback(null);
     };
-  }, [
-    id,
-    related,
-    playlists,
-    playlistIdFromURL,
-    autonextEnabled,
-    navigate
-  ]);
+  }, [id, related, playlists, playlistIdFromURL, autonextEnabled, navigate]);
 
   // ------------------------------------------------------------
-  // 7. UI handlers
-  // ------------------------------------------------------------
-  const handleToggleAutonext = () => {
-    const next = !autonextEnabled;
-    setAutonextEnabled(next);
-    debugBus.log("Autonext → " + (next ? "enabled" : "disabled"));
-  };
-
-  const handleAddToPlaylist = () => {
-    if (!id || !videoData) return;
-
-    openAddToPlaylist({
-      id,
-      title: videoData.snippet.title,
-      thumbnail: videoData.snippet.thumbnails?.medium?.url
-    });
-  };
-
-  // ------------------------------------------------------------
-  // 8. Render
+  // 7. UI
   // ------------------------------------------------------------
   return (
     <div style={{ padding: "16px", color: "#fff" }}>
@@ -197,27 +180,18 @@ export default function Watch() {
           <h2 style={{ fontSize: "18px", fontWeight: "600" }}>
             {videoData.snippet.title}
           </h2>
-          <div style={{ opacity: 0.7, marginTop: "4px", fontSize: "13px" }}>
+          <div style={{ opacity: 0.7, fontSize: "13px" }}>
             {videoData.snippet.channelTitle}
           </div>
         </div>
       )}
 
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "10px",
-          marginBottom: "16px"
-        }}
-      >
+      <div style={{ display: "flex", gap: "10px", marginBottom: "16px" }}>
         <button
-          onClick={handleToggleAutonext}
+          onClick={() => setAutonextEnabled(!autonextEnabled)}
           style={{
             padding: "6px 10px",
             borderRadius: "999px",
-            border: "none",
-            fontSize: "13px",
             background: autonextEnabled ? "#22c55e" : "#4b5563",
             color: "#fff"
           }}
@@ -226,12 +200,16 @@ export default function Watch() {
         </button>
 
         <button
-          onClick={handleAddToPlaylist}
+          onClick={() =>
+            openAddToPlaylist({
+              id,
+              title: videoData?.snippet?.title,
+              thumbnail: videoData?.snippet?.thumbnails?.medium?.url
+            })
+          }
           style={{
             padding: "6px 10px",
             borderRadius: "999px",
-            border: "none",
-            fontSize: "13px",
             background: "#3b82f6",
             color: "#fff"
           }}
@@ -242,52 +220,6 @@ export default function Watch() {
         <span style={{ fontSize: "11px", opacity: 0.7 }}>
           Source: {isPlaylistMode ? "Playlist" : "Related"}
         </span>
-      </div>
-
-      <h3 style={{ marginBottom: "10px" }}>Related Videos</h3>
-
-      <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-        {related.map((item) => {
-          const vid = item.id;
-          if (!vid) return null;
-
-          return (
-            <div
-              key={vid}
-              onClick={() => navigate(`/watch/${vid}?src=related`)}
-              style={{
-                display: "flex",
-                gap: "12px",
-                cursor: "pointer"
-              }}
-            >
-              <img
-                src={item.snippet.thumbnails.medium.url}
-                alt=""
-                style={{
-                  width: "140px",
-                  height: "80px",
-                  objectFit: "cover",
-                  borderRadius: "6px"
-                }}
-              />
-              <div>
-                <div style={{ fontWeight: "600", fontSize: "14px" }}>
-                  {item.snippet.title}
-                </div>
-                <div
-                  style={{
-                    opacity: 0.7,
-                    fontSize: "12px",
-                    marginTop: "2px"
-                  }}
-                >
-                  {item.snippet.channelTitle}
-                </div>
-              </div>
-            </div>
-          );
-        })}
       </div>
     </div>
   );
