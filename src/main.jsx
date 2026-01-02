@@ -41,11 +41,12 @@ export function updateMediaSessionMetadata({ title, artist, artwork }) {
 import "./index.css";
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { BrowserRouter } from "react-router-dom";
+
+// ⭐ FIX: HashRouter for GitHub Pages + Safari Private Mode
+import { HashRouter } from "react-router-dom";
 
 // ------------------------------------------------------------
 // 1. Install global loggers BEFORE bootDebug
-//    (NetworkLogger must patch fetch before debugBus starts)
 // ------------------------------------------------------------
 import { installNetworkLogger } from "./debug/NetworkLogger.js";
 import { installPlayerLogger } from "./debug/PlayerLogger.js";
@@ -93,7 +94,7 @@ function mount() {
     const root = ReactDOM.createRoot(rootElement);
 
     root.render(
-      <BrowserRouter basename="/MyTube-Piped-Frontend">
+      <HashRouter>
         <PlaylistProvider>
           <PlayerProvider>
             <App />
@@ -101,7 +102,7 @@ function mount() {
         </PlaylistProvider>
 
         <DebugOverlay />
-      </BrowserRouter>
+      </HashRouter>
     );
 
     window.bootDebug?.boot("main.jsx → React root mounted");
@@ -114,4 +115,3 @@ function mount() {
 }
 
 mount();
-
