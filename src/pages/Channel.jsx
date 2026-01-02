@@ -1,14 +1,17 @@
 /**
  * File: Channel.jsx
  * Path: src/pages/Channel.jsx
- * Description: Channel page with safe destructuring and shared API key.
+ * Description:
+ *   Channel page with safe navigation using normalizeId().
  */
 
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+
 import { usePlayer } from "../player/PlayerContext.jsx";
 import { debugBus } from "../debug/debugBus.js";
 import { getApiKey } from "../api/getApiKey.js";
+import { normalizeId } from "../utils/normalizeId.js"; // ← NEW
 
 const API_KEY = getApiKey();
 
@@ -23,6 +26,9 @@ export default function Channel() {
   const [videos, setVideos] = useState([]);
   const [channelInfo, setChannelInfo] = useState(null);
 
+  /* ------------------------------------------------------------
+     Load channel info + videos
+  ------------------------------------------------------------ */
   useEffect(() => {
     if (!id) return;
 
@@ -69,12 +75,24 @@ export default function Channel() {
     }
   }
 
-  function openVideo(id) {
-    if (!id) return;
-    navigate(`/watch/${id}`);
-    loadVideo(id);
+  /* ------------------------------------------------------------
+     Safe navigation using normalizeId()
+  ------------------------------------------------------------ */
+  function openVideo(raw) {
+    const vidId = normalizeId(raw);
+
+    if (!vidId) {
+      debugBus.error("Channel.jsx → Invalid video ID:", raw);
+      return;
+    }
+
+    navigate(`/watch/${vidId}?src=channel`);
+    loadVideo(vidId);
   }
 
+  /* ------------------------------------------------------------
+     Render
+  ------------------------------------------------------------ */
   const sn = channelInfo?.snippet ?? {};
   const title = sn?.title ?? "Channel";
 
@@ -83,19 +101,16 @@ export default function Channel() {
       <h2>{title}</h2>
 
       {videos.map((item, i) => {
-        const vid =
-          item?.id?.videoId ??
-          item?.id ??
-          null;
+        const vidId = normalizeId(item);
 
         const sn = item?.snippet ?? {};
         const thumb = sn?.thumbnails?.medium?.url ?? "";
 
-        if (!vid) return null;
+        if (!vidId) return null;
 
         return (
           <div
-            key={vid + "_" + i}
+            key={vidId + "_" + i}
             style={{
               display: "flex",
               marginBottom: "16px",
@@ -105,7 +120,7 @@ export default function Channel() {
             <img
               src={thumb}
               alt=""
-              onClick={() => openVideo(vid)}
+              onClick={() => openVideo(item)}
               style={{
                 width: "168px",
                 height: "94px",
@@ -117,7 +132,7 @@ export default function Channel() {
 
             <div style={{ flex: 1 }}>
               <div
-                onClick={() => openVideo(vid)}
+                onClick={() => openVideo(item)}
                 style={{
                   fontSize: "15px",
                   fontWeight: "bold",
@@ -132,7 +147,7 @@ export default function Channel() {
               </div>
 
               <button
-                onClick={() => queueAdd(vid)}
+                onClick={() => queueAdd(vidId)}
                 style={{
                   marginTop: "8px",
                   padding: "6px 10px",
