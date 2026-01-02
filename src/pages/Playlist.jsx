@@ -1,14 +1,13 @@
 /**
  * File: Playlist.jsx
  * Path: src/pages/Playlist.jsx
- * Description: Playlist page with video list, delete support,
- *              video count, and correct navigation to Watch.jsx.
+ * Description: Polished playlist detail page with clean video rows,
+ *              right‑aligned remove buttons, and modern layout.
  */
 
 import React from "react";
-import { Link, useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { usePlaylists } from "../contexts/PlaylistContext.jsx";
-import VideoActions from "../components/VideoActions.jsx";
 
 export default function Playlist() {
   const { id } = useParams();
@@ -18,90 +17,91 @@ export default function Playlist() {
 
   if (!playlist) {
     return (
-      <div style={{ padding: 20, color: "#fff" }}>
-        Playlist not found.
+      <div style={{ padding: "16px", color: "#fff" }}>
+        <h2>Playlist not found</h2>
       </div>
     );
   }
 
   return (
     <div style={{ padding: "16px", color: "#fff" }}>
-      {/* Playlist title + video count */}
-      <h2 style={{ marginBottom: "4px" }}>{playlist.name}</h2>
-      <div style={{ opacity: 0.7, marginBottom: "16px" }}>
+      {/* Title */}
+      <h2 style={{ fontSize: "22px", fontWeight: "600", marginBottom: "6px" }}>
+        {playlist.name}
+      </h2>
+
+      {/* Video count */}
+      <div style={{ opacity: 0.7, fontSize: "14px", marginBottom: "20px" }}>
         {playlist.videos.length} videos
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      {/* Video list */}
+      <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
         {playlist.videos.map((v) => (
-          <div key={v.id}>
-            {/* Navigation includes src=playlist and playlist ID */}
+          <div
+            key={v.id}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              paddingBottom: "14px",
+              borderBottom: "1px solid #2a2a2a",
+              gap: "12px"
+            }}
+          >
+            {/* Thumbnail */}
             <Link
               to={`/watch/${v.id}?src=playlist&pl=${playlist.id}`}
-              style={{
-                textDecoration: "none",
-                color: "#fff",
-                display: "block"
-              }}
+              style={{ flexShrink: 0 }}
             >
               <img
                 src={v.thumbnail}
                 alt={v.title}
                 style={{
-                  width: "100%",
-                  aspectRatio: "16 / 9",
+                  width: "140px",
+                  height: "80px",
                   objectFit: "cover",
-                  borderRadius: "8px",
-                  marginBottom: "8px"
+                  borderRadius: "6px"
                 }}
               />
+            </Link>
 
-              <div
+            {/* Title + channel */}
+            <div style={{ flexGrow: 1 }}>
+              <Link
+                to={`/watch/${v.id}?src=playlist&pl=${playlist.id}`}
                 style={{
-                  fontSize: 15,
-                  fontWeight: "bold",
-                  marginBottom: 4
+                  color: "#fff",
+                  textDecoration: "none",
+                  fontSize: "15px",
+                  fontWeight: "600",
+                  display: "block",
+                  marginBottom: "4px"
                 }}
               >
                 {v.title}
-              </div>
+              </Link>
 
-              <div
-                style={{
-                  fontSize: 13,
-                  opacity: 0.7,
-                  marginBottom: 6
-                }}
-              >
+              <div style={{ fontSize: "13px", opacity: 0.7 }}>
                 {v.author}
               </div>
-            </Link>
+            </div>
 
-            {/* Add to Queue / Playlist */}
-            <VideoActions
-              videoId={v.id}
-              videoSnippet={{
-                title: v.title,
-                channelTitle: v.author,
-                thumbnails: { medium: { url: v.thumbnail } }
-              }}
-            />
-
-            {/* Delete button */}
+            {/* Remove button */}
             <button
               onClick={() => removeVideoFromPlaylist(playlist.id, v.id)}
               style={{
-                marginTop: "8px",
-                padding: "8px 12px",
-                background: "#400",
+                padding: "7px 12px",
+                background: "#3a0000",
                 color: "#fff",
-                border: "1px solid #600",
-                borderRadius: "4px",
+                border: "1px solid #660000",
+                borderRadius: "6px",
                 fontSize: "13px",
-                cursor: "pointer"
+                cursor: "pointer",
+                flexShrink: 0,
+                transition: "background 0.15s, border-color 0.15s"
               }}
             >
-              Remove from Playlist
+              Remove
             </button>
           </div>
         ))}
