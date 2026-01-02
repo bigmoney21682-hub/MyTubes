@@ -73,7 +73,6 @@ function cmd(msg, data) {
 function subscribe(fn) {
   listeners.add(fn);
 
-  // Send full history immediately to new subscribers
   if (logs.length > 0) {
     try {
       fn(null, logs);
@@ -96,7 +95,7 @@ export const debugBus = {
   log,
   info,
   warn,
-  error,
+ error,
   player,
   router,
   perf,
