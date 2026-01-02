@@ -2,12 +2,12 @@
  * File: Watch.jsx
  * Path: src/pages/Watch/Watch.jsx
  * Description:
- *   Fully corrected Watch page with:
+ *   Final corrected Watch page with:
  *   - Safe ID normalization
  *   - Stable GlobalPlayer integration
  *   - Safe related fallback (no more 400 errors)
  *   - Correct autonext (playlist + related)
- *   - No invalid video IDs
+ *   - No infinite reloads
  */
 
 import React, { useEffect, useState } from "react";
@@ -45,7 +45,6 @@ export default function Watch() {
      2. Ensure GlobalPlayer mounts
   ------------------------------------------------------------- */
   useEffect(() => {
-    debugBus.log("Watch.jsx → ensureMounted()");
     GlobalPlayer.ensureMounted();
   }, []);
 
@@ -60,26 +59,22 @@ export default function Watch() {
     if (src === "playlist" && pl) {
       setAutonextMode("playlist");
       setActivePlaylistId(pl);
-      debugBus.log("Autonext mode → playlist");
     } else {
       setAutonextMode("related");
       setActivePlaylistId(null);
-      debugBus.log("Autonext mode → related");
     }
   }, [location.search, setAutonextMode, setActivePlaylistId]);
 
   /* ------------------------------------------------------------
-     4. Load the video into the player
+     4. Load the video into the player (run ONCE per ID)
   ------------------------------------------------------------- */
   useEffect(() => {
-    if (!id) {
-      debugBus.error("Watch.jsx → Invalid route id", rawId);
-      return;
-    }
-
-    debugBus.log("Watch.jsx → loadVideo(" + id + ")");
+    if (!id) return;
     loadVideo(id);
-  }, [id, rawId, loadVideo]);
+
+    // run ONLY when ID changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   /* ------------------------------------------------------------
      5. Fetch video details + SAFE related fallback
@@ -102,21 +97,13 @@ export default function Watch() {
         );
 
         if (!relatedRes.ok) {
-          const errText = await relatedRes.text();
-          debugBus.error(
-            "Watch.jsx → related fetch failed: " +
-              relatedRes.status +
-              " " +
-              errText
-          );
           setRelated([]);
           return;
         }
 
         const relatedJson = await relatedRes.json();
         setRelated(relatedJson.items || []);
-      } catch (err) {
-        debugBus.error("Watch.jsx → fetch error: " + err.message);
+      } catch {
         setRelated([]);
       }
     }
