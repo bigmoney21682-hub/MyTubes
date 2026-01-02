@@ -1,7 +1,11 @@
 /**
  * File: Watch.jsx
  * Path: src/pages/Watch/Watch.jsx
- * Description: Fully optimized Watch page using YouTubeAPI.js
+ * Description:
+ *   Fully optimized Watch page using YouTubeAPI.js
+ *   Includes:
+ *     - Stable autonext (Fix A)
+ *     - Playlist metadata hydration (Fix B)
  */
 
 import React, {
@@ -26,7 +30,7 @@ import {
 } from "../../api/YouTubeAPI.js";
 
 /* ------------------------------------------------------------
-   MEMOIZED PLAYER CONTAINER (prevents iframe unmount)
+   MEMOIZED PLAYER CONTAINER
 ------------------------------------------------------------ */
 const PlayerContainer = React.memo(() => {
   return (
@@ -202,7 +206,7 @@ export default function Watch() {
   }, [id, loadVideo]);
 
   /* ------------------------------------------------------------
-     Fetch video + related + trending (optimized)
+     Fetch video + related + trending
   ------------------------------------------------------------ */
   useEffect(() => {
     if (!id) return;
@@ -230,7 +234,38 @@ export default function Watch() {
   );
 
   /* ------------------------------------------------------------
-     AutonextEngine callback registration (STABLE, REDUCED DEPENDENCIES)
+     FIX B — Playlist Metadata Hydration
+  ------------------------------------------------------------ */
+  useEffect(() => {
+    if (autonextSource !== "playlist") return;
+    if (!effectivePlaylistId) return;
+
+    const pl = playlists.find((p) => p.id === effectivePlaylistId);
+    if (!pl) return;
+
+    async function hydrate() {
+      let changed = false;
+
+      for (const item of pl.videos) {
+        if (!item.snippet) {
+          const meta = await fetchVideo(item.id);
+          if (meta?.snippet) {
+            item.snippet = meta.snippet;
+            changed = true;
+          }
+        }
+      }
+
+      if (changed) {
+        setUiTick((x) => x + 1);
+      }
+    }
+
+    hydrate();
+  }, [autonextSource, effectivePlaylistId, playlists]);
+
+  /* ------------------------------------------------------------
+     AutonextEngine callback registration (STABLE)
   ------------------------------------------------------------ */
   useEffect(() => {
     // PLAYLIST MODE
@@ -287,7 +322,7 @@ export default function Watch() {
   ]);
 
   /* ------------------------------------------------------------
-     Related list selection
+     Related / Playlist List
   ------------------------------------------------------------ */
   const relatedList = useMemo(() => {
     if (autonextSource === "playlist" && effectivePlaylistId) {
