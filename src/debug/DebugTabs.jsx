@@ -12,10 +12,20 @@ const BASE_TABS = [
 ];
 
 export default function DebugTabs({ activeTab, onChange, onCopy, extraTabs = [] }) {
-  // ⭐ Merge built‑in tabs with extra tabs
+  // Safely render any label
+  function renderLabel(v) {
+    if (v == null) return "";
+    if (typeof v === "object") return JSON.stringify(v);
+    return String(v);
+  }
+
+  // Merge built‑in tabs with extra tabs
   const tabs = [
     ...BASE_TABS,
-    ...extraTabs.map((id) => ({ id, label: id.charAt(0).toUpperCase() + id.slice(1) }))
+    ...extraTabs.map((id) => ({
+      id,
+      label: id.charAt(0).toUpperCase() + id.slice(1)
+    }))
   ];
 
   return (
@@ -48,7 +58,7 @@ export default function DebugTabs({ activeTab, onChange, onCopy, extraTabs = [] 
             flexShrink: 0
           }}
         >
-          {tab.label}
+          {renderLabel(tab.label)}
         </button>
       ))}
 
