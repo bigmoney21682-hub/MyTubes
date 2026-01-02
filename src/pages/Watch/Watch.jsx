@@ -1,13 +1,13 @@
 /**
  * File: src/pages/Watch/Watch.jsx
  * Description:
- *   Watch page with:
+ *   Restored Watch page with:
  *   - YouTube API loader
  *   - GlobalPlayer integration
  *   - Playlist + Related autonext
  *   - Autonext toggle
  *   - Add to playlist
- *   - Related videos list
+ *   - Related list with safe fallback
  */
 
 import React, { useEffect, useState, useMemo } from "react";
@@ -20,12 +20,25 @@ import { GlobalPlayer } from "../../player/GlobalPlayer.js";
 import { usePlaylists } from "../../contexts/PlaylistContext.jsx";
 import { debugBus } from "../../debug/debugBus.js";
 
+const YT_API_KEY = "AIzaSyA-TNtGohJAO_hsZW6zp9FcSOdfGV7VJW0";
+
 export default function Watch() {
   // ------------------------------------------------------------
-  // 1. Normalize route ID
+  // 1. Route + query params
   // ------------------------------------------------------------
   const params = useParams();
+  const location = useLocation();
+  const navigate = useNavigate();
+
   const rawId = params.id;
+
+  const searchParams = useMemo(
+    () => new URLSearchParams(location.search),
+    [location.search]
+  );
+
+  const srcParam = searchParams.get("src"); // "playlist" | "related" | null
+  const playlistIdFromURL = searchParams.get("pl");
 
   const id = useMemo(() => {
     if (!rawId) return "";
@@ -35,24 +48,23 @@ export default function Watch() {
     return String(rawId);
   }, [rawId]);
 
-  const navigate = useNavigate();
-  const location = useLocation();
+  const isPlaylistMode = Boolean(playlistIdFromURL);
 
+  // ------------------------------------------------------------
+  // 2. Contexts
+  // ------------------------------------------------------------
   const { loadVideo, setAutonextMode, setActivePlaylistId } = usePlayer();
   const { playlists, openAddToPlaylist } = usePlaylists();
 
+  // ------------------------------------------------------------
+  // 3. Local state
+  // ------------------------------------------------------------
   const [videoData, setVideoData] = useState(null);
   const [related, setRelated] = useState([]);
   const [autonextEnabled, setAutonextEnabled] = useState(true);
 
-  const playlistIdFromURL = useMemo(() => {
-    return new URLSearchParams(location.search).get("pl");
-  }, [location.search]);
-
-  const isPlaylistMode = Boolean(playlistIdFromURL);
-
   // ------------------------------------------------------------
-  // 2. Load YouTube API script
+  // 4. YouTube API loader
   // ------------------------------------------------------------
   useEffect(() => {
     if (window.YT && window.YT.Player) {
@@ -78,7 +90,7 @@ export default function Watch() {
   }, []);
 
   // ------------------------------------------------------------
-  // 3. Set autonext mode (playlist vs related)
+  // 5. Autonext mode in PlayerContext
   // ------------------------------------------------------------
   useEffect(() => {
     if (isPlaylistMode) {
@@ -91,7 +103,7 @@ export default function Watch() {
   }, [isPlaylistMode, playlistIdFromURL, setAutonextMode, setActivePlaylistId]);
 
   // ------------------------------------------------------------
-  // 4. Load video into GlobalPlayer
+  // 6. Load video into GlobalPlayer
   // ------------------------------------------------------------
   useEffect(() => {
     if (!id) return;
@@ -100,7 +112,7 @@ export default function Watch() {
   }, [id, loadVideo]);
 
   // ------------------------------------------------------------
-  // 5. Fetch video + related
+  // 7. Fetch video + related (with fallback)
   // ------------------------------------------------------------
   useEffect(() => {
     if (!id) return;
@@ -109,17 +121,37 @@ export default function Watch() {
       try {
         // Video details
         const videoRes = await fetch(
-          `https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&id=${id}&key=AIzaSyA-TNtGohJAO_hsZW6zp9FcSOdfGV7VJW0`
+          `https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&id=${id}&key=${YT_API_KEY}`
         );
         const videoJson = await videoRes.json();
         setVideoData(videoJson.items?.[0] || null);
 
-        // Correct related API
-        const relatedRes = await fetch(
-          `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&relatedToVideoId=${id}&videoEmbeddable=true&maxResults=20&key=AIzaSyA-TNtGohJAO_hsZW6zp9FcSOdfGV7VJW0`
-        );
-        const relatedJson = await relatedRes.json();
-        setRelated(relatedJson.items || []);
+        // Try true related first
+        let relatedItems = [];
+        try {
+          const relatedRes = await fetch(
+            `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&relatedToVideoId=${id}&videoEmbeddable=true&maxResults=20&key=${YT_API_KEY}`
+          );
+          const relatedJson = await relatedRes.json();
+
+          if (relatedJson.error || !Array.isArray(relatedJson.items)) {
+            throw new Error("Related API error");
+          }
+
+          relatedItems = relatedJson.items;
+        } catch (innerErr) {
+          debugBus.warn(
+            "Watch.jsx → related search failed, falling back to mostPopular"
+          );
+
+          const fallbackRes = await fetch(
+            `https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&chart=mostPopular&maxResults=20&regionCode=US&key=${YT_API_KEY}`
+          );
+          const fallbackJson = await fallbackRes.json();
+          relatedItems = fallbackJson.items || [];
+        }
+
+        setRelated(relatedItems);
       } catch (err) {
         debugBus.error("Watch.jsx fetch error", err);
       }
@@ -129,7 +161,7 @@ export default function Watch() {
   }, [id]);
 
   // ------------------------------------------------------------
-  // 6. Autonext lifecycle (playlist + related)
+  // 8. Autonext lifecycle (playlist + related)
   // ------------------------------------------------------------
   useEffect(() => {
     // PLAYLIST AUTONEXT
@@ -160,7 +192,7 @@ export default function Watch() {
       navigate(`/watch/${vidId}?src=related`);
     };
 
-    // REGISTER CORRECT MODE
+    // Register based on mode
     if (isPlaylistMode) {
       AutonextEngine.registerPlaylistCallback(playlistHandler);
       AutonextEngine.registerRelatedCallback(null);
@@ -184,8 +216,14 @@ export default function Watch() {
   ]);
 
   // ------------------------------------------------------------
-  // 7. UI
+  // 9. UI
   // ------------------------------------------------------------
+  const sourceLabel = useMemo(() => {
+    if (isPlaylistMode) return "Playlist";
+    if (srcParam === "related") return "Related";
+    return "Trending";
+  }, [isPlaylistMode, srcParam]);
+
   return (
     <div style={{ padding: "16px", color: "#fff" }}>
       <div
@@ -241,13 +279,10 @@ export default function Watch() {
         </button>
 
         <span style={{ fontSize: "11px", opacity: 0.7 }}>
-          Source: {isPlaylistMode ? "Playlist" : "Related"}
+          Source: {sourceLabel}
         </span>
       </div>
 
-      {/* ------------------------------------------------------------
-          8. Related videos list
-      ------------------------------------------------------------- */}
       {related.length > 0 && (
         <div style={{ marginTop: "8px" }}>
           <h3 style={{ fontSize: "14px", marginBottom: "8px" }}>Related</h3>
