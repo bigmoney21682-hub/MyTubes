@@ -1,7 +1,7 @@
 // File: src/player/PlayerContext.jsx
 // Description:
-//   Global player state + safe video loading + autonext mode.
-//   Includes ID normalizer to prevent "Invalid video id" crashes.
+//   Global player state + safe video loading + autonext mode + MiniPlayer API.
+//   Fully ID‑safe. Prevents ALL "Invalid video id" crashes.
 
 import React, { createContext, useContext, useState, useCallback } from "react";
 import { GlobalPlayer } from "./GlobalPlayer.js";
@@ -10,24 +10,15 @@ import { debugBus } from "../debug/debugBus.js";
 const PlayerContext = createContext(null);
 
 /* ------------------------------------------------------------
-   NORMALIZE VIDEO ID (CRITICAL FIX)
+   NORMALIZE VIDEO ID (CRITICAL)
 ------------------------------------------------------------ */
 function normalizeId(raw) {
   if (!raw) return null;
 
-  // Already a string
   if (typeof raw === "string") return raw;
-
-  // { id: "abc123" }
   if (typeof raw.id === "string") return raw.id;
-
-  // { videoId: "abc123" }
   if (typeof raw.videoId === "string") return raw.videoId;
-
-  // { id: { videoId: "abc123" } }
   if (raw.id && typeof raw.id.videoId === "string") return raw.id.videoId;
-
-  // { snippet: { resourceId: { videoId: "abc123" } } }
   if (raw.snippet?.resourceId?.videoId) return raw.snippet.resourceId.videoId;
 
   return null;
@@ -38,7 +29,9 @@ function normalizeId(raw) {
 ------------------------------------------------------------ */
 export function PlayerProvider({ children }) {
   const [currentVideoId, setCurrentVideoId] = useState(null);
-  const [autonextMode, setAutonextModeState] = useState("related"); // "related" | "playlist"
+  const [currentVideoTitle, setCurrentVideoTitle] = useState("Playing…");
+
+  const [autonextMode, setAutonextModeState] = useState("related");
   const [activePlaylistId, setActivePlaylistIdState] = useState(null);
 
   /* ------------------------------------------------------------
@@ -55,7 +48,11 @@ export function PlayerProvider({ children }) {
     debugBus.player("PlayerContext → loadVideo(" + id + ")");
     setCurrentVideoId(id);
 
-    // Pass clean ID to GlobalPlayer
+    // Update title if available
+    if (raw?.title || raw?.snippet?.title) {
+      setCurrentVideoTitle(raw.title ?? raw.snippet.title);
+    }
+
     GlobalPlayer.load(id);
   }, []);
 
@@ -75,15 +72,48 @@ export function PlayerProvider({ children }) {
     setActivePlaylistIdState(plId);
   }, []);
 
+  /* ------------------------------------------------------------
+     ⭐ SAFE MiniPlayer.expand()
+     Prevents ALL /watch/undefined crashes
+  ------------------------------------------------------------ */
+  const mini = {
+    visible: Boolean(currentVideoId),
+    title: currentVideoTitle,
+
+    expand: () => {
+      const id = normalizeId(currentVideoId);
+
+      if (!id) {
+        debugBus.warn("PlayerContext.mini.expand → blocked: invalid ID", currentVideoId);
+        return;
+      }
+
+      debugBus.player("MiniPlayer → expand(" + id + ")");
+      window.location.hash = `#/watch/${id}?src=miniplayer`;
+
+      // Ensure player loads correct video
+      GlobalPlayer.load(id);
+    }
+  };
+
+  /* ------------------------------------------------------------
+     CONTEXT VALUE
+  ------------------------------------------------------------ */
   return (
     <PlayerContext.Provider
       value={{
         currentVideoId,
+        currentVideoTitle,
+
         loadVideo,
+
         autonextMode,
         setAutonextMode,
+
         activePlaylistId,
-        setActivePlaylistId
+        setActivePlaylistId,
+
+        mini
       }}
     >
       {children}
@@ -94,3 +124,4 @@ export function PlayerProvider({ children }) {
 export function usePlayer() {
   return useContext(PlayerContext);
 }
+
