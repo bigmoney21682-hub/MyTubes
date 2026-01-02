@@ -10,17 +10,24 @@ let stateListeners = [];
 let apiReady = false;
 
 // ------------------------------------------------------------
-// Load YouTube IFrame API ONCE
+// Load YouTube IFrame API ONCE (with diagnostic logs)
 // ------------------------------------------------------------
 (function loadYouTubeAPI() {
+  debugBus.log("YouTube", "Loader executed");
+
   if (window.YT && window.YT.Player) {
     apiReady = true;
+    debugBus.log("YouTube", "YT already available");
     return;
   }
+
+  debugBus.log("YouTube", "Injecting iframe_api script");
 
   const tag = document.createElement("script");
   tag.src = "https://www.youtube.com/iframe_api";
   document.head.appendChild(tag);
+
+  debugBus.log("YouTube", "iframe_api appended");
 
   window.onYouTubeIframeAPIReady = () => {
     apiReady = true;
@@ -48,7 +55,12 @@ export const GlobalPlayer = {
      Ensure #player exists before loading
   ------------------------------------------------------------- */
   ensureMounted() {
-    if (this.mounted) return;
+    debugBus.log("GlobalPlayer", "ensureMounted() called");
+
+    if (this.mounted) {
+      debugBus.log("GlobalPlayer", "Already mounted");
+      return;
+    }
 
     const el = document.getElementById("player");
     if (!el) {
@@ -64,6 +76,8 @@ export const GlobalPlayer = {
      Load a video into the YouTube IFrame Player
   ------------------------------------------------------------- */
   load(id) {
+    debugBus.log("GlobalPlayer", `load(${id}) called`);
+
     if (!this.mounted) {
       debugBus.log("GlobalPlayer", "load() called before mounted");
       return;
@@ -79,10 +93,13 @@ export const GlobalPlayer = {
 
     // Destroy previous instance if needed
     if (this.player?.destroy) {
+      debugBus.log("GlobalPlayer", "Destroying previous player instance");
       this.player.destroy();
     }
 
     // Create new YouTube IFrame Player
+    debugBus.log("GlobalPlayer", "Creating new YT.Player instance");
+
     this.player = new window.YT.Player("player", {
       videoId: id,
       playerVars: {
