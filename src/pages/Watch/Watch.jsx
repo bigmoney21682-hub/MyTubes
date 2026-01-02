@@ -12,7 +12,12 @@ import React, {
   useState,
   useRef
 } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import {
+  useParams,
+  useNavigate,
+  Link,
+  useSearchParams
+} from "react-router-dom";
 
 import { usePlayer } from "../../player/PlayerContext.jsx";
 import { AutonextEngine } from "../../player/AutonextEngine.js";
@@ -70,12 +75,17 @@ const descStyle = {
 export default function Watch() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const src = params.get("src");
+  const playlistIdFromNav = params.get("pl");
 
   const player = usePlayer() ?? {};
   const loadVideo = player.loadVideo ?? (() => {});
   const queueAdd = player.queueAdd ?? (() => {});
   const autonextMode = player.autonextMode ?? "related";
   const setAutonextMode = player.setAutonextMode ?? (() => {});
+  const activePlaylistId = player.activePlaylistId;
+  const setActivePlaylistId = player.setActivePlaylistId;
 
   const { playlists, addVideoToPlaylist } = usePlaylists() ?? {
     playlists: [],
@@ -96,6 +106,26 @@ export default function Watch() {
     GlobalPlayer.ensureMounted();
   }, []);
 
+  /* ------------------------------------------------------------
+     Force autonext mode based on navigation source
+  ------------------------------------------------------------- */
+  useEffect(() => {
+    if (src === "playlist") {
+      setAutonextMode("playlist");
+      AutonextEngine.setMode("playlist");
+
+      if (playlistIdFromNav) {
+        setActivePlaylistId(playlistIdFromNav);
+      }
+    } else {
+      setAutonextMode("related");
+      AutonextEngine.setMode("related");
+    }
+  }, [src, playlistIdFromNav]);
+
+  /* ------------------------------------------------------------
+     Load video + related
+  ------------------------------------------------------------- */
   useEffect(() => {
     if (!id) return;
 
@@ -114,7 +144,9 @@ export default function Watch() {
     return () => clearInterval(wait);
   }, [id, loadVideo]);
 
-  // Register related-mode callback (once per mount)
+  /* ------------------------------------------------------------
+     Autonext: Related mode
+  ------------------------------------------------------------- */
   useEffect(() => {
     AutonextEngine.registerRelatedCallback(() => {
       const list = relatedRef.current;
@@ -123,19 +155,37 @@ export default function Watch() {
       const next = list[0]?.id;
       if (!next) return;
 
-      navigate(`/watch/${next}`);
+      navigate(`/watch/${next}?src=related`);
       loadVideo(next);
     });
   }, [navigate, loadVideo]);
 
-  // Register playlist-mode callback (once per mount)
+  /* ------------------------------------------------------------
+     Autonext: Playlist mode (loop forever)
+  ------------------------------------------------------------- */
   useEffect(() => {
-    AutonextEngine.registerPlaylistCallback((nextId) => {
-      navigate(`/watch/${nextId}`);
-      loadVideo(nextId);
-    });
-  }, [navigate, loadVideo]);
+    AutonextEngine.registerPlaylistCallback(() => {
+      if (!activePlaylistId) return;
 
+      const playlist = playlists.find((p) => p.id === activePlaylistId);
+      if (!playlist || !playlist.videos.length) return;
+
+      const index = playlist.videos.findIndex((v) => v.id === id);
+      const nextIndex = (index + 1) % playlist.videos.length;
+      const nextVideo = playlist.videos[nextIndex];
+
+      if (!nextVideo) return;
+
+      navigate(
+        `/watch/${nextVideo.id}?src=playlist&pl=${activePlaylistId}`
+      );
+      loadVideo(nextVideo.id);
+    });
+  }, [navigate, loadVideo, playlists, activePlaylistId, id]);
+
+  /* ------------------------------------------------------------
+     Load video details
+  ------------------------------------------------------------- */
   async function loadVideoDetails(videoId) {
     try {
       const details = await getVideoDetails(videoId);
@@ -161,6 +211,9 @@ export default function Watch() {
     }
   }
 
+  /* ------------------------------------------------------------
+     Load related videos
+  ------------------------------------------------------------- */
   async function loadRelated(videoId) {
     try {
       const list = await fetchRelatedVideos(videoId);
@@ -188,6 +241,9 @@ export default function Watch() {
     }
   }
 
+  /* ------------------------------------------------------------
+     Media Session metadata
+  ------------------------------------------------------------- */
   useEffect(() => {
     if (video && id) {
       const sn = video?.snippet ?? {};
@@ -199,6 +255,9 @@ export default function Watch() {
     }
   }, [video, id]);
 
+  /* ------------------------------------------------------------
+     Add to playlist (main video)
+  ------------------------------------------------------------- */
   function handleAddToPlaylist() {
     if (!id) return;
 
@@ -222,7 +281,7 @@ export default function Watch() {
         marginTop: "calc(56.25vw + var(--header-height))"
       }}
     >
-      {/* Fixed player at top */}
+      {/* Fixed player */}
       <div
         style={{
           position: "fixed",
@@ -279,7 +338,7 @@ export default function Watch() {
         </button>
       </div>
 
-      {/* Main actions under player */}
+      {/* Main actions */}
       <div style={{ padding: "16px", display: "flex", gap: "8px" }}>
         <button
           onClick={() => queueAdd(id)}
@@ -336,6 +395,10 @@ export default function Watch() {
             onClick={() => {
               setAutonextMode("playlist");
               AutonextEngine.setMode("playlist");
+
+              if (!activePlaylistId) {
+                setShowPicker(true);
+              }
             }}
             style={{
               padding: "8px 12px",
@@ -364,7 +427,7 @@ export default function Watch() {
 
           return (
             <div key={vid + "_" + i} style={{ marginBottom: "20px" }}>
-              <Link to={`/watch/${vid}`} style={cardStyle}>
+              <Link to={`/watch/${vid}?src=related`} style={cardStyle}>
                 <img
                   src={thumb}
                   alt={rsn.title ?? "Video thumbnail"}
@@ -384,11 +447,13 @@ export default function Watch() {
         })}
       </div>
 
-      {/* Playlist picker modal for main video */}
+      {/* Playlist picker modal */}
       {showPicker && (
         <PlaylistPickerModal
           playlists={playlists}
           onSelect={(playlist) => {
+            setActivePlaylistId(playlist.id);
+
             const sn = video?.snippet ?? {};
 
             addVideoToPlaylist(playlist.id, {
@@ -399,7 +464,6 @@ export default function Watch() {
             });
 
             setShowPicker(false);
-            alert(`Added to playlist: ${playlist.name}`);
           }}
           onClose={() => setShowPicker(false)}
         />
