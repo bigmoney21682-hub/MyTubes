@@ -407,7 +407,7 @@ export default function Watch() {
               padding: "8px 12px",
               background: autonextMode === "playlist" ? "#3ea6ff" : "#222",
               color: autonextMode === "playlist" ? "#000" : "#fff",
-              border: "1px solid "#444",
+              border: "1px solid #444",   // ⭐ FIXED LINE
               borderRadius: "4px",
               fontSize: "13px"
             }}
