@@ -93,7 +93,7 @@ function mount() {
     const root = ReactDOM.createRoot(rootElement);
 
     root.render(
-      <BrowserRouter basename="/MyTube-Piped-Frontend">
+      <BrowserRouter>
         <PlaylistProvider>
           <PlayerProvider>
             <App />
