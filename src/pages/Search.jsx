@@ -2,7 +2,7 @@
  * File: Search.jsx
  * Path: src/pages/Search.jsx
  * Description: Search page with Smart SearchCache + 250ms debounce
- *              and full-width 16:9 stacked video cards.
+ *              and full-width 16:9 stacked video cards + actions.
  */
 
 import React, { useState, useEffect } from "react";
@@ -16,6 +16,8 @@ import {
   setSearchCache
 } from "../cache/SearchCache.js";
 
+import VideoActions from "../components/VideoActions.jsx";
+
 export default function Search() {
   const [params] = useSearchParams();
   const query = params.get("q") || "";
@@ -23,9 +25,7 @@ export default function Search() {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState([]);
 
-  // ------------------------------------------------------------
-  // Debounced query (fires 250ms after user stops typing)
-  // ------------------------------------------------------------
+  // Debounce
   const [debouncedQuery, setDebouncedQuery] = useState(query);
 
   useEffect(() => {
@@ -36,9 +36,7 @@ export default function Search() {
     return () => clearTimeout(timer);
   }, [query]);
 
-  // ------------------------------------------------------------
-  // Load search results when debounced query changes
-  // ------------------------------------------------------------
+  // Load search results
   useEffect(() => {
     if (!debouncedQuery.trim()) {
       setResults([]);
@@ -73,9 +71,6 @@ export default function Search() {
     runSearch();
   }, [debouncedQuery]);
 
-  // ------------------------------------------------------------
-  // UI
-  // ------------------------------------------------------------
   return (
     <div style={{ padding: "12px" }}>
       <h2 style={{ marginBottom: 12 }}>Search: {query}</h2>
@@ -93,61 +88,61 @@ export default function Search() {
           const thumb = sn?.thumbnails?.medium?.url;
 
           return (
-            <Link
-              key={videoId}
-              to={`/watch/${videoId}`}
-              style={{
-                textDecoration: "none",
-                color: "#fff",
-                display: "block"
-              }}
-            >
-              {/* 16:9 full-width thumbnail */}
-              <img
-                src={thumb}
-                alt={sn?.title}
+            <div key={videoId}>
+              <Link
+                to={`/watch/${videoId}`}
                 style={{
-                  width: "100%",
-                  aspectRatio: "16 / 9",
-                  objectFit: "cover",
-                  borderRadius: "8px",
-                  marginBottom: "8px"
-                }}
-              />
-
-              {/* Title */}
-              <div
-                style={{
-                  fontSize: "15px",
-                  fontWeight: "bold",
-                  marginBottom: "4px"
+                  textDecoration: "none",
+                  color: "#fff",
+                  display: "block"
                 }}
               >
-                {sn?.title}
-              </div>
+                <img
+                  src={thumb}
+                  alt={sn?.title}
+                  style={{
+                    width: "100%",
+                    aspectRatio: "16 / 9",
+                    objectFit: "cover",
+                    borderRadius: "8px",
+                    marginBottom: "8px"
+                  }}
+                />
 
-              {/* Channel */}
-              <div
-                style={{
-                  fontSize: "13px",
-                  opacity: 0.7,
-                  marginBottom: "6px"
-                }}
-              >
-                {sn?.channelTitle}
-              </div>
+                <div
+                  style={{
+                    fontSize: "15px",
+                    fontWeight: "bold",
+                    marginBottom: "4px"
+                  }}
+                >
+                  {sn?.title}
+                </div>
 
-              {/* Description */}
-              <div
-                style={{
-                  fontSize: "12px",
-                  opacity: 0.8,
-                  lineHeight: 1.4
-                }}
-              >
-                {sn?.description}
-              </div>
-            </Link>
+                <div
+                  style={{
+                    fontSize: "13px",
+                    opacity: 0.7,
+                    marginBottom: "6px"
+                  }}
+                >
+                  {sn?.channelTitle}
+                </div>
+
+                <div
+                  style={{
+                    fontSize: "12px",
+                    opacity: 0.8,
+                    lineHeight: 1.4
+                  }}
+                >
+                  {sn?.description}
+                </div>
+              </Link>
+
+              {/* Actions */}
+              <VideoActions videoId={videoId} videoSnippet={sn} />
+            </div>
           );
         })}
       </div>
