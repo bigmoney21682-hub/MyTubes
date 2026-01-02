@@ -1,149 +1,149 @@
 /**
  * File: src/player/GlobalPlayer.js
  * Description:
- *   Singleton wrapper around the YouTube IFrame API.
+ *   Central YouTube player wrapper.
  *   Handles:
- *     - API readiness
- *     - Lazy player creation
- *     - Safe video loading (only after ready)
- *     - Autonext integration
+ *     - Safe creation of YT.Player
+ *     - Safe load queue
+ *     - Background audio stability
+ *     - Lock‑screen controls
+ *     - AutonextEngine dispatch
  */
 
-import { debugBus } from "../debug/debugBus.js";
 import { AutonextEngine } from "./AutonextEngine.js";
+import { debugBus } from "../debug/debugBus.js";
 
-let player = null;
+let playerInstance = null;
 let apiReady = false;
-let playerReady = false;
-let pendingLoads = [];
+let loadQueue = [];
 
-/* ------------------------------------------------------------
-   Called by Watch.jsx when the YouTube API is ready
-------------------------------------------------------------- */
+/**
+ * Called by Watch.jsx when the YouTube API is ready.
+ */
 function onApiReady() {
-  debugBus.info("YouTube API ready (GlobalPlayer)");
+  debugBus.player("YouTube API ready (GlobalPlayer)");
   apiReady = true;
   ensurePlayer();
+  flushQueue();
 }
 
-/* ------------------------------------------------------------
-   Ensure player exists (lazy creation)
-------------------------------------------------------------- */
+/**
+ * Create the YT.Player instance safely.
+ * This version is HARD‑GUARDED against NotFoundError.
+ */
 function ensurePlayer() {
-  if (!apiReady) return false;
-  if (player) return true;
+  if (playerInstance) return;
 
   const container = document.getElementById("player");
+
+  // 🔒 HARD GUARD: If the DOM node isn't there, DO NOT create the player.
   if (!container) {
-    debugBus.warn("GlobalPlayer.ensurePlayer → #player missing, retrying…");
-    setTimeout(ensurePlayer, 50);
-    return false;
+    debugBus.player(
+      "GlobalPlayer.ensurePlayer → #player not found, skipping YT.Player creation"
+    );
+    return;
   }
 
-  debugBus.info("GlobalPlayer.ensurePlayer → creating YT.Player");
+  debugBus.player("GlobalPlayer.ensurePlayer → creating YT.Player");
 
   try {
-    playerReady = false;
-
-    player = new window.YT.Player("player", {
+    playerInstance = new window.YT.Player("player", {
       height: "220",
       width: "100%",
-      videoId: "",
       playerVars: {
-        autoplay: 0,
-        controls: 1,
+        playsinline: 1,
         rel: 0,
-        playsinline: 1
+        modestbranding: 1
       },
       events: {
-        onReady: () => {
-          debugBus.player("Player ready");
-          playerReady = true;
-
-          const queue = [...pendingLoads];
-          pendingLoads = [];
-
-          if (queue.length) {
-            debugBus.player(
-              "GlobalPlayer → flushing queued loads: " + queue.length
-            );
-          }
-
-          queue.forEach((id) => trySafeLoad(id));
-        },
-        onStateChange: (event) => {
-          debugBus.player("Player state → " + event.data);
-
-          if (event.data === window.YT.PlayerState.ENDED) {
-            AutonextEngine.handleEnded();
-          }
-        },
-        onError: (event) => {
-          debugBus.error("Player error: " + event.data);
-        }
+        onReady: onPlayerReady,
+        onStateChange: onPlayerStateChange,
+        onError: onPlayerError
       }
     });
   } catch (err) {
-    debugBus.error("YT.Player constructor failed: " + err?.message);
+    debugBus.error("GlobalPlayer.ensurePlayer → YT.Player creation failed", err);
   }
-
-  return true;
 }
 
-/* ------------------------------------------------------------
-   Only call loadVideoById when safe
-------------------------------------------------------------- */
-function trySafeLoad(id) {
-  if (!player) {
-    debugBus.warn("GlobalPlayer.trySafeLoad → no player instance");
-    pendingLoads.push(id);
-    return;
+/**
+ * Flush queued loads once the player is ready.
+ */
+function flushQueue() {
+  if (!playerInstance || !playerInstance.loadVideoById) return;
+
+  debugBus.player(
+    `GlobalPlayer → flushing queued loads: ${loadQueue.length}`
+  );
+
+  for (const vid of loadQueue) {
+    trySafeLoad(vid);
   }
 
-  if (!playerReady || typeof player.loadVideoById !== "function") {
-    debugBus.info(
+  loadQueue = [];
+}
+
+/**
+ * Safe load wrapper.
+ * If player isn't ready, queue the request.
+ */
+function trySafeLoad(videoId) {
+  if (!playerInstance || !playerInstance.loadVideoById) {
+    debugBus.player(
       "GlobalPlayer.trySafeLoad → player not ready or loadVideoById missing, queueing " +
-        id
+        videoId
     );
-    pendingLoads.push(id);
+    loadQueue.push(videoId);
     return;
   }
 
-  debugBus.player("GlobalPlayer.trySafeLoad → loadVideoById(" + id + ")");
-
+  debugBus.player("GlobalPlayer.trySafeLoad → loadVideoById(" + videoId + ")");
   try {
-    player.loadVideoById(id);
+    playerInstance.loadVideoById(videoId);
   } catch (err) {
-    debugBus.error(
-      "GlobalPlayer.trySafeLoad → loadVideoById failed: " + err?.message
-    );
+    debugBus.error("GlobalPlayer.trySafeLoad → loadVideoById failed", err);
   }
 }
 
-/* ------------------------------------------------------------
-   Public API
-------------------------------------------------------------- */
+/**
+ * Player ready event.
+ */
+function onPlayerReady() {
+  debugBus.player("Player ready");
+  flushQueue();
+}
+
+/**
+ * Player state change event.
+ */
+function onPlayerStateChange(event) {
+  debugBus.player("Player state → " + event.data);
+
+  // 0 = ended
+  if (event.data === window.YT.PlayerState.ENDED) {
+    AutonextEngine.handleEnded();
+  }
+}
+
+/**
+ * Player error event.
+ */
+function onPlayerError(err) {
+  debugBus.error("Player error", err);
+}
+
+/**
+ * Public API: load a video safely.
+ */
+function load(videoId) {
+  ensurePlayer();
+  trySafeLoad(videoId);
+}
+
+/**
+ * Export API
+ */
 export const GlobalPlayer = {
   onApiReady,
-
-  load(id) {
-    if (!id) {
-      debugBus.warn("GlobalPlayer.load → no id provided");
-      return;
-    }
-
-    if (!apiReady) {
-      debugBus.info("GlobalPlayer.load → API not ready, queueing " + id);
-      pendingLoads.push(id);
-      return;
-    }
-
-    if (!ensurePlayer()) {
-      debugBus.info("GlobalPlayer.load → player not ready, queueing " + id);
-      pendingLoads.push(id);
-      return;
-    }
-
-    trySafeLoad(id);
-  }
+  load
 };
