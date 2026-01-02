@@ -9,11 +9,21 @@ import { getKeyUsageSnapshot } from "./keyUsageTracker.js";
 
 export default function DebugNetwork({ logs, colors, formatTime }) {
   const networkLogs = logs.filter(
-    (l) => l.level === "NETWORK" || l.level === "FETCH" || l.level === "ERROR_FETCH"
+    (l) =>
+      l.level === "NETWORK" ||
+      l.level === "FETCH" ||
+      l.level === "ERROR_FETCH"
   );
 
   const quota = getQuotaSnapshot();
   const keyUsage = getKeyUsageSnapshot();
+
+  // Safely render any value (string, number, object)
+  function renderValue(v) {
+    if (v == null) return "";
+    if (typeof v === "object") return JSON.stringify(v);
+    return String(v);
+  }
 
   return (
     <div
@@ -37,12 +47,14 @@ export default function DebugNetwork({ logs, colors, formatTime }) {
         }}
       >
         <div style={{ fontWeight: "bold", marginBottom: 6 }}>Quota Usage</div>
+
         {Object.keys(quota).length === 0 && (
           <div style={{ opacity: 0.6 }}>No quota usage yet.</div>
         )}
+
         {Object.entries(quota).map(([key, used]) => (
           <div key={key}>
-            <strong>{key}:</strong> {used} units
+            <strong>{key}:</strong> {renderValue(used)} units
           </div>
         ))}
       </div>
@@ -58,19 +70,23 @@ export default function DebugNetwork({ logs, colors, formatTime }) {
         }}
       >
         <div style={{ fontWeight: "bold", marginBottom: 6 }}>API Key Usage</div>
+
         {Object.keys(keyUsage).length === 0 && (
           <div style={{ opacity: 0.6 }}>No API calls yet.</div>
         )}
+
         {Object.entries(keyUsage).map(([key, count]) => (
           <div key={key}>
-            <strong>{key}:</strong> {count} calls
+            <strong>{key}:</strong> {renderValue(count)} calls
           </div>
         ))}
       </div>
 
       {/* Network Logs */}
       {networkLogs.length === 0 && (
-        <div style={{ color: "#888", fontSize: 12 }}>No network activity yet.</div>
+        <div style={{ color: "#888", fontSize: 12 }}>
+          No network activity yet.
+        </div>
       )}
 
       {networkLogs.map((log, i) => {
@@ -88,7 +104,9 @@ export default function DebugNetwork({ logs, colors, formatTime }) {
             }}
           >
             <div style={{ opacity: 0.6 }}>{formatTime(ts)}</div>
-            <div style={{ fontWeight: "bold" }}>{msg}</div>
+
+            {/* ⭐ FIX: Safely render msg */}
+            <div style={{ fontWeight: "bold" }}>{renderValue(msg)}</div>
 
             {data && (
               <div
@@ -101,33 +119,34 @@ export default function DebugNetwork({ logs, colors, formatTime }) {
                   overflowX: "auto"
                 }}
               >
+                {/* Safely render each field */}
                 {data.url && (
                   <div style={{ marginBottom: 4 }}>
-                    <strong>URL:</strong> {data.url}
+                    <strong>URL:</strong> {renderValue(data.url)}
                   </div>
                 )}
 
                 {data.status && (
                   <div style={{ marginBottom: 4 }}>
-                    <strong>Status:</strong> {data.status}
+                    <strong>Status:</strong> {renderValue(data.status)}
                   </div>
                 )}
 
                 {data.method && (
                   <div style={{ marginBottom: 4 }}>
-                    <strong>Method:</strong> {data.method}
+                    <strong>Method:</strong> {renderValue(data.method)}
                   </div>
                 )}
 
                 {data.duration && (
                   <div style={{ marginBottom: 4 }}>
-                    <strong>Duration:</strong> {data.duration}ms
+                    <strong>Duration:</strong> {renderValue(data.duration)}ms
                   </div>
                 )}
 
                 {data.error && (
                   <div style={{ marginTop: 6, color: "#ff6666" }}>
-                    <strong>Error:</strong> {data.error}
+                    <strong>Error:</strong> {renderValue(data.error)}
                   </div>
                 )}
               </div>
