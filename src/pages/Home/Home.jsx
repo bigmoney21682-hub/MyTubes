@@ -10,7 +10,7 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { fetchTrending } from "../../api/trending.js";
-
+import { normalizeId } from "../../utils/normalizeId.js";
 import VideoActions from "../../components/VideoActions.jsx";
 
 /* ------------------------------------------------------------
@@ -60,17 +60,29 @@ export default function Home() {
         return;
       }
 
-      const normalized = list.map((item) => ({
-        id: item.id,
-        snippet: {
-          title: item.title,
-          channelTitle: item.author,
-          description: "",
-          thumbnails: {
-            medium: { url: item.thumbnail }
+      // ⭐ CRITICAL FIX: Normalize IDs for ALL trending items
+      const normalized = list
+        .map((item) => {
+          const vid = normalizeId(item);
+
+          if (!vid) {
+            window.bootDebug?.warn("Home.jsx → Skipped trending item with invalid ID", item);
+            return null;
           }
-        }
-      }));
+
+          return {
+            id: vid,
+            snippet: {
+              title: item.title,
+              channelTitle: item.author,
+              description: "",
+              thumbnails: {
+                medium: { url: item.thumbnail }
+              }
+            }
+          };
+        })
+        .filter(Boolean); // remove nulls
 
       window.bootDebug?.player(
         `Home.jsx → Trending loaded (${normalized.length} items)`
@@ -100,7 +112,7 @@ export default function Home() {
           <div key={vid + "_" + i} style={{ marginBottom: "24px" }}>
             {/* Thumbnail + Title clickable */}
             <Link
-              to={`/watch/${vid}`}
+              to={`/watch/${vid}?src=trending`}
               style={{ textDecoration: "none", color: "#fff" }}
             >
               <img
