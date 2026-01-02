@@ -5,12 +5,11 @@
  */
 
 import React, { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, Link } from "react-router-dom";
 
-import { searchVideos } from "../api/search.js"; // your existing API wrapper
+import { searchVideos } from "../api/search.js";
 import { debugBus } from "../debug/debugBus.js";
 
-// Smart cache
 import {
   getSearchCache,
   setSearchCache
@@ -23,9 +22,6 @@ export default function Search() {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState([]);
 
-  // ------------------------------------------------------------
-  // Load search results when query changes
-  // ------------------------------------------------------------
   useEffect(() => {
     if (!query.trim()) {
       setResults([]);
@@ -35,7 +31,6 @@ export default function Search() {
     async function runSearch() {
       setLoading(true);
 
-      // 1. Try cache first
       const cached = getSearchCache(query);
       if (cached) {
         debugBus.log("NETWORK", `SearchCache → HIT for "${query}"`);
@@ -44,12 +39,11 @@ export default function Search() {
         return;
       }
 
-      // 2. Cache MISS → call API
       debugBus.log("NETWORK", `SearchCache → MISS for "${query}"`);
 
       const data = await searchVideos(query);
 
-      if (data && data.items) {
+      if (data && Array.isArray(data.items)) {
         setSearchCache(query, data.items);
         setResults(data.items);
       } else {
@@ -62,9 +56,6 @@ export default function Search() {
     runSearch();
   }, [query]);
 
-  // ------------------------------------------------------------
-  // UI
-  // ------------------------------------------------------------
   return (
     <div style={{ padding: "12px" }}>
       <h2 style={{ marginBottom: 12 }}>Search: {query}</h2>
@@ -77,13 +68,13 @@ export default function Search() {
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         {results.map((item) => {
-          const video = item.id?.videoId || item.id;
-          const snippet = item.snippet;
+          const videoId = item.id;
+          const sn = item.snippet;
 
           return (
-            <a
-              key={video}
-              href={`#/watch?v=${video}`}
+            <Link
+              key={videoId}
+              to={`/watch/${videoId}`}
               style={{
                 display: "flex",
                 gap: 12,
@@ -94,20 +85,20 @@ export default function Search() {
               }}
             >
               <img
-                src={snippet?.thumbnails?.medium?.url}
+                src={sn?.thumbnails?.medium?.url}
                 alt=""
                 style={{ width: 160, height: 90, objectFit: "cover" }}
               />
 
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: "bold", marginBottom: 4 }}>
-                  {snippet?.title}
+                  {sn?.title}
                 </div>
                 <div style={{ fontSize: 12, opacity: 0.7 }}>
-                  {snippet?.channelTitle}
+                  {sn?.channelTitle}
                 </div>
               </div>
-            </a>
+            </Link>
           );
         })}
       </div>
