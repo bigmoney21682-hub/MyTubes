@@ -6,6 +6,7 @@
 import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { usePlaylists } from "../contexts/PlaylistContext.jsx";
+import { normalizeId } from "../utils/normalizeId.js";
 
 export default function Playlist() {
   const { id } = useParams();
@@ -31,57 +32,72 @@ export default function Playlist() {
       )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-        {playlist.videos.map((v) => (
-          <div
-            key={v.id}
-            style={{
-              display: "flex",
-              gap: "12px",
-              background: "#111",
-              padding: "10px",
-              borderRadius: "8px"
-            }}
-          >
-            <img
-              src={v.thumbnail}
-              alt={v.title}
+        {playlist.videos.map((v) => {
+          const vidId = normalizeId(v);
+
+          if (!vidId) {
+            console.warn("Playlist.jsx → Skipped invalid playlist entry:", v);
+            return null;
+          }
+
+          return (
+            <div
+              key={vidId}
               style={{
-                width: "140px",
-                height: "80px",
-                objectFit: "cover",
-                borderRadius: "6px",
-                cursor: "pointer"
+                display: "flex",
+                gap: "12px",
+                background: "#111",
+                padding: "10px",
+                borderRadius: "8px"
               }}
-              onClick={() => navigate(`/watch/${v.id}?src=playlist&pl=${id}`)}
-            />
-
-            <div style={{ flex: 1 }}>
-              <div
-                onClick={() =>
-                  navigate(`/watch/${v.id}?src=playlist&pl=${id}`)
-                }
-                style={{ fontSize: "14px", fontWeight: 600, cursor: "pointer" }}
-              >
-                {v.title}
-              </div>
-
-              <button
-                onClick={() => removeVideoFromPlaylist(id, v.id)}
+            >
+              <img
+                src={v.thumbnail}
+                alt={v.title}
                 style={{
-                  marginTop: "8px",
-                  padding: "6px 10px",
+                  width: "140px",
+                  height: "80px",
+                  objectFit: "cover",
                   borderRadius: "6px",
-                  border: "none",
-                  background: "#b91c1c",
-                  color: "#fff",
                   cursor: "pointer"
                 }}
-              >
-                Remove
-              </button>
+                onClick={() =>
+                  navigate(`/watch/${vidId}?src=playlist&pl=${id}`)
+                }
+              />
+
+              <div style={{ flex: 1 }}>
+                <div
+                  onClick={() =>
+                    navigate(`/watch/${vidId}?src=playlist&pl=${id}`)
+                  }
+                  style={{
+                    fontSize: "14px",
+                    fontWeight: 600,
+                    cursor: "pointer"
+                  }}
+                >
+                  {v.title}
+                </div>
+
+                <button
+                  onClick={() => removeVideoFromPlaylist(id, vidId)}
+                  style={{
+                    marginTop: "8px",
+                    padding: "6px 10px",
+                    borderRadius: "6px",
+                    border: "none",
+                    background: "#b91c1c",
+                    color: "#fff",
+                    cursor: "pointer"
+                  }}
+                >
+                  Remove
+                </button>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
