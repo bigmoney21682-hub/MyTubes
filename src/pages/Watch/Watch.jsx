@@ -76,9 +76,12 @@ export default function Watch() {
 
   useEffect(() => {
     if (window.YT && window.YT.Player) {
+      debugBus.log("YT API already loaded (Watch.jsx)");
       GlobalPlayer.onApiReady();
       return;
     }
+
+    debugBus.log("Injecting YouTube API script (Watch.jsx)");
 
     const existing = document.getElementById("youtube-iframe-api");
     if (!existing) {
@@ -89,6 +92,7 @@ export default function Watch() {
     }
 
     window.onYouTubeIframeAPIReady = () => {
+      debugBus.log("YouTube API ready (Watch.jsx callback)");
       GlobalPlayer.onApiReady();
     };
   }, []);
@@ -114,6 +118,7 @@ export default function Watch() {
 
   useEffect(() => {
     if (!id) return;
+    debugBus.player("PlayerContext → loadVideo(" + id + ")");
     loadVideo(id);
   }, [id, loadVideo]);
 
@@ -140,7 +145,11 @@ export default function Watch() {
           }
 
           relatedItems = relatedJson.items;
-        } catch (innerErr) {}
+        } catch (innerErr) {
+          debugBus.warn(
+            "Watch.jsx → related search failed, will rely on trending"
+          );
+        }
 
         setRelated(relatedItems);
 
@@ -150,8 +159,12 @@ export default function Watch() {
           );
           const trendingJson = await trendingRes.json();
           setTrending(trendingJson.items || []);
-        } catch (trendErr) {}
-      } catch (err) {}
+        } catch (trendErr) {
+          debugBus.error("Watch.jsx trending fetch error", trendErr);
+        }
+      } catch (err) {
+        debugBus.error("Watch.jsx fetch error", err);
+      }
     }
 
     fetchData();
@@ -178,7 +191,7 @@ export default function Watch() {
 
     const relatedHandler = () => {
       if (autonextSource === "related") {
-        const list = related;
+        const list = related.length ? related : trending;
         if (!list.length) return;
 
         const next = list[0];
@@ -228,6 +241,11 @@ export default function Watch() {
       return pl ? pl.videos : [];
     }
     if (autonextSource === "trending") {
+      return trending;
+    }
+    // Fallback: if related is empty (API 400), show trending instead
+    if (autonextSource === "related") {
+      if (related.length) return related;
       return trending;
     }
     return related;
