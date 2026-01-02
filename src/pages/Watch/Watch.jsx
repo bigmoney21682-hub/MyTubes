@@ -1,6 +1,6 @@
 /**
  * File: Watch.jsx
- * Path: src/pages/Watch.jsx
+ * Path: src/pages/Watch/Watch.jsx
  * Description: Fully optimized Watch page using YouTubeAPI.js
  */
 
@@ -19,7 +19,6 @@ import { GlobalPlayer } from "../../player/GlobalPlayer.js";
 import { usePlaylists } from "../../contexts/PlaylistContext.jsx";
 import { debugBus } from "../../debug/debugBus.js";
 
-// NEW optimized API layer
 import {
   fetchVideo,
   fetchRelated,
@@ -223,11 +222,17 @@ export default function Watch() {
   }, [id]);
 
   /* ------------------------------------------------------------
-     AutonextEngine callback registration (STABLE)
+     Effective playlist ID
+  ------------------------------------------------------------ */
+  const effectivePlaylistId = useMemo(
+    () => selectedPlaylistId || playlistIdFromURL || null,
+    [selectedPlaylistId, playlistIdFromURL]
+  );
+
+  /* ------------------------------------------------------------
+     AutonextEngine callback registration (STABLE, REDUCED DEPENDENCIES)
   ------------------------------------------------------------ */
   useEffect(() => {
-    const effectivePlaylistId = selectedPlaylistId || playlistIdFromURL || null;
-
     // PLAYLIST MODE
     if (autonextSource === "playlist" && effectivePlaylistId) {
       const playlistHandler = () => {
@@ -274,19 +279,16 @@ export default function Watch() {
   }, [
     id,
     autonextSource,
-    selectedPlaylistId,
-    playlistIdFromURL,
+    effectivePlaylistId,
     playlists,
     navigate,
-    related,
-    trending
+    related.length,
+    trending.length
   ]);
 
   /* ------------------------------------------------------------
      Related list selection
   ------------------------------------------------------------ */
-  const effectivePlaylistId = selectedPlaylistId || playlistIdFromURL || null;
-
   const relatedList = useMemo(() => {
     if (autonextSource === "playlist" && effectivePlaylistId) {
       const pl = playlists.find((p) => p.id === effectivePlaylistId);
@@ -514,7 +516,7 @@ export default function Watch() {
                       cursor: "pointer"
                     }}
                     onClick={() =>
-                      navigate(`/watch/${vidId}?src=${autonextSource}`)
+                      navigate(`/watch/${vidId}?src=${autonextSource}${effectivePlaylistId ? `&pl=${effectivePlaylistId}` : ""}`)
                     }
                   >
                     <img
