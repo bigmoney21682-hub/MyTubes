@@ -1,30 +1,30 @@
 /**
  * File: Watch.jsx
  * Path: src/pages/Watch/Watch.jsx
- * Description: Full video watch page with safe destructuring, normalized IDs,
- *              YouTube-only related fallback, autonext integration, collapsible
- *              description, and tap-to-show skip controls overlay.
+ * Description: Full video watch page with correct YouTube IFrame mount timing,
+ *              safe destructuring, normalized IDs, related fallback, autonext,
+ *              collapsible description, and tap-to-show skip controls.
  */
 
-import React, { useEffect, useState, useRef } from "react";
+import React, {
+  useEffect,
+  useLayoutEffect,
+  useState,
+  useRef
+} from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { usePlayer } from "../../player/PlayerContext.jsx";
 import { AutonextEngine } from "../../player/AutonextEngine.js";
 import { GlobalPlayer } from "../../player/GlobalPlayer.js";
 import { debugBus } from "../../debug/debugBus.js";
 
-// Media Session metadata helper
 import { updateMediaSessionMetadata } from "../../main.jsx";
-
-// Cached API imports
 import { getVideoDetails } from "../../api/video.js";
 import { fetchRelatedVideos } from "../../api/related.js";
-
-// Playlists
 import { usePlaylists } from "../../contexts/PlaylistContext.jsx";
 
 /* ------------------------------------------------------------
-   Shared card styles for Related videos
+   Shared card styles
 ------------------------------------------------------------- */
 const cardStyle = {
   width: "100%",
@@ -88,29 +88,38 @@ export default function Watch() {
   }, [related]);
 
   /* ------------------------------------------------------------
-     Ensure GlobalPlayer knows #player exists (retry loop)
-  ------------------------------------------------------------- */
-  useEffect(() => {
+     Ensure #player exists (AFTER DOM is painted)
+     ⭐ CRITICAL FIX: useLayoutEffect guarantees #player exists
+------------------------------------------------------------- */
+  useLayoutEffect(() => {
     GlobalPlayer.ensureMounted();
   }, []);
 
   /* ------------------------------------------------------------
-     Load video + fetch metadata + related when ID changes
-     ⭐ FIX: Related loads ONLY here (no second fetch)
-  ------------------------------------------------------------- */
+     Load video AFTER GlobalPlayer.mounted is true
+     ⭐ CRITICAL FIX: wait loop prevents black player
+------------------------------------------------------------- */
   useEffect(() => {
     if (!id) return;
 
-    debugBus.log("PLAYER", `Watch.jsx → loadVideo(${id})`);
-    loadVideo(id);
+    const wait = setInterval(() => {
+      if (GlobalPlayer.mounted) {
+        clearInterval(wait);
 
-    loadVideoDetails(id);
-    loadRelated(id); // ⭐ Only call once
+        debugBus.log("PLAYER", `Watch.jsx → loadVideo(${id})`);
+        loadVideo(id);
+
+        loadVideoDetails(id);
+        loadRelated(id);
+      }
+    }, 50);
+
+    return () => clearInterval(wait);
   }, [id]);
 
   /* ------------------------------------------------------------
      Autonext (related)
-  ------------------------------------------------------------- */
+------------------------------------------------------------- */
   useEffect(() => {
     AutonextEngine.registerRelatedCallback(() => {
       const list = relatedRef.current;
@@ -126,7 +135,7 @@ export default function Watch() {
 
   /* ------------------------------------------------------------
      Cached video details
-  ------------------------------------------------------------- */
+------------------------------------------------------------- */
   async function loadVideoDetails(videoId) {
     try {
       const details = await getVideoDetails(videoId);
@@ -154,7 +163,7 @@ export default function Watch() {
 
   /* ------------------------------------------------------------
      Cached related videos
-  ------------------------------------------------------------- */
+------------------------------------------------------------- */
   async function loadRelated(videoId) {
     try {
       const list = await fetchRelatedVideos(videoId);
@@ -183,8 +192,8 @@ export default function Watch() {
   }
 
   /* ------------------------------------------------------------
-     Media Session metadata ONLY (no second related fetch)
-  ------------------------------------------------------------- */
+     Media Session metadata
+------------------------------------------------------------- */
   useEffect(() => {
     if (video && id) {
       const sn = video?.snippet ?? {};
@@ -198,7 +207,7 @@ export default function Watch() {
 
   /* ------------------------------------------------------------
      Add to Playlist
-  ------------------------------------------------------------- */
+------------------------------------------------------------- */
   function handleAddToPlaylist() {
     if (!id) return;
 
@@ -236,7 +245,7 @@ export default function Watch() {
 
   /* ------------------------------------------------------------
      Loading state
-  ------------------------------------------------------------- */
+------------------------------------------------------------- */
   if (!video) {
     return (
       <div style={{ padding: "16px", color: "#fff", marginTop: "60px" }}>
@@ -247,7 +256,7 @@ export default function Watch() {
 
   /* ------------------------------------------------------------
      Render
-  ------------------------------------------------------------- */
+------------------------------------------------------------- */
   const sn = video?.snippet ?? {};
   const title = sn?.title ?? "Untitled";
   const description = sn?.description ?? "";
