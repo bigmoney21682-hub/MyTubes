@@ -7,6 +7,15 @@ let player = null;
 let apiReady = false;
 let pendingLoads = [];
 
+// Optional config injected by PlayerContext
+let config = {
+  onReady: null,
+  onStateChange: null
+};
+
+/* ------------------------------------------------------------
+   YouTube API Ready → Create Player
+------------------------------------------------------------- */
 function onYouTubeIframeAPIReady() {
   debugBus.log("YouTube API ready");
   apiReady = true;
@@ -25,16 +34,34 @@ function onYouTubeIframeAPIReady() {
       events: {
         onReady: () => {
           debugBus.log("Player ready");
+
+          if (config.onReady) {
+            try {
+              config.onReady();
+            } catch (err) {
+              debugBus.error("GlobalPlayer onReady callback error:", err);
+            }
+          }
         },
+
         onStateChange: (event) => {
           debugBus.log(String(event.data));
 
+          if (config.onStateChange) {
+            try {
+              config.onStateChange(event.data);
+            } catch (err) {
+              debugBus.error("GlobalPlayer onStateChange callback error:", err);
+            }
+          }
+
           // 0 = ENDED
           if (event.data === window.YT.PlayerState.ENDED) {
-            debugBus.log("Player state → ENDED, calling AutonextEngine.handleEnded()");
+            debugBus.log("Player state → ENDED → AutonextEngine.handleEnded()");
             AutonextEngine.handleEnded();
           }
         },
+
         onError: (event) => {
           debugBus.error("Player error", event.data);
         }
@@ -42,10 +69,14 @@ function onYouTubeIframeAPIReady() {
     });
   }
 
+  // Process queued loads
   pendingLoads.forEach((id) => load(id));
   pendingLoads = [];
 }
 
+/* ------------------------------------------------------------
+   Inject YouTube IFrame API script (once)
+------------------------------------------------------------- */
 if (typeof window !== "undefined") {
   if (!window.onYouTubeIframeAPIReady) {
     window.onYouTubeIframeAPIReady = onYouTubeIframeAPIReady;
@@ -59,11 +90,22 @@ if (typeof window !== "undefined") {
   }
 }
 
+/* ------------------------------------------------------------
+   GlobalPlayer API
+------------------------------------------------------------- */
 export const GlobalPlayer = {
-  ensureMounted() {
-    // no-op; #player div in Watch.jsx is enough
+  /* Called once by PlayerContext */
+  init(cfg) {
+    config = cfg || {};
+    debugBus.log("GlobalPlayer.init() called");
   },
 
+  /* Called by Watch.jsx */
+  ensureMounted() {
+    // No-op: #player div in Watch.jsx is enough
+  },
+
+  /* Load a video by ID */
   load(id) {
     if (!id) return;
 
@@ -74,6 +116,10 @@ export const GlobalPlayer = {
     }
 
     debugBus.log("Loading video " + id);
-    player.loadVideoById(id);
+    try {
+      player.loadVideoById(id);
+    } catch (err) {
+      debugBus.error("GlobalPlayer.load error:", err);
+    }
   }
 };
