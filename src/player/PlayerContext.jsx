@@ -1,6 +1,5 @@
 /**
  * File: PlayerContext.jsx
- * Path: src/player/PlayerContext.jsx
  * Description: Global player state + autonext mode controller.
  */
 
@@ -26,7 +25,7 @@ export function PlayerProvider({ children }) {
   function setAutonextMode(mode) {
     debugBus.log("PLAYER", `Autonext mode → ${mode}`);
     setAutonextModeState(mode);
-    AutonextEngine.setMode(mode); // CRITICAL FIX
+    AutonextEngine.setMode(mode);
   }
 
   /* ------------------------------------------------------------
