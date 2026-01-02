@@ -19,11 +19,12 @@ export function PlaylistProvider({ children }) {
     setPlaylists(next);
     try {
       localStorage.setItem("mytube_playlists", JSON.stringify(next));
-    } catch {
-      // ignore
-    }
+    } catch {}
   };
 
+  /* ------------------------------------------------------------
+     ADD VIDEO TO PLAYLIST
+  ------------------------------------------------------------ */
   const addVideoToPlaylist = useCallback(
     (playlistId, video) => {
       persist(
@@ -42,6 +43,28 @@ export function PlaylistProvider({ children }) {
     [playlists]
   );
 
+  /* ------------------------------------------------------------
+     REMOVE VIDEO FROM PLAYLIST  ← MISSING BEFORE
+  ------------------------------------------------------------ */
+  const removeVideoFromPlaylist = useCallback(
+    (playlistId, videoId) => {
+      persist(
+        playlists.map((pl) =>
+          pl.id === playlistId
+            ? {
+                ...pl,
+                videos: pl.videos.filter((v) => v.id !== videoId)
+              }
+            : pl
+        )
+      );
+    },
+    [playlists]
+  );
+
+  /* ------------------------------------------------------------
+     CREATE PLAYLIST
+  ------------------------------------------------------------ */
   const createPlaylist = useCallback(
     (name, firstVideo) => {
       const id = "pl_" + Date.now();
@@ -59,18 +82,29 @@ export function PlaylistProvider({ children }) {
     [playlists]
   );
 
+  /* ------------------------------------------------------------
+     DELETE PLAYLIST  ← MISSING BEFORE
+  ------------------------------------------------------------ */
+  const deletePlaylist = useCallback(
+    (playlistId) => {
+      persist(playlists.filter((pl) => pl.id !== playlistId));
+    },
+    [playlists]
+  );
+
+  /* ------------------------------------------------------------
+     OPEN ADD-TO-PLAYLIST POPUP (TEMP UX)
+  ------------------------------------------------------------ */
   const openAddToPlaylist = useCallback(
     (video) => {
       debugBus.log("PlaylistContext → openAddToPlaylist", video);
 
-      // Minimal UX: if no playlists, create one automatically.
       if (!playlists.length) {
         const newId = createPlaylist("My Playlist", video);
         debugBus.log("Created playlist", newId);
         return;
       }
 
-      // For now, just add to the first playlist.
       addVideoToPlaylist(playlists[0].id, video);
       debugBus.log("Added to playlist", playlists[0].id);
     },
@@ -82,7 +116,9 @@ export function PlaylistProvider({ children }) {
       value={{
         playlists,
         addVideoToPlaylist,
+        removeVideoFromPlaylist,   // ← NOW EXPORTED
         createPlaylist,
+        deletePlaylist,            // ← NOW EXPORTED
         openAddToPlaylist
       }}
     >
