@@ -1,17 +1,13 @@
 /**
  * File: src/pages/Watch/Watch.jsx
  * Description:
- *   Restored Watch page with:
- *   - YouTube API loader
- *   - GlobalPlayer integration
- *   - Playlist + Related + Trending autonext
- *   - Autonext source popup (Playlist / Related / Trending)
- *   - Playlist picker when Playlist is chosen
- *   - Add to playlist
- *   - Related/Playlist/Trending list with safe fallback
+ *   Watch page with popup isolation:
+ *   - Popup state moved to useRef (no re-render of player container)
+ *   - uiTick used only to refresh popup UI
+ *   - Prevents NotFoundError from YT.Player
  */
 
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useRef } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 
 import { usePlayer } from "../../player/PlayerContext.jsx";
@@ -62,9 +58,36 @@ export default function Watch() {
     isPlaylistMode ? "playlist" : "related"
   );
 
-  const [showSourceMenu, setShowSourceMenu] = useState(false);
-  const [showPlaylistPicker, setShowPlaylistPicker] = useState(false);
+  // ------------------------------------------------------------
+  // Popup isolation: useRef + uiTick
+  // ------------------------------------------------------------
+  const showSourceMenuRef = useRef(false);
+  const showPlaylistPickerRef = useRef(false);
+  const [uiTick, setUiTick] = useState(0);
 
+  function openSourceMenu() {
+    showSourceMenuRef.current = true;
+    setUiTick((x) => x + 1);
+  }
+
+  function closeSourceMenu() {
+    showSourceMenuRef.current = false;
+    setUiTick((x) => x + 1);
+  }
+
+  function openPlaylistPicker() {
+    showPlaylistPickerRef.current = true;
+    setUiTick((x) => x + 1);
+  }
+
+  function closePlaylistPicker() {
+    showPlaylistPickerRef.current = false;
+    setUiTick((x) => x + 1);
+  }
+
+  // ------------------------------------------------------------
+  // Autonext mode correction
+  // ------------------------------------------------------------
   useEffect(() => {
     setAutonextSource((prev) => {
       if (prev === "playlist" && !isPlaylistMode && !selectedPlaylistId) {
@@ -74,6 +97,9 @@ export default function Watch() {
     });
   }, [isPlaylistMode, selectedPlaylistId]);
 
+  // ------------------------------------------------------------
+  // YouTube API loader
+  // ------------------------------------------------------------
   useEffect(() => {
     if (window.YT && window.YT.Player) {
       debugBus.log("YT API already loaded (Watch.jsx)");
@@ -97,6 +123,9 @@ export default function Watch() {
     };
   }, []);
 
+  // ------------------------------------------------------------
+  // Autonext mode → PlayerContext
+  // ------------------------------------------------------------
   useEffect(() => {
     if (autonextSource === "playlist" && (selectedPlaylistId || playlistIdFromURL)) {
       setAutonextMode("playlist");
@@ -116,12 +145,18 @@ export default function Watch() {
     setActivePlaylistId
   ]);
 
+  // ------------------------------------------------------------
+  // Load video into GlobalPlayer
+  // ------------------------------------------------------------
   useEffect(() => {
     if (!id) return;
     debugBus.player("PlayerContext → loadVideo(" + id + ")");
     loadVideo(id);
   }, [id, loadVideo]);
 
+  // ------------------------------------------------------------
+  // Fetch video + related + trending
+  // ------------------------------------------------------------
   useEffect(() => {
     if (!id) return;
 
@@ -170,6 +205,9 @@ export default function Watch() {
     fetchData();
   }, [id]);
 
+  // ------------------------------------------------------------
+  // AutonextEngine callback registration
+  // ------------------------------------------------------------
   useEffect(() => {
     const effectivePlaylistId = selectedPlaylistId || playlistIdFromURL || null;
 
@@ -233,6 +271,9 @@ export default function Watch() {
     navigate
   ]);
 
+  // ------------------------------------------------------------
+  // Related list selection
+  // ------------------------------------------------------------
   const effectivePlaylistId = selectedPlaylistId || playlistIdFromURL || null;
 
   const relatedList = useMemo(() => {
@@ -243,7 +284,6 @@ export default function Watch() {
     if (autonextSource === "trending") {
       return trending;
     }
-    // Fallback: if related is empty (API 400), show trending instead
     if (autonextSource === "related") {
       if (related.length) return related;
       return trending;
@@ -273,6 +313,9 @@ export default function Watch() {
     return "Related";
   }, [autonextSource]);
 
+  // ------------------------------------------------------------
+  // Popup styles
+  // ------------------------------------------------------------
   const overlayStyle = {
     position: "fixed",
     top: 0,
@@ -307,15 +350,17 @@ export default function Watch() {
     cursor: "pointer"
   };
 
+  // ------------------------------------------------------------
+  // Render
+  // ------------------------------------------------------------
   return (
     <div style={{ padding: "16px", color: "#fff" }}>
-      {showSourceMenu && (
-        <div style={overlayStyle} onClick={() => setShowSourceMenu(false)}>
+      {/* Autonext Source Menu */}
+      {showSourceMenuRef.current && (
+        <div style={overlayStyle} onClick={closeSourceMenu}>
           <div
             style={menuStyle}
-            onClick={(e) => {
-              e.stopPropagation();
-            }}
+            onClick={(e) => e.stopPropagation()}
           >
             <h3 style={{ marginBottom: "12px", fontSize: "16px" }}>
               Autonext Source
@@ -325,7 +370,7 @@ export default function Watch() {
               style={menuButton}
               onClick={() => {
                 setAutonextSource("related");
-                setShowSourceMenu(false);
+                closeSourceMenu();
               }}
             >
               Related
@@ -334,8 +379,8 @@ export default function Watch() {
             <button
               style={menuButton}
               onClick={() => {
-                setShowSourceMenu(false);
-                setShowPlaylistPicker(true);
+                closeSourceMenu();
+                openPlaylistPicker();
               }}
             >
               Playlist…
@@ -345,7 +390,7 @@ export default function Watch() {
               style={menuButton}
               onClick={() => {
                 setAutonextSource("trending");
-                setShowSourceMenu(false);
+                closeSourceMenu();
               }}
             >
               Trending
@@ -354,13 +399,12 @@ export default function Watch() {
         </div>
       )}
 
-      {showPlaylistPicker && (
-        <div style={overlayStyle} onClick={() => setShowPlaylistPicker(false)}>
+      {/* Playlist Picker */}
+      {showPlaylistPickerRef.current && (
+        <div style={overlayStyle} onClick={closePlaylistPicker}>
           <div
             style={menuStyle}
-            onClick={(e) => {
-              e.stopPropagation();
-            }}
+            onClick={(e) => e.stopPropagation()}
           >
             <h3 style={{ marginBottom: "12px", fontSize: "16px" }}>
               Choose Playlist
@@ -379,7 +423,7 @@ export default function Watch() {
                 onClick={() => {
                   setSelectedPlaylistId(pl.id);
                   setAutonextSource("playlist");
-                  setShowPlaylistPicker(false);
+                  closePlaylistPicker();
                 }}
               >
                 {pl.name}
@@ -389,6 +433,7 @@ export default function Watch() {
         </div>
       )}
 
+      {/* Player Container */}
       <div
         id="player"
         style={{
@@ -399,6 +444,7 @@ export default function Watch() {
         }}
       />
 
+      {/* Video Info */}
       {videoData && (
         <div style={{ marginBottom: "12px" }}>
           <h2 style={{ fontSize: "18px", fontWeight: "600" }}>
@@ -410,9 +456,10 @@ export default function Watch() {
         </div>
       )}
 
+      {/* Controls */}
       <div style={{ display: "flex", gap: "10px", marginBottom: "16px" }}>
         <button
-          onClick={() => setShowSourceMenu(true)}
+          onClick={openSourceMenu}
           style={{
             padding: "6px 10px",
             borderRadius: "999px",
@@ -446,6 +493,7 @@ export default function Watch() {
         </span>
       </div>
 
+      {/* Related / Playlist / Trending List */}
       {relatedList.length > 0 && (
         <div style={{ marginTop: "8px" }}>
           <h3 style={{ fontSize: "14px", marginBottom: "8px" }}>
