@@ -22,9 +22,10 @@ import { fetchRelatedVideos } from "../../api/related.js";
 import { usePlaylists } from "../../contexts/PlaylistContext.jsx";
 
 import PlaylistPickerModal from "../../components/PlaylistPickerModal.jsx";
+import VideoActions from "../../components/VideoActions.jsx";
 
 /* ------------------------------------------------------------
-   Shared card styles
+   Shared card styles for related
 ------------------------------------------------------------- */
 const cardStyle = {
   width: "100%",
@@ -108,8 +109,9 @@ export default function Watch() {
     }, 50);
 
     return () => clearInterval(wait);
-  }, [id]);
+  }, [id, loadVideo]);
 
+  // ⭐ Register Autonext callback ONCE (no re-stacking)
   useEffect(() => {
     AutonextEngine.registerRelatedCallback(() => {
       const list = relatedRef.current;
@@ -121,7 +123,7 @@ export default function Watch() {
       navigate(`/watch/${next}`);
       loadVideo(next);
     });
-  }, [navigate, loadVideo]);
+  }, [navigate, loadVideo]); // logic stable, callback registered once per mount
 
   async function loadVideoDetails(videoId) {
     try {
@@ -209,6 +211,7 @@ export default function Watch() {
         marginTop: "calc(56.25vw + var(--header-height))"
       }}
     >
+      {/* Fixed player at top */}
       <div
         style={{
           position: "fixed",
@@ -232,8 +235,10 @@ export default function Watch() {
         ></div>
       </div>
 
+      {/* Title */}
       <h2 style={{ padding: "16px" }}>{title}</h2>
 
+      {/* Description */}
       <div style={{ padding: "0 16px 16px" }}>
         <div
           style={{
@@ -263,6 +268,7 @@ export default function Watch() {
         </button>
       </div>
 
+      {/* Main actions under player */}
       <div style={{ padding: "16px", display: "flex", gap: "8px" }}>
         <button
           onClick={() => queueAdd(id)}
@@ -291,6 +297,7 @@ export default function Watch() {
         </button>
       </div>
 
+      {/* Related videos */}
       <div style={{ padding: "16px" }}>
         <h3 style={{ marginBottom: "12px" }}>Related Videos</h3>
 
@@ -302,27 +309,29 @@ export default function Watch() {
           if (!vid) return null;
 
           return (
-            <Link
-              key={vid + "_" + i}
-              to={`/watch/${vid}`}
-              style={cardStyle}
-            >
-              <img
-                src={thumb}
-                alt={rsn.title ?? "Video thumbnail"}
-                style={thumbStyle}
-              />
+            <div key={vid + "_" + i} style={{ marginBottom: "20px" }}>
+              <Link to={`/watch/${vid}`} style={cardStyle}>
+                <img
+                  src={thumb}
+                  alt={rsn.title ?? "Video thumbnail"}
+                  style={thumbStyle}
+                />
 
-              <div style={titleStyle}>{rsn.title ?? "Untitled"}</div>
-              <div style={channelStyle}>
-                {rsn.channelTitle ?? "Unknown Channel"}
-              </div>
-              <div style={descStyle}>{rsn.description ?? ""}</div>
-            </Link>
+                <div style={titleStyle}>{rsn.title ?? "Untitled"}</div>
+                <div style={channelStyle}>
+                  {rsn.channelTitle ?? "Unknown Channel"}
+                </div>
+                <div style={descStyle}>{rsn.description ?? ""}</div>
+              </Link>
+
+              {/* ⭐ Add to Queue + Playlist for related */}
+              <VideoActions videoId={vid} videoSnippet={rsn} />
+            </div>
           );
         })}
       </div>
 
+      {/* Playlist picker modal for main video */}
       {showPicker && (
         <PlaylistPickerModal
           playlists={playlists}
