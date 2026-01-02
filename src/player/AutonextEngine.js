@@ -4,13 +4,12 @@
  *   Central autonext dispatcher.
  *   Watch.jsx registers:
  *     - playlist callback
- *     - related callback
- *     - trending callback (merged into related handler)
+ *     - related/trending callback
  *
  *   When the YouTube player ends, GlobalPlayer calls:
  *       AutonextEngine.handleEnded()
  *
- *   This engine then calls the active callback.
+ *   This engine then calls whichever callback is active.
  */
 
 import { debugBus } from "../debug/debugBus.js";
@@ -30,7 +29,6 @@ function registerPlaylistCallback(fn) {
 
 /**
  * Register related/trending autonext handler
- * (Watch.jsx handles trending inside the related handler)
  */
 function registerRelatedCallback(fn) {
   relatedCallback = typeof fn === "function" ? fn : null;
