@@ -1,9 +1,17 @@
 /**
  * File: PlayerContext.jsx
- * Description: Global player state + autonext mode controller.
+ * Path: src/player/PlayerContext.jsx
+ * Description: Global player state + autonext mode controller +
+ *              active playlist tracking for continuous playlist play.
  */
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect
+} from "react";
+
 import { GlobalPlayer } from "./GlobalPlayer.js";
 import { AutonextEngine } from "./AutonextEngine.js";
 import { debugBus } from "../debug/debugBus.js";
@@ -15,18 +23,27 @@ export function usePlayer() {
 }
 
 export function PlayerProvider({ children }) {
+  /* ------------------------------------------------------------
+     Core player state
+  ------------------------------------------------------------- */
   const [currentId, setCurrentId] = useState(null);
   const [playerState, setPlayerState] = useState("paused");
 
-  // ⭐ Autonext mode (related | playlist)
+  /* ------------------------------------------------------------
+     Autonext mode (related | playlist)
+  ------------------------------------------------------------- */
   const [autonextMode, setAutonextModeState] = useState("related");
 
-  // ⭐ Wrap setter so AutonextEngine stays in sync
   function setAutonextMode(mode) {
     debugBus.log("PLAYER", `Autonext mode → ${mode}`);
     setAutonextModeState(mode);
     AutonextEngine.setMode(mode);
   }
+
+  /* ------------------------------------------------------------
+     Active playlist ID (for continuous playlist play)
+  ------------------------------------------------------------- */
+  const [activePlaylistId, setActivePlaylistId] = useState(null);
 
   /* ------------------------------------------------------------
      Load video
@@ -51,17 +68,25 @@ export function PlayerProvider({ children }) {
     });
   }, [autonextMode]);
 
+  /* ------------------------------------------------------------
+     Provide context
+  ------------------------------------------------------------- */
   return (
     <PlayerContext.Provider
       value={{
         currentId,
         playerState,
         loadVideo,
+
         autonextMode,
-        setAutonextMode
+        setAutonextMode,
+
+        activePlaylistId,
+        setActivePlaylistId
       }}
     >
       {children}
     </PlayerContext.Provider>
   );
 }
+
