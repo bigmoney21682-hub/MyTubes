@@ -85,11 +85,9 @@ export default function Watch() {
 
   /* ------------------------------------------------------------
      ⭐ ID NORMALIZATION + JUNK-ID FILTER
-     Prevents BOOT ERROR from malformed URLs
   ------------------------------------------------------------ */
   const rawId = params.id;
 
-  // Boot-time log: raw param
   window.bootDebug?.router(
     "Watch.jsx → raw param id = " + JSON.stringify(rawId)
   );
@@ -97,13 +95,11 @@ export default function Watch() {
   const id = useMemo(() => {
     const clean = normalizeId({ id: rawId });
 
-    // Boot-time log: normalized ID
     window.bootDebug?.router(
       "Watch.jsx → normalized id (after normalizeId) = " +
         JSON.stringify(clean)
     );
 
-    // Treat junk strings as invalid
     if (!clean) return null;
     if (clean === "undefined") return null;
     if (clean === "null") return null;
@@ -137,8 +133,7 @@ export default function Watch() {
   );
 
   /* ------------------------------------------------------------
-     ⭐ BOOT GUARD — prevents BOOT ERROR
-     If ID is invalid, stop everything and show fallback UI
+     ⭐ BOOT GUARD
   ------------------------------------------------------------ */
   if (!id) {
     window.bootDebug?.router(
@@ -209,17 +204,10 @@ export default function Watch() {
   }, [isPlaylistMode, selectedPlaylistId]);
 
   /* ------------------------------------------------------------
-     YouTube API loader
+     ⭐ FIXED YOUTUBE API LOADER
+     (GlobalPlayer handles callbacks — no overrides)
   ------------------------------------------------------------ */
   useEffect(() => {
-    if (window.YT && window.YT.Player) {
-      debugBus.log("YT API already loaded (Watch.jsx)");
-      GlobalPlayer.onApiReady();
-      return;
-    }
-
-    debugBus.log("Injecting YouTube API script (Watch.jsx)");
-
     const existing = document.getElementById("youtube-iframe-api");
     if (!existing) {
       const tag = document.createElement("script");
@@ -227,14 +215,9 @@ export default function Watch() {
       tag.id = "youtube-iframe-api";
       document.body.appendChild(tag);
     }
-
-    window.onYouTubeIframeAPIReady = () => {
-      debugBus.log("YouTube API ready (Watch.jsx callback)");
-      GlobalPlayer.onApiReady();
-    };
   }, []);
 
-  /* ------------------------------------------------------------
+    /* ------------------------------------------------------------
      Autonext mode → PlayerContext
   ------------------------------------------------------------ */
   useEffect(() => {
@@ -726,3 +709,4 @@ export default function Watch() {
     </div>
   );
 }
+
