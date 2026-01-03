@@ -36,50 +36,6 @@ import normalizeId from "../../utils/normalizeId.js";
 
 console.log("AutonextEngine loaded:", AutonextEngine);
 
-/* ------------------------------------------------------------
-   MEMOIZED PLAYER CONTAINER
------------------------------------------------------------- */
-const PlayerContainer = React.memo(() => {
-  return (
-    <div
-      id="player"
-      style={{
-        width: "100%",
-        height: "220px",
-        background: "#000",
-        marginBottom: "0px"
-      }}
-    />
-  );
-});
-
-/* ------------------------------------------------------------
-   MEMOIZED AUTONEXT BUTTON
------------------------------------------------------------- */
-const AutonextButton = React.memo(function AutonextButton({
-  sourceLabel,
-  openSourceMenu
-}) {
-  return (
-    <button
-      onClick={openSourceMenu}
-      style={{
-        padding: "8px 14px",
-        borderRadius: "999px",
-        border: "none",
-        fontSize: "14px",
-        fontWeight: 600,
-        color: "#fff",
-        background: "radial-gradient(circle at 30% 30%, #ff7a18, #ff3f00)",
-        boxShadow: "0 2px 6px rgba(0,0,0,0.35)",
-        cursor: "pointer"
-      }}
-    >
-      Autonext: {sourceLabel}
-    </button>
-  );
-});
-
 export default function Watch() {
   const params = useParams();
   const location = useLocation();
@@ -90,23 +46,12 @@ export default function Watch() {
   ------------------------------------------------------------ */
   const rawId = params.id;
 
-  window.bootDebug?.router(
-    "Watch.jsx → raw param id = " + JSON.stringify(rawId)
-  );
-
   const id = useMemo(() => {
     const clean = normalizeId({ id: rawId });
-
-    window.bootDebug?.router(
-      "Watch.jsx → normalized id (after normalizeId) = " +
-        JSON.stringify(clean)
-    );
-
     if (!clean) return null;
     if (clean === "undefined") return null;
     if (clean === "null") return null;
     if (clean === "[object Object]") return null;
-
     return clean;
   }, [rawId]);
 
@@ -138,18 +83,6 @@ export default function Watch() {
      ⭐ BOOT GUARD
   ------------------------------------------------------------ */
   if (!id) {
-    window.bootDebug?.router(
-      "Watch.jsx → INVALID OR MISSING ID. params = " +
-        JSON.stringify(params) +
-        ", rawId = " +
-        JSON.stringify(rawId)
-    );
-
-    debugBus.error("Watch.jsx → Invalid or missing video id", {
-      params,
-      rawId
-    });
-
     return (
       <div style={{ paddingTop: "60px", color: "#f87171", padding: "16px" }}>
         <h2 style={{ fontSize: "18px", marginBottom: "8px" }}>
@@ -161,10 +94,6 @@ export default function Watch() {
       </div>
     );
   }
-
-  window.bootDebug?.router(
-    "Watch.jsx → VALID ID, continuing render. id = " + JSON.stringify(id)
-  );
 
   /* ------------------------------------------------------------
      POPUP ISOLATION
@@ -207,7 +136,6 @@ export default function Watch() {
 
   /* ------------------------------------------------------------
      ⭐ FIXED YOUTUBE API LOADER
-     (GlobalPlayer handles callbacks — no overrides)
   ------------------------------------------------------------ */
   useEffect(() => {
     const existing = document.getElementById("youtube-iframe-api");
@@ -223,15 +151,6 @@ export default function Watch() {
      Autonext mode → PlayerContext
   ------------------------------------------------------------ */
   useEffect(() => {
-    window.bootDebug?.router(
-      "Watch.jsx → Autonext mode effect. autonextSource = " +
-        autonextSource +
-        ", selectedPlaylistId = " +
-        JSON.stringify(selectedPlaylistId) +
-        ", playlistIdFromURL = " +
-        JSON.stringify(playlistIdFromURL)
-    );
-
     if (
       autonextSource === "playlist" &&
       (selectedPlaylistId || playlistIdFromURL)
@@ -255,12 +174,6 @@ export default function Watch() {
   ------------------------------------------------------------ */
   useEffect(() => {
     if (!id) return;
-
-    window.bootDebug?.router(
-      "Watch.jsx → PlayerContext.loadVideo(" + JSON.stringify(id) + ")"
-    );
-
-    debugBus.player("PlayerContext → loadVideo(" + id + ")");
     loadVideo(id);
   }, [id, loadVideo]);
 
@@ -269,11 +182,6 @@ export default function Watch() {
   ------------------------------------------------------------ */
   useEffect(() => {
     if (!id) return;
-
-    window.bootDebug?.router(
-      "Watch.jsx → Fetching video + related + trending for id = " +
-        JSON.stringify(id)
-    );
 
     async function loadAll() {
       const video = await fetchVideo(id);
@@ -307,11 +215,6 @@ export default function Watch() {
     const pl = playlists.find((p) => p.id === effectivePlaylistId);
     if (!pl) return;
 
-    window.bootDebug?.router(
-      "Watch.jsx → Hydrating playlist metadata for playlistId = " +
-        JSON.stringify(effectivePlaylistId)
-    );
-
     async function hydrate() {
       let changed = false;
 
@@ -339,13 +242,6 @@ export default function Watch() {
   useEffect(() => {
     // PLAYLIST MODE
     if (autonextSource === "playlist" && effectivePlaylistId) {
-      window.bootDebug?.router(
-        "Watch.jsx → AutonextEngine playlist mode. effectivePlaylistId = " +
-          JSON.stringify(effectivePlaylistId) +
-          ", current id = " +
-          JSON.stringify(id)
-      );
-
       const playlistHandler = () => {
         const playlist = playlists.find((p) => p.id === effectivePlaylistId);
         if (!playlist) return;
@@ -357,21 +253,9 @@ export default function Watch() {
         const nextVideo = playlist.videos[nextIndex];
 
         const nextId = normalizeId(nextVideo);
-
-        window.bootDebug?.router(
-          "Watch.jsx → Autonext playlist handler. nextVideo = " +
-            JSON.stringify(nextVideo) +
-            ", nextId = " +
-            JSON.stringify(nextId)
-        );
-
         if (!nextId) return;
 
         const url = `/watch/${nextId}?src=playlist&pl=${effectivePlaylistId}`;
-        window.bootDebug?.router(
-          "Watch.jsx → Autonext playlist navigate(" + JSON.stringify(url) + ")"
-        );
-
         navigate(url);
       };
 
@@ -391,21 +275,9 @@ export default function Watch() {
 
       const next = list[0];
       const vidId = normalizeId(next);
-
-      window.bootDebug?.router(
-        "Watch.jsx → Autonext related handler. next = " +
-          JSON.stringify(next) +
-          ", vidId = " +
-          JSON.stringify(vidId)
-      );
-
       if (!vidId) return;
 
       const url = `/watch/${vidId}?src=related`;
-      window.bootDebug?.router(
-        "Watch.jsx → Autonext related navigate(" + JSON.stringify(url) + ")"
-      );
-
       navigate(url);
     };
 
@@ -514,7 +386,15 @@ export default function Watch() {
           background: "#000"
         }}
       >
-        <PlayerContainer />
+        {/* ⭐ RAW DOM NODE — NOT A COMPONENT */}
+        <div
+          id="player"
+          style={{
+            width: "100%",
+            height: "220px",
+            background: "#000"
+          }}
+        ></div>
       </div>
 
       {/* SCROLLABLE CONTENT BELOW PLAYER */}
@@ -604,10 +484,22 @@ export default function Watch() {
 
         {/* Controls */}
         <div style={{ display: "flex", gap: "10px", marginBottom: "16px" }}>
-          <AutonextButton
-            sourceLabel={sourceLabel}
-            openSourceMenu={openSourceMenu}
-          />
+          <button
+            onClick={openSourceMenu}
+            style={{
+              padding: "8px 14px",
+              borderRadius: "999px",
+              border: "none",
+              fontSize: "14px",
+              fontWeight: 600,
+              color: "#fff",
+              background: "radial-gradient(circle at 30% 30%, #ff7a18, #ff3f00)",
+              boxShadow: "0 2px 6px rgba(0,0,0,0.35)",
+              cursor: "pointer"
+            }}
+          >
+            Autonext: {sourceLabel}
+          </button>
 
           <button
             onClick={() =>
@@ -648,18 +540,7 @@ export default function Watch() {
             >
               {relatedList.map((item) => {
                 const vidId = normalizeId(item);
-
-                window.bootDebug?.router(
-                  "Watch.jsx → relatedList item normalizeId(item) = " +
-                    JSON.stringify(vidId) +
-                    ", item = " +
-                    JSON.stringify(item)
-                );
-
-                if (!vidId) {
-                  console.warn("Invalid related item:", item);
-                  return null;
-                }
+                if (!vidId) return null;
 
                 const thumb = item.snippet?.thumbnails?.medium?.url;
                 const title = item.snippet?.title;
@@ -676,14 +557,7 @@ export default function Watch() {
                       gap: "8px",
                       cursor: "pointer"
                     }}
-                    onClick={() => {
-                      window.bootDebug?.router(
-                        "Watch.jsx → relatedList CLICK navigate(" +
-                          JSON.stringify(url) +
-                          ")"
-                      );
-                      navigate(url);
-                    }}
+                    onClick={() => navigate(url)}
                   >
                     <img
                       src={thumb}
