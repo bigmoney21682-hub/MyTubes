@@ -1,60 +1,54 @@
 /**
  * File: App.jsx
- * Path: src/app/App.jsx
- * Description: Main application shell. No DebugOverlay here.
+ * Path: src/App.jsx
+ * Description: Main application shell with router + layout + boot-ready signal.
  */
 
-import React from "react";
+import React, { useEffect } from "react";
 import { Routes, Route } from "react-router-dom";
 
-// Layout
-import Header from "../components/Header.jsx";
-import Footer, { FOOTER_HEIGHT } from "../layout/Footer.jsx";
+import Home from "./pages/Home.jsx";
+import Search from "./pages/Search.jsx";
+import Watch from "./pages/Watch.jsx";
+import Playlist from "./pages/Playlist.jsx";
+import Channel from "./pages/Channel.jsx";
 
-// Pages
-import Home from "../pages/Home/Home.jsx";
-import Watch from "../pages/Watch/Watch.jsx";
-import Menu from "../pages/Menu.jsx";
-import Playlists from "../pages/Playlists.jsx";
-import Playlist from "../pages/Playlist.jsx";
-import Shorts from "../pages/Shorts.jsx";
-import Subs from "../pages/Subs.jsx";
-import Search from "../pages/Search.jsx";
-
-// Player
-import MiniPlayer from "../player/MiniPlayer.jsx";
+import Header from "./layout/Header.jsx";
+import Footer from "./layout/Footer.jsx";
 
 export default function App() {
+  // Signal boot overlay to dismiss once React is mounted
+  useEffect(() => {
+    try {
+      window.bootDebug?.ready();
+    } catch (err) {
+      console.warn("bootDebug.ready() failed:", err);
+    }
+  }, []);
+
   return (
     <div
       style={{
-        width: "100%",
+        display: "flex",
+        flexDirection: "column",
         minHeight: "100vh",
-        background: "#000",
+        background: "#111",
         color: "#fff",
-
-        // ⭐ FIX: Hardcode header height so layout never collapses
-        paddingTop: "56px",
-
-        // ⭐ FIX: Footer always visible
-        paddingBottom: FOOTER_HEIGHT,
-        boxSizing: "border-box",
+        overflow: "hidden"
       }}
     >
       <Header />
 
-      <MiniPlayer />
-
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/watch/:id" element={<Watch />} />
-        <Route path="/search" element={<Search />} />
-        <Route path="/menu" element={<Menu />} />
-        <Route path="/playlists" element={<Playlists />} />
-        <Route path="/playlist/:id" element={<Playlist />} />
-        <Route path="/shorts" element={<Shorts />} />
-        <Route path="/subs" element={<Subs />} />
-      </Routes>
+      {/* Main content area */}
+      <div style={{ flex: 1, overflowY: "auto" }}>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/search" element={<Search />} />
+          <Route path="/watch/:id" element={<Watch />} />
+          <Route path="/playlist/:id" element={<Playlist />} />
+          <Route path="/channel/:id" element={<Channel />} />
+        </Routes>
+      </div>
 
       <Footer />
     </div>
