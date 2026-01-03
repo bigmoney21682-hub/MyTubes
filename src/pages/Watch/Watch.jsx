@@ -12,7 +12,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 
-import GlobalPlayer from "../../player/GlobalPlayer.js";
+import { GlobalPlayer } from "../../player/GlobalPlayer.js";
 import { AutonextEngine } from "../../player/AutonextEngine.js";
 import { debugBus } from "../../debug/debugBus.js";
 
