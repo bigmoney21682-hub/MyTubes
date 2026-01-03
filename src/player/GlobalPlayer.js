@@ -8,23 +8,22 @@
  *   - Safe pending load queue
  *   - Crash-proof initialization
  *   - No double-callbacks
+ *   - AutonextEngine integration on video end
  */
 
 import { debugBus } from "../debug/debugBus.js";
+import { AutonextEngine } from "./AutonextEngine.js";
 
 class GlobalPlayerClass {
   constructor() {
     this.player = null;
     this.apiReady = false;
     this.pendingLoad = null;
-    this.initialized = false;
 
-    // Bind methods
     this._onApiReady = this._onApiReady.bind(this);
     this._createPlayer = this._createPlayer.bind(this);
     this.load = this.load.bind(this);
 
-    // Install global callback ONCE
     if (!window._globalPlayerCallbackInstalled) {
       window._globalPlayerCallbackInstalled = true;
 
@@ -41,9 +40,7 @@ class GlobalPlayerClass {
   _onApiReady() {
     this.apiReady = true;
 
-    // If player already exists, do nothing
     if (this.player) return;
-
     this._createPlayer();
   }
 
@@ -56,8 +53,6 @@ class GlobalPlayerClass {
     const container = document.getElementById("player");
     if (!container) {
       debugBus.warn("GlobalPlayer → #player not yet in DOM, retrying…");
-
-      // Retry after a tick
       setTimeout(this._createPlayer, 50);
       return;
     }
@@ -80,7 +75,6 @@ class GlobalPlayerClass {
           onReady: () => {
             debugBus.log("GlobalPlayer → Player ready");
 
-            // Flush pending load
             if (this.pendingLoad) {
               const id = this.pendingLoad;
               this.pendingLoad = null;
@@ -89,6 +83,18 @@ class GlobalPlayerClass {
           },
           onStateChange: (e) => {
             debugBus.log("GlobalPlayer → State = " + e.data);
+
+            if (e.data === window.YT.PlayerState.ENDED) {
+              debugBus.player("GlobalPlayer → Video ended → AutonextEngine");
+              try {
+                AutonextEngine._onVideoEnded();
+              } catch (err) {
+                debugBus.error(
+                  "GlobalPlayer → AutonextEngine._onVideoEnded failed",
+                  err
+                );
+              }
+            }
           },
           onError: (e) => {
             debugBus.error("GlobalPlayer → Error", e);
@@ -106,14 +112,12 @@ class GlobalPlayerClass {
   load(videoId) {
     debugBus.player("GlobalPlayer.load(" + videoId + ")");
 
-    // If API not ready yet → queue it
     if (!this.apiReady) {
       debugBus.warn("GlobalPlayer → API not ready, queuing load");
       this.pendingLoad = videoId;
       return;
     }
 
-    // If player not created yet → queue it
     if (!this.player) {
       debugBus.warn("GlobalPlayer → Player not created yet, queuing load");
       this.pendingLoad = videoId;
