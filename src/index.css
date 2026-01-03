@@ -3,7 +3,11 @@
  * Path: src/index.css
  * Description:
  *   Global styles, layout variables, and resets.
- *   Cleaned to match the new pinned-player Watch layout.
+ *   Clean, modern, mobile‑optimized layout with:
+ *   - Fixed header spacing
+ *   - Reserved footer space
+ *   - Pinned Watch player
+ *   - Smaller, cleaner oval popup buttons
  */
 
 /* ------------------------------------------------------------
@@ -11,7 +15,7 @@
 ------------------------------------------------------------- */
 :root {
   --header-height: 60px;   /* Fixed Header.jsx height */
-  --player-height: 220px;  /* Watch.jsx fixed player height */
+  --player-height: 220px;  /* Watch.jsx pinned player height */
   --footer-height: 56px;   /* MiniPlayer/Footer height */
 }
 
@@ -52,7 +56,7 @@ body {
 }
 
 /* ------------------------------------------------------------
-   Utility classes (optional but helpful)
+   Utility classes
 ------------------------------------------------------------- */
 .flex {
   display: flex;
@@ -104,17 +108,29 @@ body {
   box-shadow: 0 10px 25px rgba(0,0,0,0.5);
 }
 
+/* ------------------------------------------------------------
+   Popup buttons (cleaner, smaller, oval)
+------------------------------------------------------------- */
 .popup-btn {
   width: 100%;
-  padding: 8px 10px;
-  margin-bottom: 8px;
-  border-radius: 999px;
+  padding: 6px 12px;              /* smaller, tighter */
+  margin-bottom: 6px;             /* reduced spacing */
+  border-radius: 9999px;          /* perfect oval */
   border: none;
-  background: #1f2937;
+  background: #1a1f27;            /* cleaner dark tone */
   color: #fff;
-  text-align: left;
-  font-size: 14px;
+  font-size: 13px;                /* slightly smaller text */
+  font-weight: 500;               /* crisp, modern */
   cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.popup-btn:hover {
+  background: #242b36;            /* gentle hover */
+}
+
+.popup-btn:active {
+  transform: scale(0.97);         /* subtle press effect */
 }
 
 /* ------------------------------------------------------------
