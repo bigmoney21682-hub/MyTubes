@@ -42,6 +42,16 @@ body {
 }
 
 /* ------------------------------------------------------------
+   Layout shell padding
+   - Prevents header overlap
+   - Reserves space for footer / mini-player
+------------------------------------------------------------- */
+#root {
+  padding-top: var(--header-height);
+  padding-bottom: var(--footer-height);
+}
+
+/* ------------------------------------------------------------
    Utility classes (optional but helpful)
 ------------------------------------------------------------- */
 .flex {
@@ -109,6 +119,8 @@ body {
 
 /* ------------------------------------------------------------
    Scrollable content area (Watch.jsx)
+   - Player is pinned under header
+   - Content scrolls beneath
 ------------------------------------------------------------- */
 .scroll-area {
   overflow-y: auto;
