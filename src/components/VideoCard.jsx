@@ -2,85 +2,59 @@
  * File: VideoCard.jsx
  * Path: src/components/VideoCard.jsx
  * Description:
- *   Clickable video card that navigates to /watch/:id.
- *   Fully isolated from player lifecycle — never triggers
- *   a re-render of the Watch.jsx player container.
+ *   Renders a clickable video card with thumbnail, title,
+ *   channel name, and normalized video ID.
  */
 
-window.bootDebug?.boot("VideoCard.jsx file loaded");
+import React from "react";
+import { Link } from "react-router-dom";
 
-import { useNavigate } from "react-router-dom";
-import { normalizeId } from "../utils/normalizeId.js"; // ← NEW
+import normalizeId from "../utils/normalizeId.js";   // ✅ FIXED
+// (was: import { normalizeId } from "../utils/normalizeId.js")
 
-export default function VideoCard({ video }) {
-  const navigate = useNavigate();
+export default function VideoCard({ item, index = 0 }) {
+  if (!item) return null;
 
-  // Normalize ID using shared utility
-  const id = normalizeId(video);
+  const id = normalizeId(item);
+  if (!id) {
+    window.bootDebug?.warn("VideoCard.jsx → Invalid video item", item);
+    return null;
+  }
 
-  const thumbnail =
-    video?.thumbnail ||
-    video?.thumbnails?.medium?.url ||
-    "https://via.placeholder.com/160x90?text=No+Image";
-
-  const title =
-    video?.title ||
-    video?.snippet?.title ||
-    "Untitled video";
-
-  const channel =
-    video?.channel ||
-    video?.snippet?.channelTitle ||
-    "Unknown channel";
-
-  const views =
-    video?.views ||
-    video?.statistics?.viewCount ||
-    null;
+  const snippet = item.snippet || {};
+  const thumb = snippet?.thumbnails?.medium?.url || "";
+  const title = snippet?.title || "Untitled";
+  const channel = snippet?.channelTitle || "Unknown Channel";
 
   return (
-    <div
-      onClick={() => {
-        const vidId = normalizeId(video);
-
-        if (!vidId) {
-          window.bootDebug?.warn("VideoCard → missing or invalid videocard video ID, navigation skipped");
-          return;
-        }
-
-        window.bootDebug?.info("VideoCard → navigate to " + vidId);
-        navigate(`/watch/${vidId}?src=trending`);
-      }}
+    <Link
+      to={`/watch/${id}?src=card`}
       style={{
-        display: "flex",
-        cursor: "pointer",
-        marginBottom: "14px"
+        display: "block",
+        marginBottom: "20px",
+        color: "#fff",
+        textDecoration: "none"
       }}
     >
       <img
-        src={thumbnail}
+        src={thumb}
         alt={title}
         style={{
-          width: "160px",
-          height: "90px",
-          borderRadius: "6px",
-          objectFit: "cover"
+          width: "100%",
+          aspectRatio: "16 / 9",
+          objectFit: "cover",
+          borderRadius: "8px",
+          marginBottom: "8px"
         }}
       />
 
-      <div style={{ marginLeft: "10px", flex: 1 }}>
-        <div style={{ fontSize: "14px", fontWeight: 600 }}>
-          {title}
-        </div>
-
-        <div style={{ fontSize: "12px", opacity: 0.7, marginTop: "4px" }}>
-          {channel}
-        </div>
-
-        <div style={{ fontSize: "12px", opacity: 0.5 }}>
-          {views ? Number(views).toLocaleString() + " views" : "— views"}
-        </div>
+      <div style={{ fontSize: "16px", fontWeight: "bold", marginBottom: "4px" }}>
+        {title}
       </div>
-    </div>
+
+      <div style={{ fontSize: "13px", opacity: 0.7 }}>
+        {channel}
+      </div>
+    </Link>
   );
 }
