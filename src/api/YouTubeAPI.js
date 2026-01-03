@@ -1,7 +1,7 @@
 // File: src/api/YouTubeAPI.js
 // Fully normalized YouTube API layer
 
-import { normalizeId } from "../utils/normalizeId.js";
+import normalizeId from "../utils/normalizeId.js";
 
 const API_KEYS = [
   import.meta.env.VITE_YT_API_PRIMARY,
