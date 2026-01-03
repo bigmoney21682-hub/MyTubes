@@ -7,7 +7,7 @@
 import { youtubeApiRequest } from "./youtube.js";
 import { cacheGet, cacheSet } from "../cache/apiCache.js";
 import { debugBus } from "../debug/debugBus.js";
-import { normalizeId } from "../utils/normalizeId.js";
+import normalizeId from "../utils/normalizeId.js";
 
 export async function fetchTrending(region = "US") {
   const key = `trending:${region}`;
