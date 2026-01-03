@@ -44,6 +44,15 @@ class GlobalPlayerClass {
         this._onApiReady();
       };
     }
+
+    /* ------------------------------------------------------------
+       ⭐ Handle case where API is already loaded
+       (window.YT exists before this constructor runs)
+    ------------------------------------------------------------ */
+    if (window.YT && window.YT.Player) {
+      debugBus.player("YouTube API already loaded → GlobalPlayer");
+      this._onApiReady();
+    }
   }
 
   /* ------------------------------------------------------------
