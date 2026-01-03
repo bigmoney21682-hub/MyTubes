@@ -14,7 +14,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>MyTube</title>
 
-    <link rel="icon" type="image/png" href="/MyTube-Piped-Frontend/favicon.png" />
+    <link
+      rel="icon"
+      type="image/png"
+      href="/MyTube-Piped-Frontend/favicon.png"
+    />
   </head>
 
   <body>
@@ -29,7 +33,7 @@
         Logs boot‑time errors without preventing React or playback.
     -->
 
-    <!-- Boot error overlay (safe version) -->
+    <!-- Boot error overlay (enhanced version) -->
     <script>
       (function () {
         const overlay = document.createElement("div");
@@ -93,14 +97,46 @@
           window.__BOOT_READY = true;
         }
 
+        // 🔥 Enhanced global error handler
         window.addEventListener("error", (e) => {
-  showError("BOOT ERROR → [GLOBAL] " + e.message);
-});
+          try {
+            const msg = [
+              "BOOT ERROR → [GLOBAL]",
+              "message: " + e.message,
+              "filename: " + e.filename,
+              "lineno: " + e.lineno,
+              "colno: " + e.colno,
+              "stack: " + (e.error && e.error.stack)
+            ].join("\n");
 
-window.addEventListener("unhandledrejection", (e) => {
-  showError("BOOT PROMISE → [GLOBAL] " + (e.reason?.message || e.reason));
-});
+            showError(msg + "\n");
+          } catch (err) {
+            showError(
+              "BOOT ERROR → [GLOBAL] (handler failure): " + String(err) + "\n"
+            );
+          }
+        });
 
+        // 🔥 Enhanced unhandled rejection handler
+        window.addEventListener("unhandledrejection", (e) => {
+          try {
+            const reason = e.reason;
+            const msg = [
+              "BOOT PROMISE → [GLOBAL]",
+              "message: " +
+                (reason && reason.message ? reason.message : String(reason)),
+              "stack: " + (reason && reason.stack)
+            ].join("\n");
+
+            showError(msg + "\n");
+          } catch (err) {
+            showError(
+              "BOOT PROMISE → [GLOBAL] (handler failure): " +
+                String(err) +
+                "\n"
+            );
+          }
+        });
 
         window.__bootErrorOverlay = { showError };
       })();
