@@ -3,12 +3,11 @@
  * Path: src/player/GlobalPlayer.js
  * Description:
  *   Centralized YouTube Iframe Player controller.
- *   - Safe API loader
- *   - Safe DOM attach
- *   - Safe pending load queue
- *   - Crash-proof initialization
- *   - No double-callbacks
- *   - AutonextEngine integration on video end
+ *   - Loads YouTube Iframe API safely
+ *   - Creates player only when DOM is ready
+ *   - Queues loads until API + player are ready
+ *   - Handles video end → AutonextEngine.handleEnded()
+ *   - Crash-proof, no double-callbacks
  */
 
 import { debugBus } from "../debug/debugBus.js";
@@ -24,11 +23,24 @@ class GlobalPlayerClass {
     this._createPlayer = this._createPlayer.bind(this);
     this.load = this.load.bind(this);
 
+    /* ------------------------------------------------------------
+       Load YouTube Iframe API if not already present
+    ------------------------------------------------------------ */
+    if (!document.getElementById("yt-iframe-api")) {
+      const tag = document.createElement("script");
+      tag.id = "yt-iframe-api";
+      tag.src = "https://www.youtube.com/iframe_api";
+      document.body.appendChild(tag);
+    }
+
+    /* ------------------------------------------------------------
+       Install global callback ONCE
+    ------------------------------------------------------------ */
     if (!window._globalPlayerCallbackInstalled) {
       window._globalPlayerCallbackInstalled = true;
 
       window.onYouTubeIframeAPIReady = () => {
-        debugBus.log("YouTube API ready → GlobalPlayer");
+        debugBus.player("YouTube API ready → GlobalPlayer");
         this._onApiReady();
       };
     }
@@ -57,7 +69,7 @@ class GlobalPlayerClass {
       return;
     }
 
-    debugBus.log("GlobalPlayer → Creating YT.Player instance");
+    debugBus.player("GlobalPlayer → Creating YT.Player instance");
 
     try {
       this.player = new window.YT.Player("player", {
@@ -73,7 +85,7 @@ class GlobalPlayerClass {
         },
         events: {
           onReady: () => {
-            debugBus.log("GlobalPlayer → Player ready");
+            debugBus.player("GlobalPlayer → Player ready");
 
             if (this.pendingLoad) {
               const id = this.pendingLoad;
@@ -81,21 +93,23 @@ class GlobalPlayerClass {
               this.load(id);
             }
           },
+
           onStateChange: (e) => {
-            debugBus.log("GlobalPlayer → State = " + e.data);
+            debugBus.player("GlobalPlayer → State = " + e.data);
 
             if (e.data === window.YT.PlayerState.ENDED) {
               debugBus.player("GlobalPlayer → Video ended → AutonextEngine");
               try {
-                AutonextEngine._onVideoEnded();
+                AutonextEngine.handleEnded();
               } catch (err) {
                 debugBus.error(
-                  "GlobalPlayer → AutonextEngine._onVideoEnded failed",
+                  "GlobalPlayer → AutonextEngine.handleEnded failed",
                   err
                 );
               }
             }
           },
+
           onError: (e) => {
             debugBus.error("GlobalPlayer → Error", e);
           }
