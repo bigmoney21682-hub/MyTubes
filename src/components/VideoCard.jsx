@@ -44,7 +44,7 @@ export default function VideoCard({ video }) {
         const vidId = normalizeId(video);
 
         if (!vidId) {
-          window.bootDebug?.warn("VideoCard → missing or invalid video ID, navigation skipped");
+          window.bootDebug?.warn("VideoCard → missing or invalid videocard video ID, navigation skipped");
           return;
         }
 
