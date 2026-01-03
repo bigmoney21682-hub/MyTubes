@@ -10,11 +10,11 @@ import { Routes, Route } from "react-router-dom";
 import Home from "../pages/Home/Home.jsx";
 import Search from "../pages/Search.jsx";
 import Watch from "../pages/Watch/Watch.jsx";
-import Playlist from "../pages/Playlist/Playlist.jsx";
+import Playlist from "../pages/Playlist.jsx";
 import Channel from "../pages/Channel.jsx";
 
 
-import Header from "./layout/Header.jsx";
+import Header from "./components/Header.jsx";
 import Footer from "./layout/Footer.jsx";
 
 export default function App() {
