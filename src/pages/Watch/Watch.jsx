@@ -32,7 +32,8 @@ import {
   fetchTrending
 } from "../../api/YouTubeAPI.js";
 
-import { normalizeId } from "../../utils/normalizeId.js";
+import normalizeId from "../../utils/normalizeId.js";
+
 
 /* ------------------------------------------------------------
    MEMOIZED PLAYER CONTAINER
