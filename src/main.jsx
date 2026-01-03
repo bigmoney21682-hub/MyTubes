@@ -7,9 +7,9 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { HashRouter } from "react-router-dom";
 
-import App from "./app/App.jsx";
-import { PlaylistProvider } from "./contexts/PlaylistContext.jsx";
-import { PlayerProvider } from "./contexts/PlayerContext.jsx";
+import App from "./app/App.jsx";                     // ✅ Correct path
+import { PlaylistProvider } from "./contexts/PlaylistContext.jsx"; // ✅ Correct
+import { PlayerProvider } from "./player/PlayerContext.jsx";       // ✅ Correct
 import DebugOverlay from "./debug/DebugOverlay.jsx";
 
 import "./index.css";
@@ -24,7 +24,6 @@ root.render(
       </PlayerProvider>
     </PlaylistProvider>
 
-    {/* Runtime Debug Overlay (now top-half after your DebugOverlay.jsx fix) */}
     <DebugOverlay />
   </HashRouter>
 );
