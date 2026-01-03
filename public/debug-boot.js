@@ -1,76 +1,89 @@
 /**
  * File: debug-boot.js
  * Path: public/debug-boot.js
- * Description: Boot-level logger that stores logs before React mounts + intercepts fetch/XHR.
+ * Description:
+ *   Lightweight boot-time debugger that:
+ *     - Captures global errors and rejections
+ *     - Buffers logs until React is ready
+ *     - Exposes window.bootDebug.{log,error,router,ready}
+ *   IMPORTANT: Never re-throws — it only records.
  */
 
 (function () {
-  const buffer = [];
+  if (window.bootDebug) return;
 
-  function push(level, msg) {
-    buffer.push({
-      level,
-      msg,
-      ts: Date.now()
-    });
+  const buffer = [];
+  let ready = false;
+
+  function push(type, message, payload) {
+    const entry = {
+      ts: new Date().toISOString(),
+      type,
+      message,
+      payload
+    };
+
+    if (!ready) {
+      buffer.push(entry);
+    }
+
+    try {
+      // Optional: mirror to console for dev
+      if (type === "ERROR") {
+        console.error("[BOOT]", message, payload || "");
+      } else if (type === "ROUTER") {
+        console.log("[BOOT ROUTER]", message, payload || "");
+      } else {
+        console.log("[BOOT]", message, payload || "");
+      }
+    } catch (_) {}
   }
 
   window.bootDebug = {
-    info: (msg) => push("INFO", msg),
-    warn: (msg) => push("WARN", msg),
-    error: (msg) => push("ERROR", msg),
-    boot: (msg) => push("BOOT", msg),
-    net: (msg) => push("NET", msg),
-
-    // ⭐ New: router channel for navigation + ID tracing
-    router: (msg) => push("ROUTER", msg),
-
-    _buffer: buffer,
-
-    // React will overwrite this with the real implementation
-    ready: () => {
-      const overlay = document.getElementById("boot-debug-overlay");
-      if (overlay) overlay.remove();
+    log(msg, payload) {
+      push("LOG", msg, payload);
+    },
+    error(msg, payload) {
+      push("ERROR", msg, payload);
+    },
+    router(msg, payload) {
+      push("ROUTER", msg, payload);
+    },
+    getBuffer() {
+      return buffer.slice();
+    },
+    ready() {
+      // Mark React as mounted; future logs can be ignored by overlay if desired
+      ready = true;
+      push("LOG", "bootDebug.ready() called");
     }
   };
 
-  window.bootDebug.boot("Boot logger initialized");
-
-  // --- Network Interception (Fetch) ---
-  const origFetch = window.fetch;
-  window.fetch = async function (...args) {
-    const url = args[0];
-    window.bootDebug.net("FETCH → " + url);
-
+  // Global error handlers — capture, DO NOT rethrow
+  window.addEventListener("error", function (event) {
     try {
-      const res = await origFetch.apply(this, args);
-      window.bootDebug.net("FETCH OK ← " + url + " (" + res.status + ")");
-      return res;
-    } catch (err) {
-      window.bootDebug.error("FETCH FAIL ← " + url + " " + err.message);
-      throw err;
-    }
-  };
+      const msg = event?.error?.message || event?.message || "Unknown error";
+      window.bootDebug.error("GLOBAL ERROR: " + msg, {
+        filename: event?.filename,
+        lineno: event?.lineno,
+        colno: event?.colno,
+        stack: event?.error?.stack || null
+      });
+    } catch (_) {}
+    // Do NOT throw or rethrow here
+  });
 
-  // --- Network Interception (XHR) ---
-  const origOpen = XMLHttpRequest.prototype.open;
-  XMLHttpRequest.prototype.open = function (method, url) {
-    this._debugUrl = url;
-    window.bootDebug.net("XHR → " + url);
-    return origOpen.apply(this, arguments);
-  };
+  window.addEventListener("unhandledrejection", function (event) {
+    try {
+      const reason = event?.reason;
+      const msg =
+        (reason && reason.message) ||
+        (typeof reason === "string" ? reason : "Unhandled rejection");
 
-  const origSend = XMLHttpRequest.prototype.send;
-  XMLHttpRequest.prototype.send = function () {
-    const url = this._debugUrl;
-    this.addEventListener("load", () => {
-      window.bootDebug.net("XHR OK ← " + url + " (" + this.status + ")");
-    });
-    this.addEventListener("error", () => {
-      window.bootDebug.error("XHR FAIL ← " + url);
-    });
-    return origSend.apply(this, arguments);
-  };
-
-  // (No auto-dismiss here anymore; React will call bootDebug.ready())
+      window.bootDebug.error("UNHANDLED REJECTION: " + msg, {
+        reason
+      });
+    } catch (_) {}
+    // Do NOT throw or rethrow here
+  });
 })();
