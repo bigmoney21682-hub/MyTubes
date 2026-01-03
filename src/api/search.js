@@ -6,7 +6,7 @@
 
 import { youtubeApiRequest } from "./youtube.js";
 import { debugBus } from "../debug/debugBus.js";
-import { normalizeId } from "../utils/normalizeId.js";
+import normalizeId from "../utils/normalizeId.js";
 
 export async function searchVideos(query) {
   if (!query || !query.trim()) {
