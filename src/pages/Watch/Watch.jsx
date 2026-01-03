@@ -11,12 +11,7 @@
  *     - ⭐ ID-safe boot guard (prevents BOOT ERROR)
  */
 
-import React, {
-  useEffect,
-  useState,
-  useMemo,
-  useRef
-} from "react";
+import React, { useEffect, useState, useMemo, useRef } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 
 import { usePlayer } from "../../player/PlayerContext.jsx";
@@ -25,11 +20,7 @@ import { AutonextEngine } from "../../player/AutonextEngine.js";
 import { usePlaylists } from "../../contexts/PlaylistContext.jsx";
 import { debugBus } from "../../debug/debugBus.js";
 
-import {
-  fetchVideo,
-  fetchRelated,
-  fetchTrending
-} from "../../api/YouTubeAPI.js";
+import { fetchVideo, fetchRelated, fetchTrending } from "../../api/YouTubeAPI.js";
 
 import normalizeId from "../../utils/normalizeId.js";
 
@@ -82,9 +73,7 @@ export default function Watch() {
   if (!id) {
     return (
       <div style={{ paddingTop: "60px", color: "#f87171", padding: "16px" }}>
-        <h2 style={{ fontSize: "18px", marginBottom: "8px" }}>
-          Invalid video
-        </h2>
+        <h2 style={{ fontSize: "18px", marginBottom: "8px" }}>Invalid video</h2>
         <div style={{ fontSize: "14px", opacity: 0.8 }}>
           The video link is invalid or expired.
         </div>
@@ -372,25 +361,35 @@ export default function Watch() {
   ------------------------------------------------------------ */
   return (
     <div style={{ paddingTop: "60px", color: "#fff" }}>
-      {/* PLAYER PINNED UNDER HEADER */}
+      {/* PLAYER CONTAINER IN NORMAL FLOW (STABLE DOM) */}
+      <div
+        id="player"
+        style={{
+          width: "100%",
+          height: "220px",
+          background: "#000",
+          position: "relative"
+        }}
+      ></div>
+
+      {/* PINNING LAYER OVERLAY (VISUAL PIN, DOES NOT WRAP #player) */}
       <div
         style={{
           position: "fixed",
           top: "60px",
           left: 0,
           right: 0,
+          height: "220px",
           zIndex: 900,
-          background: "#000"
+          pointerEvents: "none"
         }}
       >
-        {/* ⭐ RAW DOM NODE — STABLE, NOT REPLACED BY REACT */}
         <div
-          id="player"
           style={{
             width: "100%",
-            height: "220px",
-            background: "#000",
-            position: "relative"
+            height: "100%",
+            background: "transparent",
+            pointerEvents: "auto"
           }}
         ></div>
       </div>
