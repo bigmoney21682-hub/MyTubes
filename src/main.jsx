@@ -3,115 +3,28 @@
  * Path: src/main.jsx
  */
 
-// ------------------------------------------------------------
-// 0. Media Session API: background audio + lockscreen controls
-// ------------------------------------------------------------
-if ("mediaSession" in navigator) {
-  navigator.mediaSession.setActionHandler("play", () => {
-    document.querySelector("video")?.play();
-  });
-
-  navigator.mediaSession.setActionHandler("pause", () => {
-    document.querySelector("video")?.pause();
-  });
-
-  navigator.mediaSession.setActionHandler("stop", () => {
-    document.querySelector("video")?.pause();
-  });
-}
-
-export function updateMediaSessionMetadata({ title, artist, artwork }) {
-  if (!("mediaSession" in navigator)) return;
-
-  navigator.mediaSession.metadata = new MediaMetadata({
-    title,
-    artist,
-    artwork: artwork
-      ? [
-          {
-            src: artwork,
-            sizes: "512x512",
-            type: "image/png",
-          },
-        ]
-      : [],
-  });
-}
-
-import "./index.css";
 import React from "react";
 import ReactDOM from "react-dom/client";
-
-// ⭐ FIX: HashRouter for GitHub Pages + Safari Private Mode
 import { HashRouter } from "react-router-dom";
 
-// ------------------------------------------------------------
-// 1. Install global loggers BEFORE bootDebug
-// ------------------------------------------------------------
-import { installNetworkLogger } from "./debug/NetworkLogger.js";
-import { installPlayerLogger } from "./debug/PlayerLogger.js";
-
-installNetworkLogger();
-installPlayerLogger();
-
-// ------------------------------------------------------------
-// 2. Initialize debug system
-// ------------------------------------------------------------
-import "./debug/bootDebug.js";
-
-// ------------------------------------------------------------
-// 3. Global error listeners
-// ------------------------------------------------------------
-window.addEventListener("error", (e) => {
-  window.bootDebug?.error("GLOBAL ERROR → " + e.message);
-});
-
-window.addEventListener("unhandledrejection", (e) => {
-  window.bootDebug?.error(
-    "PROMISE REJECTION → " + (e.reason?.message || e.reason)
-  );
-});
-
-// ------------------------------------------------------------
-// 4. App root
-// ------------------------------------------------------------
-import App from "./app/App.jsx";
-import { PlayerProvider } from "./player/PlayerContext.jsx";
+import App from "./App.jsx";
 import { PlaylistProvider } from "./contexts/PlaylistContext.jsx";
+import { PlayerProvider } from "./contexts/PlayerContext.jsx";
 import DebugOverlay from "./debug/DebugOverlay.jsx";
 
-function mount() {
-  window.bootDebug?.boot("main.jsx → React root mounting");
+import "./index.css";
 
-  const rootElement = document.getElementById("root");
+const root = ReactDOM.createRoot(document.getElementById("root"));
 
-  if (!rootElement) {
-    window.bootDebug?.error("main.jsx → ERROR: #root not found in DOM");
-    return;
-  }
+root.render(
+  <HashRouter>
+    <PlaylistProvider>
+      <PlayerProvider>
+        <App />
+      </PlayerProvider>
+    </PlaylistProvider>
 
-  try {
-    const root = ReactDOM.createRoot(rootElement);
-
-    root.render(
-      <HashRouter>
-        <PlaylistProvider>
-          <PlayerProvider>
-            <App />
-          </PlayerProvider>
-        </PlaylistProvider>
-
-        <DebugOverlay />
-      </HashRouter>
-    );
-
-    window.bootDebug?.boot("main.jsx → React root mounted");
-    window.bootDebug?.ready?.("main.jsx → app ready");
-
-  } catch (err) {
-    window.bootDebug?.error("main.jsx → React mount error: " + err?.message);
-    throw err;
-  }
-}
-
-mount();
+    {/* Runtime Debug Overlay (now top-half after your DebugOverlay.jsx fix) */}
+    <DebugOverlay />
+  </HashRouter>
+);
