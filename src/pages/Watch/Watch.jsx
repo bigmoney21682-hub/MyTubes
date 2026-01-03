@@ -8,6 +8,7 @@
  *     - Crash-proof related list
  *     - Crash-proof playlist mode
  *     - Stable YouTube API loader
+ *     - ⭐ ID-safe boot guard (prevents BOOT ERROR)
  */
 
 import React, {
@@ -83,10 +84,22 @@ export default function Watch() {
   const navigate = useNavigate();
 
   /* ------------------------------------------------------------
-     NORMALIZED VIDEO ID
+     ⭐ ID NORMALIZATION + JUNK-ID FILTER
+     Prevents BOOT ERROR from malformed URLs
   ------------------------------------------------------------ */
   const rawId = params.id;
-  const id = useMemo(() => normalizeId({ id: rawId }), [rawId]);
+
+  const id = useMemo(() => {
+    const clean = normalizeId({ id: rawId });
+
+    // Treat junk strings as invalid
+    if (!clean) return null;
+    if (clean === "undefined") return null;
+    if (clean === "null") return null;
+    if (clean === "[object Object]") return null;
+
+    return clean;
+  }, [rawId]);
 
   const searchParams = useMemo(
     () => new URLSearchParams(location.search),
@@ -111,6 +124,28 @@ export default function Watch() {
   const [autonextSource, setAutonextSource] = useState(
     isPlaylistMode ? "playlist" : "related"
   );
+
+  /* ------------------------------------------------------------
+     ⭐ BOOT GUARD — prevents BOOT ERROR
+     If ID is invalid, stop everything and show fallback UI
+  ------------------------------------------------------------ */
+  if (!id) {
+    debugBus.error("Watch.jsx → Invalid or missing video id", {
+      params,
+      rawId
+    });
+
+    return (
+      <div style={{ paddingTop: "60px", color: "#f87171", padding: "16px" }}>
+        <h2 style={{ fontSize: "18px", marginBottom: "8px" }}>
+          Invalid video
+        </h2>
+        <div style={{ fontSize: "14px", opacity: 0.8 }}>
+          The video link is invalid or expired.
+        </div>
+      </div>
+    );
+  }
 
   /* ------------------------------------------------------------
      POPUP ISOLATION
@@ -234,7 +269,7 @@ export default function Watch() {
   );
 
   /* ------------------------------------------------------------
-     FIX B — Playlist Metadata Hydration
+     Playlist Metadata Hydration
   ------------------------------------------------------------ */
   useEffect(() => {
     if (autonextSource !== "playlist") return;
@@ -265,7 +300,7 @@ export default function Watch() {
   }, [autonextSource, effectivePlaylistId, playlists]);
 
   /* ------------------------------------------------------------
-     AutonextEngine callback registration (STABLE)
+     AutonextEngine callback registration
   ------------------------------------------------------------ */
   useEffect(() => {
     // PLAYLIST MODE
@@ -571,7 +606,8 @@ export default function Watch() {
                         width: "160px",
                         height: "90px",
                         objectFit: "cover",
-                        borderRadius: "8px"
+                        borderRadius: "8px
+                                                  borderRadius: "8px"
                       }}
                     />
 
@@ -599,3 +635,4 @@ export default function Watch() {
     </div>
   );
 }
+
