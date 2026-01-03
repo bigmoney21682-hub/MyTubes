@@ -5,7 +5,7 @@
  *   Global styles, layout variables, and resets.
  *   Clean, modern, mobile‑optimized layout with:
  *   - Fixed header spacing
- *   - Reserved footer space
+ *   - Lifted footer
  *   - Pinned Watch player
  *   - Smaller, cleaner oval popup buttons
  */
@@ -131,6 +131,51 @@ body {
 
 .popup-btn:active {
   transform: scale(0.97);         /* subtle press effect */
+}
+
+/* ------------------------------------------------------------
+   Footer (fixed, lifted slightly, cleaner spacing)
+------------------------------------------------------------- */
+footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+
+  height: var(--footer-height);
+  background: #0d0d0d;
+  border-top: 1px solid #1a1a1a;
+
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+
+  padding: 6px 0;                 /* tighter vertical spacing */
+  z-index: 9998;
+
+  /* Lift the footer visually */
+  transform: translateY(-6px);
+}
+
+/* Footer buttons (small, clean, oval) */
+.footer-btn {
+  background: #1a1f27;
+  color: #fff;
+  border: none;
+  border-radius: 9999px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.footer-btn:hover {
+  background: #242b36;
+}
+
+.footer-btn:active {
+  transform: scale(0.97);
 }
 
 /* ------------------------------------------------------------
