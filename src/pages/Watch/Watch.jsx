@@ -8,7 +8,7 @@
  *     - Crash-proof related list
  *     - Crash-proof playlist mode
  *     - Stable YouTube API usage (GlobalPlayer loads API)
- *     - ⭐ ID-safe boot guard (prevents BOOT ERROR)
+ *     - ID-safe boot guard (prevents BOOT ERROR)
  */
 
 import React, { useEffect, useState, useMemo, useRef } from "react";
@@ -30,7 +30,7 @@ export default function Watch() {
   const navigate = useNavigate();
 
   /* ------------------------------------------------------------
-     ⭐ ID NORMALIZATION + JUNK-ID FILTER
+     ID NORMALIZATION + JUNK-ID FILTER
   ------------------------------------------------------------ */
   const rawId = params.id;
 
@@ -68,12 +68,14 @@ export default function Watch() {
   );
 
   /* ------------------------------------------------------------
-     ⭐ BOOT GUARD
+     BOOT GUARD
   ------------------------------------------------------------ */
   if (!id) {
     return (
       <div style={{ paddingTop: "60px", color: "#f87171", padding: "16px" }}>
-        <h2 style={{ fontSize: "18px", marginBottom: "8px" }}>Invalid video</h2>
+        <h2 style={{ fontSize: "18px", marginBottom: "8px" }}>
+          Invalid video
+        </h2>
         <div style={{ fontSize: "14px", opacity: 0.8 }}>
           The video link is invalid or expired.
         </div>
@@ -121,7 +123,7 @@ export default function Watch() {
   }, [isPlaylistMode, selectedPlaylistId]);
 
   /* ------------------------------------------------------------
-     Autonext mode → PlayerContext
+     Autonext mode -> PlayerContext
   ------------------------------------------------------------ */
   useEffect(() => {
     if (
@@ -143,7 +145,7 @@ export default function Watch() {
   ]);
 
   /* ------------------------------------------------------------
-     Load video into GlobalPlayer via PlayerContext
+     Load video into GlobalPlayer
   ------------------------------------------------------------ */
   useEffect(() => {
     if (!id) return;
@@ -417,7 +419,7 @@ export default function Watch() {
                   openPlaylistPicker();
                 }}
               >
-                Playlist…
+                Playlist...
               </button>
             </div>
           </div>
