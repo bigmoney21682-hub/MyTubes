@@ -11,7 +11,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { usePlayer } from "../player/PlayerContext.jsx";
 import { debugBus } from "../debug/debugBus.js";
 import { getApiKey } from "../api/getApiKey.js";
-import normalizeId from "../utils/normalizeId.js"; // ← NEW
+import normalizeId from "../utils/normalizeId.js";
 
 const API_KEY = getApiKey();
 
@@ -32,6 +32,10 @@ export default function Channel() {
   useEffect(() => {
     if (!id) return;
 
+    window.bootDebug?.router(
+      "Channel.jsx → useEffect load for channel id = " + JSON.stringify(id)
+    );
+
     fetchChannelInfo(id);
     fetchChannelVideos(id);
   }, [id]);
@@ -41,6 +45,10 @@ export default function Channel() {
       const url =
         `https://www.googleapis.com/youtube/v3/channels?` +
         `part=snippet,statistics&id=${channelId}&key=${API_KEY}`;
+
+      window.bootDebug?.router(
+        "Channel.jsx → fetchChannelInfo URL = " + url
+      );
 
       const res = await fetch(url);
       const data = await res.json();
@@ -62,6 +70,10 @@ export default function Channel() {
         `https://www.googleapis.com/youtube/v3/search?` +
         `part=snippet&type=video&channelId=${channelId}&maxResults=25&key=${API_KEY}`;
 
+      window.bootDebug?.router(
+        "Channel.jsx → fetchChannelVideos URL = " + url
+      );
+
       const res = await fetch(url);
       const data = await res.json();
 
@@ -79,14 +91,34 @@ export default function Channel() {
      Safe navigation using normalizeId()
   ------------------------------------------------------------ */
   function openVideo(raw) {
+    try {
+      window.bootDebug?.router(
+        "Channel.jsx → openVideo raw = " + JSON.stringify(raw)
+      );
+    } catch (_) {}
+
     const vidId = normalizeId(raw);
 
+    window.bootDebug?.router(
+      "Channel.jsx → openVideo normalizeId(raw) = " + JSON.stringify(vidId)
+    );
+
     if (!vidId) {
-      debugBus.error("Channel.jsx → Invalid CHANNEL video ID:", raw);
+      // 🔥 Do NOT throw here. Just log and bail.
+      debugBus.log("PLAYER", "Channel.jsx → Invalid video ID (skipping)", raw);
+      window.bootDebug?.router(
+        "Channel.jsx → INVALID video ID, skipping navigation."
+      );
       return;
     }
 
-    navigate(`/watch/${vidId}?src=channel`);
+    const url = `/watch/${vidId}?src=channel`;
+
+    window.bootDebug?.router(
+      "Channel.jsx → navigate(" + JSON.stringify(url) + ")"
+    );
+
+    navigate(url);
     loadVideo(vidId);
   }
 
@@ -102,6 +134,15 @@ export default function Channel() {
 
       {videos.map((item, i) => {
         const vidId = normalizeId(item);
+
+        try {
+          window.bootDebug?.router(
+            "Channel.jsx → map item normalizeId(item) = " +
+              JSON.stringify(vidId) +
+              ", item = " +
+              JSON.stringify(item)
+          );
+        } catch (_) {}
 
         const sn = item?.snippet ?? {};
         const thumb = sn?.thumbnails?.medium?.url ?? "";
