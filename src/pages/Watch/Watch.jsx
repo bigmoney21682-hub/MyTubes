@@ -598,18 +598,16 @@ export default function Watch() {
                         }`
                       )
                     }
-                  >
-                    <img
-                      src={thumb}
-                      alt={title}
-                      style={{
-                        width: "160px",
-                        height: "90px",
-                        objectFit: "cover",
-                        borderRadius: "8px
-                                                  borderRadius: "8px"
-                      }}
-                    />
+                  ><img
+  src={thumb}
+  alt={title}
+  style={{
+    width: "160px",
+    height: "90px",
+    objectFit: "cover",
+    borderRadius: "8px"
+  }}
+/>
 
                     <div
                       style={{
