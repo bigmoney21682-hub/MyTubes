@@ -8,7 +8,7 @@ import { youtubeApiRequest } from "./youtube.js";
 import { getVideoDetails } from "./video.js";
 import { getCachedRelated, setCachedRelated } from "../cache/relatedCache.js";
 import { debugBus } from "../debug/debugBus.js";
-import normalizeId from "..."; // ⭐ CRITICAL
+import normalizeId from "../utils/normalizeId.js"; // ⭐ CRITICAL
 
 export async function fetchRelatedVideos(videoId) {
   if (!videoId) return [];
