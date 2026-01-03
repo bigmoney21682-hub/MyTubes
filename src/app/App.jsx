@@ -40,7 +40,7 @@ export default function App() {
         minHeight: "100vh",
         background: "#111",
         color: "#fff",
-        overflow: "hidden"
+        overflow: "visible"
       }}
     >
       <Header />
