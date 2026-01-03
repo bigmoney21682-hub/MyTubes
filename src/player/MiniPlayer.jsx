@@ -1,68 +1,86 @@
 /**
  * File: MiniPlayer.jsx
  * Path: src/player/MiniPlayer.jsx
- * Description: MiniPlayer stacked above DebugOverlay and Footer.
+ * Description:
+ *   Compact floating mini-player that appears during navigation.
+ *   Shows thumbnail, title, and allows quick return to full Watch page.
  */
 
 import React from "react";
-import { usePlayer } from "./PlayerContext.jsx";
-import { FOOTER_HEIGHT } from "../layout/Footer.jsx";
-import { normalizeId } from "../utils/normalizeId.js";
+import { Link } from "react-router-dom";
 
-export default function MiniPlayer() {
-  const player = usePlayer();
-  const isVisible = player?.mini?.visible;
-  const debugHeight = 0;
+import normalizeId from "../utils/normalizeId.js";   // ✅ FIXED PATH
+// (was: import { normalizeId } from "../utils/normalizeId.js")
 
-  if (!isVisible) return null;
+export default function MiniPlayer({ video, onClose }) {
+  if (!video) return null;
 
-  // ⭐ Extract and validate the current video ID
-  const raw = player?.current ?? player?.mini ?? {};
-  const vidId = normalizeId(raw);
-
-  function safeExpand() {
-    if (!vidId) {
-      window.bootDebug?.warn("MiniPlayer → expand blocked: invalid miniplayer video ID", raw);
-      return;
-    }
-
-    // Call the original expand function
-    player.mini.expand(vidId);
+  const id = normalizeId(video);
+  if (!id) {
+    window.bootDebug?.warn("MiniPlayer.jsx → Invalid video object", video);
+    return null;
   }
+
+  const snippet = video.snippet || {};
+  const thumb = snippet?.thumbnails?.medium?.url || "";
+  const title = snippet?.title || "Untitled";
 
   return (
     <div
       style={{
         position: "fixed",
-        bottom: FOOTER_HEIGHT + debugHeight,
-        left: 0,
-        width: "100%",
-        height: 80,
+        bottom: "16px",
+        right: "16px",
+        width: "260px",
         background: "#111",
-        borderTop: "1px solid #333",
-        zIndex: 3000,
-        display: "flex",
-        alignItems: "center",
-        padding: "8px 12px",
-        boxSizing: "border-box"
+        borderRadius: "8px",
+        overflow: "hidden",
+        boxShadow: "0 0 12px rgba(0,0,0,0.6)",
+        zIndex: 9999
       }}
     >
-      <div style={{ flex: 1, color: "#fff" }}>
-        {player.mini.title ?? "Playing…"}
-      </div>
+      <Link
+        to={`/watch/${id}?src=miniplayer`}
+        style={{ textDecoration: "none", color: "#fff" }}
+      >
+        <img
+          src={thumb}
+          alt={title}
+          style={{
+            width: "100%",
+            aspectRatio: "16 / 9",
+            objectFit: "cover"
+          }}
+        />
+
+        <div style={{ padding: "8px" }}>
+          <div
+            style={{
+              fontSize: "14px",
+              fontWeight: "bold",
+              marginBottom: "4px"
+            }}
+          >
+            {title}
+          </div>
+        </div>
+      </Link>
 
       <button
-        onClick={safeExpand}
+        onClick={onClose}
         style={{
-          background: "#222",
-          border: "1px solid #444",
+          position: "absolute",
+          top: "6px",
+          right: "6px",
+          background: "rgba(0,0,0,0.6)",
+          border: "none",
           color: "#fff",
-          padding: "6px 10px",
-          borderRadius: 4,
-          fontSize: 12
+          padding: "4px 8px",
+          borderRadius: "4px",
+          cursor: "pointer"
         }}
       >
-        Open
+        ✕
       </button>
     </div>
   );
