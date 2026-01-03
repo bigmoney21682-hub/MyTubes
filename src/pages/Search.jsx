@@ -16,7 +16,7 @@ import {
   setSearchCache
 } from "../cache/SearchCache.js";
 
-import { normalizeId } from "../utils/normalizeId.js";
+import normalizeId from "../utils/normalizeId.js";
 import VideoActions from "../components/VideoActions.jsx";
 
 export default function Search() {
