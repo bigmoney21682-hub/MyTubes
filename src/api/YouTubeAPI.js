@@ -1,7 +1,13 @@
-// File: src/api/YouTubeAPI.js
-// Fully normalized YouTube API layer
+/**
+ * File: YouTubeAPI.js
+ * Path: src/api/YouTubeAPI.js
+ * Description:
+ *   Fully normalized YouTube Data API layer with caching,
+ *   key rotation, and ID normalization.
+ */
 
-import normalizeId from "../utils/normalizeId.js";
+import normalizeId from "../utils/normalizeId.js";   // ✅ FIXED
+// (was: import { normalizeId } from "../utils/normalizeId.js")
 
 const API_KEYS = [
   import.meta.env.VITE_YT_API_PRIMARY,
