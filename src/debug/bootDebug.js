@@ -45,8 +45,8 @@ window.bootDebug = {
 
   // Page-level logs
   home: (...msg) => emit("ROUTER", ...msg),
-  watch: (...msg) => emit("ROUTER", ...msg),
   search: (...msg) => emit("ROUTER", ...msg),
+  // watch: removed (Watch.jsx no longer exists)
 
   // Network / API
   api: (...msg) => emit("NETWORK", ...msg),
