@@ -7,11 +7,14 @@
  */
 
 import React from "react";
-import { Link } from "react-router-dom";
 
 import normalizeId from "../utils/normalizeId.js";
+import { usePlayer } from "../player/PlayerContext.jsx";
+import { playVideo } from "../utils/playVideo.js";
 
 export default function VideoCard({ item, index = 0 }) {
+  const player = usePlayer();
+
   if (!item) {
     window.bootDebug?.router("VideoCard.jsx → item is null/undefined");
     return null;
@@ -44,24 +47,31 @@ export default function VideoCard({ item, index = 0 }) {
   const title = snippet?.title || "Untitled";
   const channel = snippet?.channelTitle || "Unknown Channel";
 
-  // Log navigation intent
+  // Log intent
   window.bootDebug?.router(
-    `VideoCard.jsx → will navigate to /watch/${id}?src=card`
+    `VideoCard.jsx → CLICK → playVideo(${id})`
   );
 
+  function handleClick() {
+    playVideo({
+      id,
+      title,
+      thumbnail: thumb,
+      channel,
+      player,
+      autonext: "related" // default behavior for cards
+    });
+  }
+
   return (
-    <Link
-      to={`/watch/${id}?src=card`}
-      onClick={() => {
-        window.bootDebug?.router(
-          `VideoCard.jsx → CLICK → navigating to /watch/${id}?src=card`
-        );
-      }}
+    <div
+      onClick={handleClick}
       style={{
         display: "block",
         marginBottom: "20px",
         color: "#fff",
-        textDecoration: "none"
+        textDecoration: "none",
+        cursor: "pointer"
       }}
     >
       <img
@@ -83,6 +93,6 @@ export default function VideoCard({ item, index = 0 }) {
       <div style={{ fontSize: "13px", opacity: 0.7 }}>
         {channel}
       </div>
-    </Link>
+    </div>
   );
 }
