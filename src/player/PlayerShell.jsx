@@ -1,18 +1,6 @@
 /**
- * ------------------------------------------------------------
  * File: PlayerShell.jsx
  * Path: src/player/PlayerShell.jsx
- * Description:
- *   Global player wrapper that sits directly under the Header.
- *   Controls:
- *     - MiniPlayer (collapsed)
- *     - FullPlayer (expanded)
- *
- *   Behavior:
- *     - Always mounted
- *     - Never reloads the iframe
- *     - Expands/collapses via PlayerContext
- * ------------------------------------------------------------
  */
 
 import React from "react";
@@ -30,7 +18,6 @@ export default function PlayerShell() {
     playerMeta
   } = usePlayer();
 
-  // No video loaded → render nothing
   if (!activeVideoId) return null;
 
   return (
@@ -39,7 +26,7 @@ export default function PlayerShell() {
         width: "100%",
         background: "#000",
         position: "fixed",
-        top: "60px", // directly under Header
+        top: "60px",
         left: 0,
         right: 0,
         zIndex: 900,
@@ -49,7 +36,6 @@ export default function PlayerShell() {
         borderBottom: "1px solid #222"
       }}
     >
-      {/* Expanded full player */}
       {isExpanded && (
         <FullPlayer
           onCollapse={collapsePlayer}
@@ -57,7 +43,6 @@ export default function PlayerShell() {
         />
       )}
 
-      {/* Collapsed mini player */}
       {!isExpanded && (
         <MiniPlayer
           meta={playerMeta}
