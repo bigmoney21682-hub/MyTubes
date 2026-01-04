@@ -219,14 +219,3 @@ footer {
 .footer-btn:active {
   transform: scale(0.97);
 }
-
-/* ------------------------------------------------------------
-   Watch scroll area
-------------------------------------------------------------- */
-.scroll-area {
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  padding: 16px;
-  padding-bottom: 40px;
-  height: calc(100vh - var(--header-height) - var(--player-height));
-}
