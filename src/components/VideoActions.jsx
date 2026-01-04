@@ -6,8 +6,9 @@
  *   Provides:
  *     - Add to Queue
  *     - Add to Playlist (popup isolated via useRef)
+ *
  *   Popup isolation ensures this component never triggers a re-render
- *   of the Watch.jsx player container, preventing YT iframe unmounts.
+ *   of parent containers, preventing unnecessary UI updates.
  */
 
 import React, { useRef, useState } from "react";
@@ -30,12 +31,12 @@ export default function VideoActions({ videoId, videoSnippet }) {
       return;
     }
     showPickerRef.current = true;
-    setUiTick(x => x + 1);
+    setUiTick((x) => x + 1);
   }
 
   function closePicker() {
     showPickerRef.current = false;
-    setUiTick(x => x + 1);
+    setUiTick((x) => x + 1);
   }
 
   return (
