@@ -1,179 +1,32 @@
-<!--
-  File: index.html
-  Path: public/index.html
-  Description:
-    Main HTML entry point for MyTube PWA.
-    Includes:
-      - PWA manifest link
-      - iOS standalone meta tags
-      - CSP allowing YouTube iframes
-      - Boot error overlay (non-blocking)
-      - YouTube IFrame API loader
-      - Vite entry point
--->
-
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-
-    <!-- Viewport -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <!-- PWA Manifest -->
-    <link rel="manifest" href="/manifest.json" />
+    <link rel="manifest" href="/MyTube-Piped-Frontend/manifest.json" />
 
-    <!-- iOS PWA Compatibility -->
+    <!-- iOS PWA -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black" />
     <meta name="apple-mobile-web-app-title" content="MyTube" />
+    <link rel="apple-touch-icon" href="/MyTube-Piped-Frontend/favicon.png" />
 
-    <!-- iOS Touch Icon -->
-    <link
-      rel="apple-touch-icon"
-      href="/MyTube-Piped-Frontend/favicon.png"
-    />
-
-    <!-- Content Security Policy (required for YouTube iframe in iOS PWA) -->
-    <meta
-      http-equiv="Content-Security-Policy"
-      content="
-        default-src * 'unsafe-inline' 'unsafe-eval';
-        img-src * data:;
-        media-src *;
-        script-src * 'unsafe-inline' 'unsafe-eval';
-        frame-src https://www.youtube.com https://www.youtube-nocookie.com;
-        child-src https://www.youtube.com https://www.youtube-nocookie.com;
-      "
-    />
+    <!-- ⭐ SINGLE-LINE CSP (iOS PWA SAFE) -->
+    <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval'; img-src * data:; media-src *; script-src * 'unsafe-inline' 'unsafe-eval' https://www.youtube.com https://www.youtube-nocookie.com; frame-src https://www.youtube.com https://www.youtube-nocookie.com; child-src https://www.youtube.com https://www.youtube-nocookie.com;">
 
     <title>MyTube</title>
-
-    <!-- Favicon -->
-    <link
-      rel="icon"
-      type="image/png"
-      href="/MyTube-Piped-Frontend/favicon.png"
-    />
+    <link rel="icon" type="image/png" href="/MyTube-Piped-Frontend/favicon.png" />
   </head>
 
   <body>
-    <!-- React root -->
     <div id="root"></div>
-
-    <!--
-      Boot Error Overlay
-      Safe, non-blocking overlay for capturing boot-time errors.
-      Never prevents React from mounting.
-    -->
-    <script>
-      (function () {
-        const overlay = document.createElement("div");
-        overlay.id = "boot-error-overlay";
-
-        Object.assign(overlay.style, {
-          position: "fixed",
-          top: "0",
-          left: "0",
-          right: "0",
-          bottom: "0",
-          background: "rgba(0,0,0,0.92)",
-          color: "#ff4444",
-          fontFamily: "monospace",
-          fontSize: "14px",
-          padding: "20px",
-          zIndex: "2147483647",
-          overflowY: "auto",
-          whiteSpace: "pre-wrap",
-          display: "none",
-          pointerEvents: "auto"
-        });
-
-        document.body.appendChild(overlay);
-
-        function makeButton(label, rightOffset, onClick) {
-          const btn = document.createElement("button");
-          btn.innerText = label;
-
-          Object.assign(btn.style, {
-            position: "absolute",
-            top: "10px",
-            right: rightOffset,
-            padding: "6px 12px",
-            background: "#444",
-            color: "#fff",
-            border: "1px solid #666",
-            borderRadius: "4px",
-            cursor: "pointer",
-            zIndex: "2147483647",
-            pointerEvents: "auto"
-          });
-
-          btn.onclick = onClick;
-          overlay.appendChild(btn);
-        }
-
-        makeButton("Continue", "10px", () => {
-          overlay.style.display = "none";
-        });
-
-        makeButton("Copy Logs", "110px", () => {
-          navigator.clipboard.writeText(overlay.innerText);
-        });
-
-        function showError(msg) {
-          overlay.style.display = "block";
-          overlay.innerText += msg + "\n";
-          window.__BOOT_READY = true;
-        }
-
-        window.addEventListener("error", (e) => {
-          try {
-            const msg = [
-              "BOOT ERROR → [GLOBAL]",
-              "message: " + e.message,
-              "filename: " + e.filename,
-              "lineno: " + e.lineno,
-              "colno: " + e.colno,
-              "stack: " + (e.error && e.error.stack)
-            ].join("\n");
-
-            showError(msg + "\n");
-          } catch (err) {
-            showError(
-              "BOOT ERROR → [GLOBAL] (handler failure): " + String(err) + "\n"
-            );
-          }
-        });
-
-        window.addEventListener("unhandledrejection", (e) => {
-          try {
-            const reason = e.reason;
-            const msg = [
-              "BOOT PROMISE → [GLOBAL]",
-              "message: " +
-                (reason && reason.message ? reason.message : String(reason)),
-              "stack: " + (reason && reason.stack)
-            ].join("\n");
-
-            showError(msg + "\n");
-          } catch (err) {
-            showError(
-              "BOOT PROMISE → [GLOBAL] (handler failure): " +
-                String(err) +
-                "\n"
-            );
-          }
-        });
-
-        window.__bootErrorOverlay = { showError };
-      })();
-    </script>
 
     <!-- YouTube IFrame API -->
     <script src="https://www.youtube.com/iframe_api"></script>
 
-    <!-- Vite entry point -->
-    <script type="module" src="/src/main.jsx"></script>
+    <!-- Vite entry -->
+    <script type="module" src="/MyTube-Piped-Frontend/src/main.jsx"></script>
   </body>
 </html>
