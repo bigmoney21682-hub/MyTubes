@@ -19,7 +19,7 @@
  * ------------------------------------------------------------
  */
 
-import { GlobalPlayer } from "../GlobalPlayer_v2.js";
+import { GlobalPlayer } from "../player/GlobalPlayer_v2.js";
 
 /**
  * playVideo()
