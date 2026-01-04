@@ -2,27 +2,27 @@
  * File: Home.jsx
  * Path: src/pages/Home/Home.jsx
  * Description:
- *   Trending page + unified player trigger.
+ *   Home page showing:
+ *     - NowPlaying section (title, channel, autonext, related/playlist)
+ *     - Trending videos (existing UI)
  *
- *   New behavior:
- *     - Clicking a video now:
- *         • loads the video into GlobalPlayer_v2
- *         • sets player metadata (title, thumbnail, channel)
- *         • expands the PlayerShell
- *
- *     - No navigation to /watch (route removed)
+ *   Notes:
+ *     - No navigation to /watch
+ *     - Clicking a trending video loads it into the global player
  */
 
 import React, { useEffect, useState } from "react";
 
 import { fetchTrending } from "../../api/trending.js";
 import normalizeId from "../../utils/normalizeId.js";
-import VideoActions from "../../components/VideoActions.jsx";
 
 import { usePlayer } from "../../player/PlayerContext.jsx";
+import VideoActions from "../../components/VideoActions.jsx";
+
+import NowPlaying from "./NowPlaying.jsx";
 
 /* ------------------------------------------------------------
-   Shared card styles
+   Shared card styles (unchanged)
 ------------------------------------------------------------- */
 const thumbStyle = {
   width: "100%",
@@ -54,7 +54,7 @@ export default function Home() {
   const [videos, setVideos] = useState([]);
   const [expandedIndex, setExpandedIndex] = useState(null);
 
-  // ⭐ NEW: Player controls
+  // ⭐ Player controls
   const { loadVideo, setPlayerMeta, expandPlayer } = usePlayer();
 
   useEffect(() => {
@@ -74,7 +74,6 @@ export default function Home() {
       const normalized = list
         .map((item) => {
           const vid = normalizeId(item);
-
           if (!vid) {
             window.bootDebug?.warn("Home.jsx → Skipped trending item with invalid ID", item);
             return null;
@@ -106,15 +105,11 @@ export default function Home() {
   }
 
   /* ------------------------------------------------------------
-     NEW: Handle clicking a trending video
-     - Loads video into global player
-     - Sets metadata for MiniPlayer + FullPlayer
-     - Expands the player
+     NEW: Unified play handler for Trending
   ------------------------------------------------------------ */
   function handlePlay(item) {
     const vid = item?.id;
     const sn = item?.snippet ?? {};
-
     if (!vid) return;
 
     loadVideo(vid);
@@ -130,7 +125,11 @@ export default function Home() {
 
   return (
     <div style={{ padding: "16px", color: "#fff" }}>
-      <h2 style={{ marginBottom: "12px" }}>Trending</h2>
+      {/* ⭐ Now Playing section (title, channel, autonext, related/playlist) */}
+      <NowPlaying />
+
+      {/* ⭐ Trending section (unchanged UI) */}
+      <h2 style={{ marginBottom: "12px", marginTop: "12px" }}>Trending</h2>
 
       {videos.map((item, i) => {
         const vid = item?.id;
