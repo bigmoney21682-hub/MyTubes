@@ -4,14 +4,18 @@
  */
 
 import React from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
+
 import { usePlaylists } from "../contexts/PlaylistContext.jsx";
+import { usePlayer } from "../player/PlayerContext.jsx";
+import { playVideo } from "../utils/playVideo.js";
+
 import normalizeId from "../utils/normalizeId.js";
 
 export default function Playlist() {
   const { id } = useParams();
-  const navigate = useNavigate();
   const { playlists, removeVideoFromPlaylist } = usePlaylists();
+  const player = usePlayer();
 
   const playlist = playlists.find((p) => p.id === id);
 
@@ -40,6 +44,10 @@ export default function Playlist() {
             return null;
           }
 
+          const title = v.title ?? "";
+          const thumbnail = v.thumbnail ?? "";
+          const channel = v.channelTitle ?? v.snippet?.channelTitle ?? "";
+
           return (
             <div
               key={vidId}
@@ -52,8 +60,8 @@ export default function Playlist() {
               }}
             >
               <img
-                src={v.thumbnail}
-                alt={v.title}
+                src={thumbnail}
+                alt={title}
                 style={{
                   width: "140px",
                   height: "80px",
@@ -62,14 +70,30 @@ export default function Playlist() {
                   cursor: "pointer"
                 }}
                 onClick={() =>
-                  navigate(`/watch/${vidId}?src=playlist&pl=${id}`)
+                  playVideo({
+                    id: vidId,
+                    title,
+                    thumbnail,
+                    channel,
+                    player,
+                    playlistId: id,
+                    autonext: "playlist"
+                  })
                 }
               />
 
               <div style={{ flex: 1 }}>
                 <div
                   onClick={() =>
-                    navigate(`/watch/${vidId}?src=playlist&pl=${id}`)
+                    playVideo({
+                      id: vidId,
+                      title,
+                      thumbnail,
+                      channel,
+                      player,
+                      playlistId: id,
+                      autonext: "playlist"
+                    })
                   }
                   style={{
                     fontSize: "14px",
@@ -77,7 +101,7 @@ export default function Playlist() {
                     cursor: "pointer"
                   }}
                 >
-                  {v.title}
+                  {title}
                 </div>
 
                 <button
