@@ -3,8 +3,9 @@
  * Path: src/player/PlayerShell.jsx
  */
 
-import React from "react";
+import React, { useEffect } from "react";
 import { usePlayer } from "./PlayerContext.jsx";
+import { GlobalPlayer } from "./GlobalPlayer_v2.js";
 
 import MiniPlayer from "./MiniPlayer.jsx";
 import FullPlayer from "./FullPlayer.jsx";
@@ -17,6 +18,17 @@ export default function PlayerShell() {
     collapsePlayer,
     playerMeta
   } = usePlayer();
+
+  // ⭐ Initialize GlobalPlayer AFTER the mount point exists
+  useEffect(() => {
+    try {
+      GlobalPlayer.init();
+      window.bootDebug?.player("PlayerShell → GlobalPlayer.init() OK");
+    } catch (err) {
+      window.bootDebug?.player("PlayerShell → GlobalPlayer.init() FAILED");
+      console.warn(err);
+    }
+  }, []);
 
   if (!activeVideoId) return null;
 
