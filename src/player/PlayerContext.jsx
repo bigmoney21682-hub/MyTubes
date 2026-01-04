@@ -24,7 +24,7 @@ import React, {
   useCallback
 } from "react";
 
-import { GlobalPlayer } from "./GlobalPlayer.js";
+import { GlobalPlayer } from "./GlobalPlayer_v2.js";
 import { debugBus } from "../debug/debugBus.js";
 
 const PlayerContext = createContext(null);
