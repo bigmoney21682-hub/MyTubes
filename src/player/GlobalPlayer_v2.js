@@ -1,3 +1,6 @@
+throw new Error("GlobalPlayer_v2.js → FORCED CRASH");
+
+
 /**
  * ------------------------------------------------------------
  * File: GlobalPlayer_v2.js (DEBUG INSTRUMENTED)
