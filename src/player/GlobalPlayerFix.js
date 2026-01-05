@@ -10,8 +10,12 @@
  *   - Clean YT.Player lifecycle
  */
 
+import { AutonextEngine } from "./AutonextEngine.js";
+
 console.log("GlobalPlayerFix.js → FILE LOADED at path:", import.meta.url);
-window.bootDebug?.player("GlobalPlayerFix.js → FILE LOADED at path: " + import.meta.url);
+window.bootDebug?.player(
+  "GlobalPlayerFix.js → FILE LOADED at path: " + import.meta.url
+);
 window.bootDebug?.player("GlobalPlayerFix.js → FILE LOADED");
 
 export const GlobalPlayer = {
@@ -47,7 +51,9 @@ export const GlobalPlayer = {
 
     // If API already ready, create player immediately
     if (this._apiReady) {
-      window.bootDebug?.player("GlobalPlayer.init() → API READY, creating player");
+      window.bootDebug?.player(
+        "GlobalPlayer.init() → API READY, creating player"
+      );
       this._createPlayer(mount);
       return;
     }
@@ -106,11 +112,33 @@ export const GlobalPlayer = {
         },
 
         onStateChange: (e) => {
-          window.bootDebug?.player("GlobalPlayer → onStateChange " + e.data);
+          const state = e.data;
+          window.bootDebug?.player(
+            "GlobalPlayer → onStateChange " + state
+          );
+          console.log("GlobalPlayer → onStateChange", state);
+
+          // YT.PlayerState.ENDED === 0
+          if (state === YT.PlayerState.ENDED || state === 0) {
+            window.bootDebug?.player(
+              "GlobalPlayer → detected ENDED, calling AutonextEngine.handleEnded()"
+            );
+            try {
+              AutonextEngine.handleEnded();
+            } catch (err) {
+              console.warn(
+                "GlobalPlayer → AutonextEngine.handleEnded() failed:",
+                err
+              );
+            }
+          }
         },
 
         onError: (e) => {
-          window.bootDebug?.player("GlobalPlayer → onError " + JSON.stringify(e));
+          window.bootDebug?.player(
+            "GlobalPlayer → onError " + JSON.stringify(e)
+          );
+          console.log("GlobalPlayer → onError", e);
         }
       }
     });
