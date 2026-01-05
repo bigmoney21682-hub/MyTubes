@@ -50,13 +50,13 @@
   <body>
     <div id="root"></div>
 
-    <!-- YouTube IFrame API -->
-    <script src="https://www.youtube.com/iframe_api"></script>
+    <!-- Force GlobalPlayerFix.js to execute FIRST -->
+<script type="module" src="/src/player/GlobalPlayerFix.js"></script>
 
-    <!-- ⭐ Force GlobalPlayerFix.js to execute BEFORE main.jsx -->
-    <script type="module" src="/src/player/GlobalPlayerFix.js"></script>
+<!-- YouTube IFrame API -->
+<script src="https://www.youtube.com/iframe_api"></script>
 
-    <!-- Vite entry -->
-    <script type="module" src="/src/main.jsx"></script>
+<!-- Vite entry -->
+<script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
