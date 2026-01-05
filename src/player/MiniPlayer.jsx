@@ -4,7 +4,7 @@
  */
 
 import React from "react";
-import { GlobalPlayer } from "./GlobalPlayer_v2.js";
+import { GlobalPlayer } from "./GlobalPlayerFix.js";
 
 export default function MiniPlayer({ meta, onExpand }) {
   if (!meta) return null;
@@ -26,7 +26,7 @@ export default function MiniPlayer({ meta, onExpand }) {
         position: "relative"   // ⭐ required for iframe layering
       }}
     >
-      {/* ⭐ GlobalPlayer_v2 iframe mount point (must exist in BOTH Mini + Full) */}
+      {/* ⭐ GlobalPlayerFix iframe mount point (must exist in BOTH Mini + Full) */}
       <div
         id="global-player-iframe"
         style={{
