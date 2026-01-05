@@ -1,20 +1,6 @@
 /**
  * File: PlayerContext.jsx
  * Path: src/player/PlayerContext.jsx
- * Description:
- *   Central player state + bridge to GlobalPlayer + UI expansion state.
- *
- *   Tracks:
- *     - activeVideoId
- *     - autonextMode ("related" | "playlist")
- *     - activePlaylistId
- *     - isExpanded (MiniPlayer ↔ FullPlayer)
- *     - playerMeta (title, thumbnail, channel, etc.)
- *
- *   Guarantees:
- *     - No double loads
- *     - No stale state
- *     - Clean integration with GlobalPlayer
  */
 
 import React, {
@@ -34,21 +20,17 @@ export function PlayerProvider({ children }) {
   const [autonextMode, setAutonextModeState] = useState("related");
   const [activePlaylistId, setActivePlaylistIdState] = useState(null);
 
-  // NEW: MiniPlayer ↔ FullPlayer expansion state
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // NEW: Metadata for MiniPlayer (title, thumbnail, channel, etc.)
   const [playerMeta, setPlayerMetaState] = useState({
     title: "",
     thumbnail: "",
     channel: ""
   });
 
-  /* ------------------------------------------------------------
-     Public: loadVideo
-     - Updates activeVideoId
-     - Sends to GlobalPlayer
-  ------------------------------------------------------------ */
+  // ⭐ NEW: dynamic player height (48 mini, 220 full)
+  const [playerHeight, setPlayerHeight] = useState(0);
+
   const loadVideo = useCallback((videoId) => {
     if (!videoId) return;
 
@@ -57,9 +39,6 @@ export function PlayerProvider({ children }) {
     GlobalPlayer.load(videoId);
   }, []);
 
-  /* ------------------------------------------------------------
-     Public: setAutonextMode
-  ------------------------------------------------------------ */
   const setAutonextMode = useCallback((mode) => {
     if (mode !== "related" && mode !== "playlist") {
       debugBus.warn("PlayerContext.setAutonextMode → invalid mode", mode);
@@ -70,9 +49,6 @@ export function PlayerProvider({ children }) {
     setAutonextModeState(mode);
   }, []);
 
-  /* ------------------------------------------------------------
-     Public: setActivePlaylistId
-  ------------------------------------------------------------ */
   const setActivePlaylistId = useCallback((playlistId) => {
     debugBus.player(
       "PlayerContext.setActivePlaylistId(" + JSON.stringify(playlistId) + ")"
@@ -80,9 +56,6 @@ export function PlayerProvider({ children }) {
     setActivePlaylistIdState(playlistId || null);
   }, []);
 
-  /* ------------------------------------------------------------
-     NEW: expandPlayer / collapsePlayer
-  ------------------------------------------------------------ */
   const expandPlayer = useCallback(() => {
     debugBus.player("PlayerContext.expandPlayer()");
     setIsExpanded(true);
@@ -93,10 +66,6 @@ export function PlayerProvider({ children }) {
     setIsExpanded(false);
   }, []);
 
-  /* ------------------------------------------------------------
-     NEW: setPlayerMeta
-     - Called from Home (formerly Watch) after fetching video data
-  ------------------------------------------------------------ */
   const setPlayerMeta = useCallback((meta) => {
     debugBus.player("PlayerContext.setPlayerMeta()");
     setPlayerMetaState((prev) => ({
@@ -105,15 +74,13 @@ export function PlayerProvider({ children }) {
     }));
   }, []);
 
-  /* ------------------------------------------------------------
-     Provide context
-  ------------------------------------------------------------ */
   const value = {
     activeVideoId,
     autonextMode,
     activePlaylistId,
     isExpanded,
     playerMeta,
+    playerHeight,
 
     loadVideo,
     setAutonextMode,
@@ -121,7 +88,10 @@ export function PlayerProvider({ children }) {
 
     expandPlayer,
     collapsePlayer,
-    setPlayerMeta
+    setPlayerMeta,
+
+    // ⭐ expose setter
+    setPlayerHeight
   };
 
   return (
