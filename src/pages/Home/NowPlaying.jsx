@@ -280,7 +280,7 @@ export default function NowPlaying() {
   };
 
   return (
-    <div style={{ padding: "4px 16px 16px 16px", color: "#fff" }}>
+    <div style={{ padding: "1px 16px 16px 16px", color: "#fff" }}>
       {/* Autonext Source Menu */}
       {showSourceMenuRef.current && (
         <div style={overlayStyle} onClick={closeSourceMenu}>
