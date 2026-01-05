@@ -4,20 +4,6 @@
  * Path: src/pages/Home/NowPlaying.jsx
  * Description:
  *   Unified Now Playing section for Home page.
- *
- *   Contains:
- *     - Title + channel
- *     - Autonext source picker
- *     - Add to playlist
- *     - Related / Playlist list
- *     - Playlist hydration
- *     - AutonextEngine callback registration
- *
- *   Notes:
- *     - No navigation
- *     - No route params
- *     - Uses PlayerContext + PlaylistContext
- *     - Uses GlobalPlayer_v2
  * ------------------------------------------------------------
  */
 
@@ -33,7 +19,7 @@ import normalizeId from "../../utils/normalizeId.js";
 import { GlobalPlayer } from "../../player/GlobalPlayerFix.js";
 
 /* ------------------------------------------------------------
-   Shared pill-style button (from Watch.jsx)
+   Shared pill-style button
 ------------------------------------------------------------- */
 const pillButton = {
   padding: "4px 10px",
@@ -71,7 +57,6 @@ export default function NowPlaying() {
 
   const [uiTick, setUiTick] = useState(0);
 
-  // Local UI state for modals
   const showSourceMenuRef = useRef(false);
   const showPlaylistPickerRef = useRef(false);
 
@@ -96,7 +81,7 @@ export default function NowPlaying() {
   }
 
   /* ------------------------------------------------------------
-     Load metadata + related + trending when activeVideoId changes
+     Load metadata + related + trending
   ------------------------------------------------------------ */
   useEffect(() => {
     if (!activeVideoId) return;
@@ -105,7 +90,6 @@ export default function NowPlaying() {
       const video = await fetchVideo(activeVideoId);
       setVideoData(video);
 
-      // Update PlayerContext meta for MiniPlayer + FullPlayer
       setPlayerMeta({
         title: video?.snippet?.title ?? "",
         thumbnail: video?.snippet?.thumbnails?.medium?.url ?? "",
@@ -123,7 +107,7 @@ export default function NowPlaying() {
   }, [activeVideoId, setPlayerMeta]);
 
   /* ------------------------------------------------------------
-     Playlist hydration (same as Watch.jsx)
+     Playlist hydration
   ------------------------------------------------------------ */
   useEffect(() => {
     if (autonextMode !== "playlist") return;
@@ -155,7 +139,6 @@ export default function NowPlaying() {
 
   /* ------------------------------------------------------------
      AutonextEngine callback registration
-     (rewritten to use loadVideo instead of navigation)
   ------------------------------------------------------------ */
   useEffect(() => {
     if (!activeVideoId) return;
@@ -175,7 +158,6 @@ export default function NowPlaying() {
         const nextId = normalizeId(nextVideo);
         if (!nextId) return;
 
-        // Load next video (no navigation)
         GlobalPlayer.load(nextId);
 
         setPlayerMeta({
@@ -235,7 +217,7 @@ export default function NowPlaying() {
   ]);
 
   /* ------------------------------------------------------------
-     Related / Playlist list (same logic as Watch.jsx)
+     Related / Playlist list
   ------------------------------------------------------------ */
   const relatedList = useMemo(() => {
     if (autonextMode === "playlist" && activePlaylistId) {
@@ -298,7 +280,7 @@ export default function NowPlaying() {
   };
 
   return (
-    <div style={{ padding: "16px", color: "#fff" }}>
+    <div style={{ padding: "4px 16px 16px 16px", color: "#fff" }}>
       {/* Autonext Source Menu */}
       {showSourceMenuRef.current && (
         <div style={overlayStyle} onClick={closeSourceMenu}>
@@ -373,7 +355,6 @@ export default function NowPlaying() {
 
       {/* Controls */}
       <div style={{ display: "flex", gap: "10px", marginBottom: "16px", alignItems: "center" }}>
-        {/* Autonext button */}
         <button
           onClick={openSourceMenu}
           style={pillButton}
@@ -383,7 +364,6 @@ export default function NowPlaying() {
           Autonext: {autonextMode}
         </button>
 
-        {/* Add to Playlist button */}
         <button
           onClick={() =>
             openAddToPlaylist({
