@@ -24,6 +24,10 @@ export default function PlayerShell() {
     playerMeta
   } = usePlayer();
 
+  // ⭐ If no active video, do not render the shell
+  //    (IMPORTANT: this must come BEFORE the init() effect)
+  if (!activeVideoId) return null;
+
   // ⭐ Initialize GlobalPlayer AFTER mount point exists
   useEffect(() => {
     try {
@@ -34,9 +38,6 @@ export default function PlayerShell() {
       console.warn(err);
     }
   }, []);
-
-  // If no active video, do not render the shell
-  if (!activeVideoId) return null;
 
   return (
     <div
