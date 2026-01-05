@@ -80,6 +80,7 @@ export default function NowPlaying() {
 
   /* ------------------------------------------------------------
      Load metadata + related + trending
+     ⭐ FIXED: uiTick added so metadata always loads
   ------------------------------------------------------------ */
   useEffect(() => {
     if (!activeVideoId) return;
@@ -102,7 +103,7 @@ export default function NowPlaying() {
     }
 
     loadAll();
-  }, [activeVideoId, setPlayerMeta]);
+  }, [activeVideoId, uiTick, setPlayerMeta]);
 
   /* ------------------------------------------------------------
      Playlist hydration
