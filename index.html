@@ -4,12 +4,6 @@
   Path: /index.html
   Description:
     Root HTML entry for MyTube PWA (Vite).
-    Includes:
-      - PWA manifest
-      - iOS standalone meta tags
-      - YouTube IFrame API loader (now in <head> with async)
-      - Forced early load of GlobalPlayerFix.js
-      - Correct Vite entry path
   ------------------------------------------------------------
 -->
 
@@ -19,33 +13,18 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <!-- PWA Manifest -->
     <link rel="manifest" href="/MyTube-Piped-Frontend/manifest.json" />
 
-    <!-- iOS PWA -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black" />
     <meta name="apple-mobile-web-app-title" content="MyTube" />
     <link rel="apple-touch-icon" href="/MyTube-Piped-Frontend/favicon.png" />
 
-    <!--
-      ------------------------------------------------------------
-      FINAL CSP (iOS PWA + YouTube widget API compatible)
-      ------------------------------------------------------------
-      Must be:
-        - single line
-        - no comments inside
-        - no indentation
-        - no trailing semicolons
-        - includes youtube.com/s/ for widget API
-        - includes blob: for internal video URLs
-    -->
     <meta
       http-equiv="Content-Security-Policy"
       content="default-src * 'unsafe-inline' 'unsafe-eval' blob: data:; img-src * data: blob:; media-src *; script-src * 'unsafe-inline' 'unsafe-eval' https://www.youtube.com https://www.youtube-nocookie.com https://www.youtube.com/s/; frame-src https://www.youtube.com https://www.youtube-nocookie.com https://www.youtube.com/s/; child-src https://www.youtube.com https://www.youtube-nocookie.com https://www.youtube.com/s/;"
     />
 
-    <!-- ⭐ YouTube IFrame API MUST load before React hydration -->
     <script async src="https://www.youtube.com/iframe_api"></script>
 
     <title>MyTube</title>
@@ -55,10 +34,6 @@
   <body>
     <div id="root"></div>
 
-    <!-- Force GlobalPlayerFix.js to execute BEFORE main.jsx -->
-    <script type="module" src="/src/player/GlobalPlayerFix.js"></script>
-
-    <!-- Vite entry -->
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
