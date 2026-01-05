@@ -7,10 +7,9 @@
     Includes:
       - PWA manifest
       - iOS standalone meta tags
-      - YouTube IFrame API loader
+      - YouTube IFrame API loader (now in <head> with async)
       - Forced early load of GlobalPlayerFix.js
       - Correct Vite entry path
-      - Corrected CSP allowing YouTube iframe to load
   ------------------------------------------------------------
 -->
 
@@ -38,14 +37,16 @@
         - no comments inside
         - no indentation
         - no trailing semicolons
-        - includes youtube.com/embed/ for actual video player
         - includes youtube.com/s/ for widget API
         - includes blob: for internal video URLs
     -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src * 'unsafe-inline' 'unsafe-eval' blob: data: https://www.youtube.com/embed/; img-src * data: blob:; media-src *; script-src * 'unsafe-inline' 'unsafe-eval' https://www.youtube.com https://www.youtube-nocookie.com https://www.youtube.com/s/; frame-src https://www.youtube.com https://www.youtube.com/embed/ https://www.youtube-nocookie.com https://www.youtube.com/s/; child-src https://www.youtube.com https://www.youtube.com/embed/ https://www.youtube-nocookie.com https://www.youtube.com/s/;"
+      content="default-src * 'unsafe-inline' 'unsafe-eval' blob: data:; img-src * data: blob:; media-src *; script-src * 'unsafe-inline' 'unsafe-eval' https://www.youtube.com https://www.youtube-nocookie.com https://www.youtube.com/s/; frame-src https://www.youtube.com https://www.youtube-nocookie.com https://www.youtube.com/s/; child-src https://www.youtube.com https://www.youtube-nocookie.com https://www.youtube.com/s/;"
     />
+
+    <!-- ⭐ YouTube IFrame API MUST load before React hydration -->
+    <script async src="https://www.youtube.com/iframe_api"></script>
 
     <title>MyTube</title>
     <link rel="icon" type="image/png" href="/MyTube-Piped-Frontend/favicon.png" />
@@ -56,9 +57,6 @@
 
     <!-- Force GlobalPlayerFix.js to execute BEFORE main.jsx -->
     <script type="module" src="/src/player/GlobalPlayerFix.js"></script>
-
-    <!-- YouTube IFrame API -->
-    <script src="https://www.youtube.com/iframe_api"></script>
 
     <!-- Vite entry -->
     <script type="module" src="/src/main.jsx"></script>
