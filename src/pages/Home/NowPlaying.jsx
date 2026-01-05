@@ -11,10 +11,12 @@ import { usePlayer } from "../../player/PlayerContext.jsx";
 import { usePlaylists } from "../../contexts/PlaylistContext.jsx";
 import { AutonextEngine } from "../../player/AutonextEngine.js";
 
-import { fetchVideo, fetchRelated, fetchTrending } from "../../api/YouTubeAPI.js";
+import {
+  fetchVideo,
+  fetchRelated,
+  fetchTrending
+} from "../../api/YouTubeAPI.js";
 import normalizeId from "../../utils/normalizeId.js";
-
-import { GlobalPlayer } from "../../player/GlobalPlayerFix.js";
 
 /* ------------------------------------------------------------
    Shared pill-style button
@@ -44,7 +46,8 @@ export default function NowPlaying() {
     activePlaylistId,
     setActivePlaylistId,
     setPlayerMeta,
-    expandPlayer
+    expandPlayer,
+    loadVideo
   } = usePlayer();
 
   const { playlists, openAddToPlaylist } = usePlaylists();
@@ -80,7 +83,6 @@ export default function NowPlaying() {
 
   /* ------------------------------------------------------------
      Load metadata + related + trending
-     ⭐ FIXED: uiTick added so metadata always loads
   ------------------------------------------------------------ */
   useEffect(() => {
     if (!activeVideoId) return;
@@ -157,7 +159,8 @@ export default function NowPlaying() {
         const nextId = normalizeId(nextVideo);
         if (!nextId) return;
 
-        GlobalPlayer.load(nextId);
+        // IMPORTANT: use PlayerContext so activeVideoId updates
+        loadVideo(nextId);
 
         setPlayerMeta({
           title: nextVideo.snippet?.title ?? "",
@@ -186,7 +189,7 @@ export default function NowPlaying() {
         const vidId = normalizeId(next);
         if (!vidId) return;
 
-        GlobalPlayer.load(vidId);
+        loadVideo(vidId);
 
         setPlayerMeta({
           title: next.snippet?.title ?? "",
@@ -215,7 +218,7 @@ export default function NowPlaying() {
         const vidId = normalizeId(next);
         if (!vidId) return;
 
-        GlobalPlayer.load(vidId);
+        loadVideo(vidId);
 
         setPlayerMeta({
           title: next.snippet?.title ?? "",
@@ -242,7 +245,8 @@ export default function NowPlaying() {
     related,
     trending,
     setPlayerMeta,
-    expandPlayer
+    expandPlayer,
+    loadVideo
   ]);
 
   /* ------------------------------------------------------------
@@ -402,11 +406,20 @@ export default function NowPlaying() {
       </div>
 
       {/* Controls */}
-      <div style={{ display: "flex", gap: "10px", marginBottom: "16px", alignItems: "center" }}>
+      <div
+        style={{
+          display: "flex",
+          gap: "10px",
+          marginBottom: "16px",
+          alignItems: "center"
+        }}
+      >
         <button
           onClick={openSourceMenu}
           style={pillButton}
-          onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.94)")}
+          onMouseDown={(e) =>
+            (e.currentTarget.style.transform = "scale(0.94)")
+          }
           onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
         >
           Autonext: {autonextMode}
@@ -421,7 +434,9 @@ export default function NowPlaying() {
             })
           }
           style={pillButton}
-          onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.94)")}
+          onMouseDown={(e) =>
+            (e.currentTarget.style.transform = "scale(0.94)")
+          }
           onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
         >
           + Add to playlist
@@ -458,11 +473,12 @@ export default function NowPlaying() {
                     cursor: "pointer"
                   }}
                   onClick={() => {
-                    GlobalPlayer.load(vidId);
+                    loadVideo(vidId);
 
                     setPlayerMeta({
                       title: item.snippet?.title ?? "",
-                      thumbnail: item.snippet?.thumbnails?.medium?.url ?? "",
+                      thumbnail:
+                        item.snippet?.thumbnails?.medium?.url ?? "",
                       channel: item.snippet?.channelTitle ?? ""
                     });
 
