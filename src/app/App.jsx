@@ -20,7 +20,6 @@ import Header from "../components/Header.jsx";
 import Footer from "../layout/Footer.jsx";
 
 import PlayerShell from "../player/PlayerShell.jsx";
-import "../player/GlobalPlayerFix.js";
 
 export default function App() {
   useEffect(() => {
