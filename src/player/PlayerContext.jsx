@@ -4,6 +4,8 @@
  * Description:
  *   Global player state for the new architecture.
  *   - Tracks current video ID
+ *   - Tracks current metadata (title + thumbnail)
+ *   - Tracks playing state
  *   - Exposes loadVideo()
  *   - No autonext logic here (handled by AutonextEngine + Home.jsx)
  */
@@ -26,19 +28,45 @@ export const PlayerContext = createContext(null);
 export function PlayerProvider({ children }) {
   const [currentId, setCurrentId] = useState(null);
 
+  // ⭐ Metadata for MiniPlayer + FullPlayer
+  const [currentMeta, setCurrentMeta] = useState({
+    title: "",
+    thumbnail: ""
+  });
+
+  // ⭐ Playing state (MiniPlayer UI)
+  const [isPlaying, setIsPlaying] = useState(false);
+
   /**
    * Load a video globally.
    * - Updates currentId
+   * - Updates metadata (if provided)
    * - Tells GlobalPlayerFix to load the video
-   * - Does NOT fetch related (Home.jsx handles that)
    */
-  const loadVideo = useCallback((id) => {
-    dbg("loadVideo()", { id });
+  const loadVideo = useCallback((id, meta = null) => {
+    if (!id) {
+      dbg("loadVideo() → invalid id", { id });
+      return;
+    }
+
+    dbg("loadVideo()", { id, meta });
 
     setCurrentId(id);
 
+    // If Home/Search provides metadata, store it
+    if (meta) {
+      setCurrentMeta({
+        title: meta.title || "",
+        thumbnail: meta.thumbnail || ""
+      });
+    }
+
     // Global unified player
-    window.GlobalPlayer?.loadVideo(id);
+    try {
+      window.GlobalPlayer?.loadVideo(id);
+    } catch (err) {
+      dbg("GlobalPlayer.loadVideo() error", { err });
+    }
   }, []);
 
   /**
@@ -47,9 +75,14 @@ export function PlayerProvider({ children }) {
   const value = useMemo(() => {
     return {
       currentId,
-      loadVideo
+      currentMeta,
+      isPlaying,
+
+      loadVideo,
+      setCurrentMeta,
+      setIsPlaying
     };
-  }, [currentId, loadVideo]);
+  }, [currentId, currentMeta, isPlaying, loadVideo]);
 
   return (
     <PlayerContext.Provider value={value}>
