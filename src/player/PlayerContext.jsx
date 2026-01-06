@@ -6,7 +6,12 @@
  *   Now includes full debugging for Mac Web Inspector.
  */
 
-import React, { createContext, useState, useCallback } from "react";
+import React, {
+  createContext,
+  useState,
+  useCallback,
+  useMemo
+} from "react";
 import { fetchRelated } from "../api/YouTubeAPI.js";
 
 // ------------------------------------------------------------
@@ -37,7 +42,6 @@ export function PlayerProvider({ children }) {
 
     setRelated(rel);
 
-    // Tell GlobalPlayer to load it
     window.GlobalPlayer?.loadVideo(id);
   }, []);
 
@@ -58,15 +62,20 @@ export function PlayerProvider({ children }) {
     if (next) loadVideo(next);
   }, [currentId, related, loadVideo]);
 
+  // ------------------------------------------------------------
+  // ⭐ Critical: stabilize context value to prevent re-renders
+  // ------------------------------------------------------------
+  const value = useMemo(() => {
+    return {
+      currentId,
+      related,
+      loadVideo,
+      onVideoEnd
+    };
+  }, [currentId, related, loadVideo, onVideoEnd]);
+
   return (
-    <PlayerContext.Provider
-      value={{
-        currentId,
-        related,
-        loadVideo,
-        onVideoEnd
-      }}
-    >
+    <PlayerContext.Provider value={value}>
       {children}
     </PlayerContext.Provider>
   );
