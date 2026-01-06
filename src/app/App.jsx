@@ -1,12 +1,12 @@
 /**
  * File: App.jsx
- * Path: src/App.jsx
+ * Path: src/app/App.jsx
  * Description:
  *   Restored full app layout with:
  *   - Header (your version)
  *   - Footer (your version)
  *   - MiniPlayer (your version)
- *   - Page routing
+ *   - Page routing (no PlaylistDetail)
  */
 
 import React from "react";
@@ -18,8 +18,8 @@ import MiniPlayer from "../player/MiniPlayer.jsx";
 
 import Home from "../pages/Home/Home.jsx";
 import Playlists from "../pages/Playlists.jsx";
-import PlaylistDetail from "../pages/Playlists/PlaylistDetail.jsx";
 import Watch from "../pages/Watch/Watch.jsx";
+import Search from "../pages/Search.jsx";
 
 export default function App() {
   return (
@@ -45,8 +45,8 @@ export default function App() {
       >
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/search" element={<Search />} />
           <Route path="/playlists" element={<Playlists />} />
-          <Route path="/playlist/:id" element={<PlaylistDetail />} />
           <Route path="/watch/:id" element={<Watch />} />
         </Routes>
       </div>
