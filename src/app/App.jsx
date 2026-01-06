@@ -1,10 +1,6 @@
 /**
  * File: App.jsx
  * Path: src/app/App.jsx
- * Description:
- *   Root router + pages.
- *   Watch page removed — /watch/:id now routes to Home.
- *   Includes full route debugging for Mac Web Inspector.
  */
 
 import React, { useEffect } from "react";
@@ -13,9 +9,6 @@ import { Routes, Route, useLocation } from "react-router-dom";
 import Home from "../pages/Home/Home.jsx";
 import Search from "../pages/Search.jsx";
 
-// ------------------------------------------------------------
-// Debug helper
-// ------------------------------------------------------------
 function dbg(label, data = {}) {
   console.group(`[ROUTER] ${label}`);
   for (const k in data) console.log(k + ":", data[k]);
@@ -25,9 +18,6 @@ function dbg(label, data = {}) {
 export default function App() {
   const location = useLocation();
 
-  // ------------------------------------------------------------
-  // Log route changes
-  // ------------------------------------------------------------
   useEffect(() => {
     dbg("Route changed", {
       pathname: location.pathname,
@@ -38,14 +28,20 @@ export default function App() {
 
   return (
     <Routes>
-      {/* Home is now the Now Playing page */}
+      {/* GitHub Pages base path */}
+      <Route path="/MyTube-Piped-Frontend/" element={<Home />} />
+
+      {/* Normal root */}
       <Route path="/" element={<Home />} />
 
-      {/* Watch route now points to Home */}
+      {/* Watch route */}
       <Route path="/watch/:id" element={<Home />} />
 
-      {/* Search page unchanged */}
+      {/* Search */}
       <Route path="/search/:query" element={<Search />} />
+
+      {/* Catch-all → Home */}
+      <Route path="*" element={<Home />} />
     </Routes>
   );
 }
