@@ -1,105 +1,73 @@
 /**
  * File: PlayerContext.jsx
  * Path: src/player/PlayerContext.jsx
+ * Description:
+ *   Provides global player state + autonext logic.
+ *   Now includes full debugging for Mac Web Inspector.
  */
 
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useCallback
-} from "react";
+import React, { createContext, useState, useCallback } from "react";
+import { fetchRelated } from "../api/YouTubeAPI.js";
 
-import { GlobalPlayer } from "./GlobalPlayerFix.js";
-import { debugBus } from "../debug/debugBus.js";
+// ------------------------------------------------------------
+// Debug helper
+// ------------------------------------------------------------
+function dbg(label, data = {}) {
+  console.group(`[AUTONEXT] ${label}`);
+  for (const k in data) console.log(k + ":", data[k]);
+  console.groupEnd();
+}
 
-const PlayerContext = createContext(null);
+export const PlayerContext = createContext();
 
 export function PlayerProvider({ children }) {
-  const [activeVideoId, setActiveVideoId] = useState(null);
-  const [autonextMode, setAutonextModeState] = useState("related");
-  const [activePlaylistId, setActivePlaylistIdState] = useState(null);
+  const [currentId, setCurrentId] = useState(null);
+  const [related, setRelated] = useState([]);
 
-  const [isExpanded, setIsExpanded] = useState(false);
+  // ------------------------------------------------------------
+  // Load a video
+  // ------------------------------------------------------------
+  const loadVideo = useCallback(async (id) => {
+    dbg("loadVideo()", { id });
 
-  const [playerMeta, setPlayerMetaState] = useState({
-    title: "",
-    thumbnail: "",
-    channel: ""
-  });
+    setCurrentId(id);
 
-  const [playerHeight, setPlayerHeight] = useState(0);
+    const rel = await fetchRelated(id);
+    dbg("related fetched", { count: rel.length });
 
-  const loadVideo = useCallback((videoId) => {
-    if (!videoId) return;
+    setRelated(rel);
 
-    debugBus.player("PlayerContext.loadVideo(" + videoId + ")");
-    setActiveVideoId(videoId);
-    GlobalPlayer.load(videoId);
+    // Tell GlobalPlayer to load it
+    window.GlobalPlayer?.loadVideo(id);
   }, []);
 
-  const setAutonextMode = useCallback((mode) => {
-    if (mode !== "related" && mode !== "playlist" && mode !== "trending") {
-      debugBus.warn("PlayerContext.setAutonextMode → invalid mode", mode);
+  // ------------------------------------------------------------
+  // Handle video end → autonext
+  // ------------------------------------------------------------
+  const onVideoEnd = useCallback(() => {
+    dbg("onVideoEnd()", { currentId });
+
+    if (!related.length) {
+      dbg("No related videos available");
       return;
     }
 
-    debugBus.player("PlayerContext.setAutonextMode(" + mode + ")");
-    setAutonextModeState(mode);
-  }, []);
+    const next = related[0]?.id;
+    dbg("nextVideo()", { next });
 
-  const setActivePlaylistId = useCallback((playlistId) => {
-    debugBus.player(
-      "PlayerContext.setActivePlaylistId(" + JSON.stringify(playlistId) + ")"
-    );
-    setActivePlaylistIdState(playlistId || null);
-  }, []);
-
-  const expandPlayer = useCallback(() => {
-    debugBus.player("PlayerContext.expandPlayer()");
-    setIsExpanded(true);
-  }, []);
-
-  const collapsePlayer = useCallback(() => {
-    debugBus.player("PlayerContext.collapsePlayer()");
-    setIsExpanded(false);
-  }, []);
-
-  const setPlayerMeta = useCallback((meta) => {
-    debugBus.player("PlayerContext.setPlayerMeta()");
-    setPlayerMetaState((prev) => ({
-      ...prev,
-      ...meta
-    }));
-  }, []);
-
-  const value = {
-    activeVideoId,
-    autonextMode,
-    activePlaylistId,
-    isExpanded,
-    playerMeta,
-    playerHeight,
-
-    loadVideo,
-    setAutonextMode,
-    setActivePlaylistId,
-
-    expandPlayer,
-    collapsePlayer,
-    setPlayerMeta,
-    setPlayerHeight
-  };
+    if (next) loadVideo(next);
+  }, [currentId, related, loadVideo]);
 
   return (
-    <PlayerContext.Provider value={value}>{children}</PlayerContext.Provider>
+    <PlayerContext.Provider
+      value={{
+        currentId,
+        related,
+        loadVideo,
+        onVideoEnd
+      }}
+    >
+      {children}
+    </PlayerContext.Provider>
   );
-}
-
-export function usePlayer() {
-  const ctx = useContext(PlayerContext);
-  if (!ctx) {
-    throw new Error("usePlayer must be used within a PlayerProvider");
-  }
-  return ctx;
 }
