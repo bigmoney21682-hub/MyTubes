@@ -8,6 +8,10 @@
  *     - PlaylistProvider
  *     - PlayerProvider
  *     - DebugOverlay (global debug UI)
+ *
+ *   Notes:
+ *     - React.StrictMode intentionally removed because it breaks
+ *       the YouTube iframe by double‑mounting PlayerShell.
  */
 
 // ------------------------------------------------------------
@@ -46,6 +50,9 @@ import DebugOverlay from "./debug/DebugOverlay.jsx";
 
 import "./index.css";
 
+// ------------------------------------------------------------
+// 🚀 Create root + render (NO StrictMode)
+// ------------------------------------------------------------
 const root = ReactDOM.createRoot(document.getElementById("root"));
 
 root.render(
