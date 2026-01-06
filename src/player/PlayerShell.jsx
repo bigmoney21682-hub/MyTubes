@@ -109,7 +109,7 @@ export default function PlayerShell() {
 
     // iOS: do NOT load video until gesture unlock
     if (isIOS && !unlocked) {
-      dbg("iOS: waiting for gesture unlock before loading video");
+      dbg("iOS: blocked loadVideo, waiting for unlock", { currentId });
       return;
     }
 
