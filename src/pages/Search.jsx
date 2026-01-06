@@ -6,8 +6,8 @@
  *     - Smart SearchCache
  *     - 250ms debounce
  *     - Full-width stacked 16:9 cards
- *     - VideoActions
- *     - Search suggestions
+ *     - Add-to-Playlist button
+ *     - Orange gradient UI
  *     - Unified loadVideo() (no navigation)
  */
 
@@ -23,7 +23,7 @@ import {
 } from "../cache/SearchCache.js";
 
 import normalizeId from "../utils/normalizeId.js";
-import VideoActions from "../components/VideoActions.jsx";
+import AddToPlaylistButton from "../components/AddToPlaylistButton.jsx";
 
 import { PlayerContext } from "../player/PlayerContext.jsx";
 
@@ -31,13 +31,10 @@ export default function Search() {
   const [params] = useSearchParams();
   const query = params.get("q") || "";
 
-  // ⭐ NEW: useContext instead of usePlayer()
   const { loadVideo } = useContext(PlayerContext);
 
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState([]);
-
-  // ⭐ NEW: search suggestions
   const [suggestions, setSuggestions] = useState([]);
 
   // Debounce
@@ -109,9 +106,8 @@ export default function Search() {
 
   /* ------------------------------------------------------------
      Play handler for search results
-     (Unified with new PlayerContext API)
   ------------------------------------------------------------ */
-  function handlePlay(sn, videoId) {
+  function handlePlay(videoId) {
     loadVideo(videoId);
   }
 
@@ -161,6 +157,7 @@ export default function Search() {
         <div style={{ color: "#888" }}>No results found.</div>
       )}
 
+      {/* ⭐ Results */}
       <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
         {results.map((item) => {
           const videoId = normalizeId(item);
@@ -174,9 +171,9 @@ export default function Search() {
           const thumb = sn?.thumbnails?.medium?.url;
 
           return (
-            <div key={videoId}>
+            <div key={videoId} style={{ marginBottom: "8px" }}>
               <div
-                onClick={() => handlePlay(sn, videoId)}
+                onClick={() => handlePlay(videoId)}
                 style={{
                   textDecoration: "none",
                   color: "#fff",
@@ -227,8 +224,15 @@ export default function Search() {
                 </div>
               </div>
 
-              {/* Actions */}
-              <VideoActions videoId={videoId} videoSnippet={sn} />
+              {/* ⭐ Add to Playlist */}
+              <AddToPlaylistButton
+                video={{
+                  id: videoId,
+                  title: sn?.title,
+                  channelTitle: sn?.channelTitle,
+                  thumbnail: thumb
+                }}
+              />
             </div>
           );
         })}
