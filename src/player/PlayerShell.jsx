@@ -5,12 +5,13 @@
  *   Hosts the YouTube iframe player and wires
  *   GlobalPlayer → PlayerContext (onVideoEnd).
  *
- *   Notes:
- *     - Uses a fixed height instead of aspect-ratio to avoid
- *       iOS Safari iframe removal during layout reflow.
+ *   Includes iOS autoplay unlock:
+ *     - Captures a trusted user gesture
+ *     - Delays iframe creation until gesture is registered
+ *     - Prevents iOS Safari from blocking playback
  */
 
-import React, { useContext, useEffect } from "react";
+import React, { useContext, useEffect, useRef, useState } from "react";
 import { PlayerContext } from "./PlayerContext.jsx";
 
 function dbg(label, data = {}) {
@@ -22,11 +23,41 @@ function dbg(label, data = {}) {
 export default function PlayerShell() {
   const { currentId, onVideoEnd } = useContext(PlayerContext);
 
+  // iOS gesture unlock state
+  const [unlocked, setUnlocked] = useState(false);
+  const overlayRef = useRef(null);
+
+  // Detect iOS
+  const isIOS =
+    typeof navigator !== "undefined" &&
+    /iPad|iPhone|iPod/.test(navigator.userAgent);
+
   // Mount/unmount logging
   useEffect(() => {
     dbg("MOUNT");
     return () => dbg("UNMOUNT");
   }, []);
+
+  // iOS: capture first tap → unlock autoplay
+  useEffect(() => {
+    if (!isIOS) return;
+
+    const overlay = overlayRef.current;
+    if (!overlay) return;
+
+    const handleTap = () => {
+      dbg("iOS gesture captured → unlocking autoplay");
+      setUnlocked(true);
+    };
+
+    overlay.addEventListener("touchstart", handleTap, { once: true });
+    overlay.addEventListener("click", handleTap, { once: true });
+
+    return () => {
+      overlay.removeEventListener("touchstart", handleTap);
+      overlay.removeEventListener("click", handleTap);
+    };
+  }, [isIOS]);
 
   // Bind GlobalPlayer events → PlayerContext
   useEffect(() => {
@@ -75,25 +106,51 @@ export default function PlayerShell() {
     dbg("currentId changed", { currentId });
 
     if (!currentId) return;
+
+    // iOS: do NOT load video until gesture unlock
+    if (isIOS && !unlocked) {
+      dbg("iOS: waiting for gesture unlock before loading video");
+      return;
+    }
+
     if (!window.GlobalPlayer || !window.GlobalPlayer.loadVideo) {
       dbg("GlobalPlayer not ready, cannot load video yet");
       return;
     }
 
+    dbg("Calling GlobalPlayer.loadVideo()", { currentId });
     window.GlobalPlayer.loadVideo(currentId);
-  }, [currentId]);
+  }, [currentId, unlocked, isIOS]);
 
   return (
-    <div
-      id="yt-player"
-      style={{
-        width: "100%",
-        height: "220px",        // 🔥 FIX: prevents iframe collapse on iOS
-        background: "black",
-        borderRadius: "8px",
-        marginTop: "8px",
-        overflow: "visible"     // 🔥 FIX: avoid Safari removing iframe
-      }}
-    />
+    <div style={{ position: "relative", width: "100%" }}>
+      {/* iOS invisible gesture overlay */}
+      {isIOS && !unlocked && (
+        <div
+          ref={overlayRef}
+          style={{
+            position: "absolute",
+            inset: 0,
+            zIndex: 10,
+            background: "transparent",
+            cursor: "pointer",
+          }}
+        />
+      )}
+
+      <div
+        id="yt-player"
+        style={{
+          width: "100%",
+          height: "220px", // Prevents iframe collapse on iOS
+          background: "black",
+          borderRadius: "8px",
+          marginTop: "8px",
+          overflow: "visible", // Prevent Safari removing iframe
+          position: "relative",
+          zIndex: 1,
+        }}
+      />
+    </div>
   );
 }
