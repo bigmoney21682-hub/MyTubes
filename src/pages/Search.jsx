@@ -7,11 +7,11 @@
  *     - 250ms debounce
  *     - Full-width stacked 16:9 cards
  *     - VideoActions
- *     - Search suggestions (NEW)
- *     - Unified playVideo() (no navigation)
+ *     - Search suggestions
+ *     - Unified loadVideo() (no navigation)
  */
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { useSearchParams } from "react-router-dom";
 
 import { searchVideos } from "../api/search.js";
@@ -25,14 +25,14 @@ import {
 import normalizeId from "../utils/normalizeId.js";
 import VideoActions from "../components/VideoActions.jsx";
 
-import { usePlayer } from "../player/PlayerContext.jsx";
-import { playVideo } from "../utils/playVideo.js";
+import { PlayerContext } from "../player/PlayerContext.jsx";
 
 export default function Search() {
   const [params] = useSearchParams();
   const query = params.get("q") || "";
 
-  const player = usePlayer();
+  // ⭐ NEW: useContext instead of usePlayer()
+  const { loadVideo } = useContext(PlayerContext);
 
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState([]);
@@ -91,10 +91,7 @@ export default function Search() {
   }, [debouncedQuery]);
 
   /* ------------------------------------------------------------
-     NEW: Extract simple suggestions from search results
-     - Titles
-     - Channel names
-     - Deduped
+     Extract simple suggestions from search results
   ------------------------------------------------------------ */
   function extractSuggestions(items) {
     const set = new Set();
@@ -107,21 +104,15 @@ export default function Search() {
       if (sn.channelTitle) set.add(sn.channelTitle);
     }
 
-    return Array.from(set).slice(0, 6); // limit to 6 suggestions
+    return Array.from(set).slice(0, 6);
   }
 
   /* ------------------------------------------------------------
      Play handler for search results
+     (Unified with new PlayerContext API)
   ------------------------------------------------------------ */
   function handlePlay(sn, videoId) {
-    playVideo({
-      id: videoId,
-      title: sn?.title ?? "",
-      thumbnail: sn?.thumbnails?.medium?.url ?? "",
-      channel: sn?.channelTitle ?? "",
-      player,
-      autonext: "related"
-    });
+    loadVideo(videoId);
   }
 
   return (
