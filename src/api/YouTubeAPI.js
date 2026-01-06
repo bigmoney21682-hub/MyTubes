@@ -2,8 +2,12 @@
  * File: YouTubeAPI.js
  * Path: src/api/YouTubeAPI.js
  * Description:
- *   Fully normalized YouTube Data API layer with caching,
- *   key fallback, and ID normalization.
+ *   Stable YouTube Data API layer with:
+ *   - Trending-as-Related fallback
+ *   - 5-item limits
+ *   - Key fallback
+ *   - Caching + dedupe
+ *   - ID normalization
  */
 
 import normalizeId from "../utils/normalizeId.js";
@@ -26,10 +30,8 @@ const pending = {};
 
 /* ------------------------------------------------------------
    Universal fetch with fallback + dedupe
-   ⭐ FIXED: fallback now triggers on ANY non-200 response
 ------------------------------------------------------------ */
 async function safeFetch(urlBuilder, cacheKey) {
-  // Dedupe identical requests
   if (pending[cacheKey]) return pending[cacheKey];
 
   pending[cacheKey] = (async () => {
@@ -41,7 +43,7 @@ async function safeFetch(urlBuilder, cacheKey) {
       try {
         const res = await fetch(url);
 
-        // ⭐ Treat ANY non-200 as failure → fallback activates
+        // Treat ANY non-200 as failure → fallback activates
         if (!res.ok) {
           lastError = new Error(`HTTP ${res.status}`);
           continue;
@@ -49,7 +51,7 @@ async function safeFetch(urlBuilder, cacheKey) {
 
         const json = await res.json();
 
-        // ⭐ YouTube sometimes returns 200 with an error object
+        // YouTube sometimes returns 200 with an error object
         if (json.error) {
           lastError = new Error(json.error.message);
           continue;
@@ -98,32 +100,17 @@ export async function fetchVideo(id) {
 }
 
 /* ------------------------------------------------------------
-   Fetch related videos (cached + normalized)
+   Fetch "related" videos — now using Trending fallback only
 ------------------------------------------------------------ */
 export async function fetchRelated(id) {
-  if (relatedCache[id]) return relatedCache[id];
+  // Always use trending as related
+  const trending = await fetchTrending("US");
 
-  const json = await safeFetch(
-    (key) =>
-      `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&relatedToVideoId=${id}&videoEmbeddable=true&maxResults=20&key=${key}`,
-    `related:${id}`
-  );
+  // Limit to 5 items
+  const limited = trending.slice(0, 5);
 
-  if (!json?.items) {
-    relatedCache[id] = [];
-    return [];
-  }
-
-  const normalized = json.items
-    .map((item) => {
-      const vid = normalizeId(item);
-      if (!vid) return null;
-      return { ...item, id: vid };
-    })
-    .filter(Boolean);
-
-  relatedCache[id] = normalized;
-  return normalized;
+  relatedCache[id] = limited;
+  return limited;
 }
 
 /* ------------------------------------------------------------
@@ -135,12 +122,12 @@ export async function fetchTrending(region = "US") {
 
   // 30-minute cache
   if (cache && now - cache.timestamp < 30 * 60 * 1000) {
-    return cache.items;
+    return cache.items.slice(0, 5);
   }
 
   const json = await safeFetch(
     (key) =>
-      `https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&chart=mostPopular&maxResults=20&regionCode=${region}&key=${key}`,
+      `https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&chart=mostPopular&maxResults=5&regionCode=${region}&key=${key}`,
     `trending:${region}`
   );
 
@@ -159,5 +146,5 @@ export async function fetchTrending(region = "US") {
     items: normalized
   };
 
-  return normalized;
+  return normalized.slice(0, 5);
 }
