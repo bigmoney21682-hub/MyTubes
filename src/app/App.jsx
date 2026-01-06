@@ -1,78 +1,46 @@
 /**
  * File: App.jsx
  * Path: src/app/App.jsx
+ * Description:
+ *   Root router + pages.
+ *   Now includes full route debugging for Mac Web Inspector.
  */
 
 import React, { useEffect } from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, useLocation } from "react-router-dom";
 
-import Home from "../pages/Home/Home.jsx";
+import Home from "../pages/Home.jsx";
+import Watch from "../pages/Watch.jsx";
 import Search from "../pages/Search.jsx";
-import Playlist from "../pages/Playlist.jsx";
-import Channel from "../pages/Channel.jsx";
 
-import Menu from "../pages/Menu.jsx";
-import Playlists from "../pages/Playlists.jsx";
-import Shorts from "../pages/Shorts.jsx";
-import Subs from "../pages/Subs.jsx";
-
-import Header from "../components/Header.jsx";
-import Footer from "../layout/Footer.jsx";
-
-import PlayerShell from "../player/PlayerShell.jsx";
-import { usePlayer } from "../player/PlayerContext.jsx";
+// ------------------------------------------------------------
+// Debug helper
+// ------------------------------------------------------------
+function dbg(label, data = {}) {
+  console.group(`[ROUTER] ${label}`);
+  for (const k in data) console.log(k + ":", data[k]);
+  console.groupEnd();
+}
 
 export default function App() {
-  const { playerHeight } = usePlayer();
+  const location = useLocation();
 
+  // ------------------------------------------------------------
+  // Log route changes
+  // ------------------------------------------------------------
   useEffect(() => {
-    try {
-      window.bootDebug?.ready();
-    } catch (err) {
-      console.warn("bootDebug.ready() failed:", err);
-    }
-  }, []);
+    dbg("Route changed", {
+      pathname: location.pathname,
+      search: location.search,
+      hash: location.hash
+    });
+  }, [location]);
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        minHeight: "100vh",
-        background: "#111",
-        color: "#fff"
-      }}
-    >
-      <Header />
-
-      <PlayerShell />
-
-      <div
-        style={{
-          flex: 1,
-          overflowY: "auto",
-
-          // ⭐ Smooth animated offset below player
-          paddingTop: `${60 + playerHeight}px`,
-          transition: "padding-top 0.25s ease",
-
-          paddingBottom: "56px"
-        }}
-      >
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/search" element={<Search />} />
-          <Route path="/playlist/:id" element={<Playlist />} />
-          <Route path="/channel/:id" element={<Channel />} />
-
-          <Route path="/menu" element={<Menu />} />
-          <Route path="/playlists" element={<Playlists />} />
-          <Route path="/shorts" element={<Shorts />} />
-          <Route path="/subs" element={<Subs />} />
-        </Routes>
-      </div>
-
-      <Footer />
-    </div>
+    <Routes>
+      <Route path="/" element={<Home />} />
+      <Route path="/watch/:id" element={<Watch />} />
+      <Route path="/search/:query" element={<Search />} />
+    </Routes>
   );
 }
