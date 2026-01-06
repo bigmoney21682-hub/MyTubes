@@ -17,7 +17,7 @@ import { usePlaylists } from "../../contexts/PlaylistContext.jsx";
 import { AutonextEngine } from "../../player/AutonextEngine.js";
 
 import { fetchTrending } from "../../api/trending.js";
-import { fetchRelated } from "../../api/related.js";
+import { fetchRelatedVideos } from "../../api/related.js";
 
 export default function Home() {
   const { currentId, loadVideo } = useContext(PlayerContext);
@@ -46,7 +46,7 @@ export default function Home() {
       }
 
       if (source === "related" && currentId) {
-        const list = await fetchRelated(currentId);
+        const list = await fetchRelatedVideos(currentId);
         setItems(list || []);
       }
 
@@ -113,12 +113,26 @@ export default function Home() {
   ------------------------------------------------------------ */
   return (
     <div style={{ padding: "12px", color: "#fff" }}>
+
+      {/* ⭐ GlobalPlayerFix iframe mount point */}
+      <div
+        id="yt-player"
+        style={{
+          width: "100%",
+          height: "220px",
+          background: "#000",
+          position: "relative",
+          zIndex: 5
+        }}
+      ></div>
+
       {/* ⭐ Autonext Source Selector */}
       <div
         style={{
           display: "flex",
           gap: "8px",
           marginBottom: "16px",
+          marginTop: "12px",
           justifyContent: "center"
         }}
       >
