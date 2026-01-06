@@ -4,6 +4,10 @@
  * Description:
  *   Hosts the YouTube iframe player and wires
  *   GlobalPlayer → PlayerContext (onVideoEnd).
+ *
+ *   Notes:
+ *     - Uses a fixed height instead of aspect-ratio to avoid
+ *       iOS Safari iframe removal during layout reflow.
  */
 
 import React, { useContext, useEffect } from "react";
@@ -39,11 +43,13 @@ export default function PlayerShell() {
 
     gp.player.onStateChange = (e) => {
       dbg("onStateChange", { state: e.data });
+
       // 0 = ended
       if (e.data === 0) {
         dbg("Video ended → calling onVideoEnd()");
         onVideoEnd();
       }
+
       if (typeof originalOnStateChange === "function") {
         originalOnStateChange(e);
       }
@@ -82,11 +88,11 @@ export default function PlayerShell() {
       id="yt-player"
       style={{
         width: "100%",
-        aspectRatio: "16 / 9",
+        height: "220px",        // 🔥 FIX: prevents iframe collapse on iOS
         background: "black",
         borderRadius: "8px",
-        overflow: "hidden",
-        marginTop: "8px"
+        marginTop: "8px",
+        overflow: "visible"     // 🔥 FIX: avoid Safari removing iframe
       }}
     />
   );
