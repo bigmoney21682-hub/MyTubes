@@ -4,7 +4,6 @@
  * Description:
  *   Action bar for video items.
  *   Provides:
- *     - Add to Queue
  *     - Add to Playlist (popup isolated via useRef)
  *
  *   Popup isolation ensures this component never triggers a re-render
@@ -13,13 +12,10 @@
 
 import React, { useRef, useState } from "react";
 import { usePlaylists } from "../contexts/PlaylistContext.jsx";
-import { usePlayer } from "../player/PlayerContext.jsx";
 import PlaylistPickerModal from "./PlaylistPickerModal.jsx";
 
 export default function VideoActions({ videoId, videoSnippet }) {
   const { playlists, addVideoToPlaylist } = usePlaylists();
-  const player = usePlayer();
-  const queueAdd = player?.queueAdd ?? (() => {});
 
   // Popup isolation
   const showPickerRef = useRef(false);
@@ -42,20 +38,8 @@ export default function VideoActions({ videoId, videoSnippet }) {
   return (
     <>
       <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
-        <button
-          onClick={() => queueAdd(videoId)}
-          style={{
-            padding: "8px 12px",
-            background: "#222",
-            color: "#fff",
-            border: "1px solid #444",
-            borderRadius: "4px",
-            fontSize: "13px"
-          }}
-        >
-          + Add to Queue
-        </button>
-
+        {/* Queue button removed — queue system no longer exists */}
+        
         <button
           onClick={openPicker}
           style={{
