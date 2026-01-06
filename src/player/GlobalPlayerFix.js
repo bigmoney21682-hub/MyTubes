@@ -1,58 +1,35 @@
 /**
  * File: GlobalPlayerFix.js
- * Path: src/player/GlobalPlayerFix.js
- * Description:
- *   Ensures YouTube Iframe API loads once globally.
- *   Adds full lifecycle debugging for iOS/Mac Web Inspector.
  */
 
-// ------------------------------------------------------------
-// Debug helper
-// ------------------------------------------------------------
+console.log("[PLAYER] GlobalPlayerFix loaded");
+
 function dbg(label, data = {}) {
   console.group(`[PLAYER] ${label}`);
   for (const k in data) console.log(k + ":", data[k]);
   console.groupEnd();
 }
 
-dbg("GlobalPlayerFix loaded");
-
-// ------------------------------------------------------------
-// Load YouTube Iframe API once
-// ------------------------------------------------------------
-if (!window.YT) {
-  dbg("Injecting YouTube Iframe API");
-
-  const tag = document.createElement("script");
-  tag.src = "https://www.youtube.com/iframe_api";
-  document.head.appendChild(tag);
-}
-
-// ------------------------------------------------------------
-// Global player object
-// ------------------------------------------------------------
 window.GlobalPlayer = {
   player: null,
 
-  init() {
-    dbg("init() called");
+  ensure() {
+    if (this.player) return;
 
-    if (this.player) {
-      dbg("Player already exists");
+    const el = document.getElementById("yt-player");
+    if (!el) {
+      dbg("ensure() → yt-player not in DOM yet");
       return;
     }
+
+    dbg("Creating YT.Player");
 
     this.player = new YT.Player("yt-player", {
       height: "100%",
       width: "100%",
-      playerVars: {
-        playsinline: 1,
-        rel: 0,
-        modestbranding: 1,
-        controls: 1
-      },
+      playerVars: { playsinline: 1, rel: 0, modestbranding: 1 },
       events: {
-        onReady: (e) => dbg("onReady", { event: e }),
+        onReady: () => dbg("onReady"),
         onStateChange: (e) => dbg("onStateChange", { state: e.data }),
         onError: (e) => dbg("onError", { error: e.data })
       }
@@ -63,8 +40,8 @@ window.GlobalPlayer = {
     dbg("loadVideo()", { id });
 
     if (!this.player) {
-      dbg("Player missing — calling init()");
-      this.init();
+      dbg("Player missing → calling ensure()");
+      this.ensure();
     }
 
     try {
@@ -75,10 +52,7 @@ window.GlobalPlayer = {
   }
 };
 
-// ------------------------------------------------------------
-// YouTube API callback
-// ------------------------------------------------------------
 window.onYouTubeIframeAPIReady = () => {
   dbg("Iframe API Ready");
-  window.GlobalPlayer.init();
+  window.GlobalPlayer.ensure();
 };
