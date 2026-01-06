@@ -13,11 +13,11 @@ import "./index.css";
 const root = ReactDOM.createRoot(document.getElementById("root"));
 
 root.render(
-  <BrowserRouter>
-    <PlaylistProvider>
-      <PlayerProvider>
-        <App />
-      </PlayerProvider>
-    </PlaylistProvider>
-  </BrowserRouter>
+  <BrowserRouter basename="/MyTube-Piped-Frontend">
+  <PlaylistProvider>
+    <PlayerProvider>
+      <App />
+    </PlayerProvider>
+  </PlaylistProvider>
+</BrowserRouter>
 );
