@@ -1,47 +1,42 @@
 /**
  * File: App.jsx
- * Path: src/app/App.jsx
+ * Path: src/App.jsx
+ * Description:
+ *   Restored full app layout:
+ *   - Header
+ *   - Footer
+ *   - MiniPlayer
+ *   - Page routing
  */
 
-import React, { useEffect } from "react";
-import { Routes, Route, useLocation } from "react-router-dom";
+import React from "react";
+import { Routes, Route } from "react-router-dom";
 
-import Home from "../pages/Home/Home.jsx";
-import Search from "../pages/Search.jsx";
+import Header from "./components/Header.jsx";
+import Footer from "./components/Footer.jsx";
+import MiniPlayer from "./player/MiniPlayer.jsx";
 
-function dbg(label, data = {}) {
-  console.group(`[ROUTER] ${label}`);
-  for (const k in data) console.log(k + ":", data[k]);
-  console.groupEnd();
-}
+import Home from "./pages/Home/Home.jsx";
+import Playlists from "./pages/Playlists/Playlists.jsx";
+import PlaylistDetail from "./pages/Playlists/PlaylistDetail.jsx";
+import Watch from "./pages/Watch/Watch.jsx";
 
 export default function App() {
-  const location = useLocation();
-
-  useEffect(() => {
-    dbg("Route changed", {
-      pathname: location.pathname,
-      search: location.search,
-      hash: location.hash
-    });
-  }, [location]);
-
   return (
-    <Routes>
-      {/* GitHub Pages base path */}
-      <Route path="/MyTube-Piped-Frontend/" element={<Home />} />
+    <div className="app-shell">
+      <Header />
 
-      {/* Normal root */}
-      <Route path="/" element={<Home />} />
+      <div className="app-content">
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/playlists" element={<Playlists />} />
+          <Route path="/playlist/:id" element={<PlaylistDetail />} />
+          <Route path="/watch/:id" element={<Watch />} />
+        </Routes>
+      </div>
 
-      {/* Watch route */}
-      <Route path="/watch/:id" element={<Home />} />
-
-      {/* Search */}
-      <Route path="/search/:query" element={<Search />} />
-
-      {/* Catch-all → Home */}
-      <Route path="*" element={<Home />} />
-    </Routes>
+      <MiniPlayer />
+      <Footer />
+    </div>
   );
 }
