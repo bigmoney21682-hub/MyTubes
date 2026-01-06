@@ -2,173 +2,213 @@
  * File: Home.jsx
  * Path: src/pages/Home/Home.jsx
  * Description:
- *   Home page showing:
- *     - NowPlaying section (title, channel, autonext, related/playlist)
- *     - PlayerShell (iframe container)
- *     - Trending videos (existing UI)
- *
- *   Notes:
- *     - No navigation to /watch
- *     - Clicking a trending video loads it into the global player
+ *   The master page of the app.
+ *   - Player stays mounted at all times
+ *   - Autonext source selector (Playlist / Related / Trending)
+ *   - Dynamic content area based on source
+ *   - loadVideo() never unmounts the iframe
+ *   - Continuous play from any source
  */
 
-import React, { useEffect, useState, useContext } from "react";
-
-import { fetchTrending } from "../../api/trending.js";
-import normalizeId from "../../utils/normalizeId.js";
+import React, { useState, useEffect, useContext } from "react";
 
 import { PlayerContext } from "../../player/PlayerContext.jsx";
-import PlayerShell from "../../player/PlayerShell.jsx";
+import { usePlaylists } from "../../contexts/PlaylistContext.jsx";
 
-// import VideoActions from "../../components/VideoActions.jsx";
+import { fetchTrending } from "../../api/trending.js";
+import { fetchRelated } from "../../api/related.js";
 
-import NowPlaying from "./NowPlaying.jsx";
+export default function Home() {
+  const { currentId, loadVideo } = useContext(PlayerContext);
+  const { playlists } = usePlaylists();
 
-const thumbStyle = {
-  width: "100%",
-  aspectRatio: "16 / 9",
-  objectFit: "cover",
-  borderRadius: "8px",
-  marginBottom: "8px"
-};
+  // ⭐ autonext source: "trending" | "related" | "playlist"
+  const [source, setSource] = useState("trending");
 
-const titleStyle = {
-  fontSize: "16px",
-  fontWeight: "bold",
-  marginBottom: "4px"
-};
+  // ⭐ dynamic content list
+  const [items, setItems] = useState([]);
 
-const channelStyle = {
-  fontSize: "13px",
-  opacity: 0.7,
-  marginBottom: "6px"
-};
+  // ⭐ selected playlist (if source === "playlist")
+  const [activePlaylistId, setActivePlaylistId] = useState(null);
 
-const descStyle = {
-  fontSize: "13px",
-  opacity: 0.8,
-  lineHeight: 1.4
-};
-
-function Home() {
-  const [videos, setVideos] = useState([]);
-  const [expandedIndex, setExpandedIndex] = useState(null);
-
-  const { loadVideo } = useContext(PlayerContext);
-
+  /* ------------------------------------------------------------
+     Load content based on source
+  ------------------------------------------------------------ */
   useEffect(() => {
-    loadTrending();
-  }, []);
-
-  async function loadTrending() {
-    try {
-      const list = await fetchTrending("US");
-
-      if (!Array.isArray(list)) {
-        console.log("Home.jsx → fetchTrending returned invalid list");
-        setVideos([]);
-        return;
+    async function load() {
+      if (source === "trending") {
+        const list = await fetchTrending();
+        setItems(list || []);
       }
 
-      const normalized = list
-        .map((item) => {
-          const vid = normalizeId(item);
-          if (!vid) {
-            console.log("Home.jsx → Skipped trending item with invalid ID", item);
-            return null;
-          }
+      if (source === "related" && currentId) {
+        const list = await fetchRelated(currentId);
+        setItems(list || []);
+      }
 
-          return {
-            id: vid,
-            snippet: {
-              title: item.title,
-              channelTitle: item.author,
-              description: "",
-              thumbnails: {
-                medium: { url: item.thumbnail }
-              }
-            }
-          };
-        })
-        .filter(Boolean);
-
-      console.log(`Home.jsx → Trending loaded (${normalized.length} items)`);
-
-      setVideos(normalized);
-    } catch (err) {
-      console.log("Home.jsx → loadTrending error:", err?.message);
-      setVideos([]);
+      if (source === "playlist" && activePlaylistId) {
+        const pl = playlists.find((p) => p.id === activePlaylistId);
+        setItems(pl ? pl.videos : []);
+      }
     }
+
+    load();
+  }, [source, currentId, activePlaylistId, playlists]);
+
+  /* ------------------------------------------------------------
+     Handle clicking a video in the content area
+  ------------------------------------------------------------ */
+  function handleSelect(item) {
+    const id = item.id || item.videoId;
+    if (!id) return;
+
+    loadVideo(id);
+
+    // If user clicked a playlist item → lock source to playlist
+    if (source === "playlist") return;
+
+    // If user clicked trending → lock source to trending
+    if (source === "trending") return;
+
+    // If user clicked related → lock source to related
+    if (source === "related") return;
   }
 
-  function handlePlay(item) {
-    const vid = item?.id;
-    if (!vid) return;
-    loadVideo(vid);
-  }
-
+  /* ------------------------------------------------------------
+     Render
+  ------------------------------------------------------------ */
   return (
-    <div style={{ padding: "16px", color: "#fff" }}>
-      <NowPlaying />
-      <PlayerShell />
+    <div style={{ padding: "12px", color: "#fff" }}>
+      {/* ⭐ Autonext Source Selector */}
+      <div
+        style={{
+          display: "flex",
+          gap: "8px",
+          marginBottom: "16px",
+          justifyContent: "center"
+        }}
+      >
+        <button
+          onClick={() => setSource("trending")}
+          style={{
+            padding: "6px 12px",
+            borderRadius: "6px",
+            border: "none",
+            background: source === "trending" ? "#ff0000" : "#333",
+            color: "#fff",
+            cursor: "pointer"
+          }}
+        >
+          Trending
+        </button>
 
-      <h2 style={{ marginBottom: "12px", marginTop: "12px" }}>Trending</h2>
+        <button
+          onClick={() => setSource("related")}
+          style={{
+            padding: "6px 12px",
+            borderRadius: "6px",
+            border: "none",
+            background: source === "related" ? "#ff0000" : "#333",
+            color: "#fff",
+            cursor: "pointer"
+          }}
+        >
+          Related
+        </button>
 
-      {videos.map((item, i) => {
-        const vid = item?.id;
-        const sn = item?.snippet ?? {};
-        const thumb = sn?.thumbnails?.medium?.url ?? "";
+        <button
+          onClick={() => {
+            setSource("playlist");
+            if (!activePlaylistId && playlists.length > 0) {
+              setActivePlaylistId(playlists[0].id);
+            }
+          }}
+          style={{
+            padding: "6px 12px",
+            borderRadius: "6px",
+            border: "none",
+            background: source === "playlist" ? "#ff0000" : "#333",
+            color: "#fff",
+            cursor: "pointer"
+          }}
+        >
+          Playlist
+        </button>
+      </div>
 
-        if (!vid) return null;
+      {/* ⭐ Playlist selector (only when source === playlist) */}
+      {source === "playlist" && playlists.length > 0 && (
+        <div
+          style={{
+            display: "flex",
+            gap: "8px",
+            marginBottom: "16px",
+            overflowX: "auto"
+          }}
+        >
+          {playlists.map((pl) => (
+            <button
+              key={pl.id}
+              onClick={() => setActivePlaylistId(pl.id)}
+              style={{
+                padding: "6px 12px",
+                borderRadius: "6px",
+                border: "none",
+                background: activePlaylistId === pl.id ? "#3ea6ff" : "#333",
+                color: "#fff",
+                cursor: "pointer",
+                whiteSpace: "nowrap"
+              }}
+            >
+              {pl.name}
+            </button>
+          ))}
+        </div>
+      )}
 
-        const isExpanded = expandedIndex === i;
+      {/* ⭐ Content Area */}
+      <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+        {items.map((item) => {
+          const id = item.id || item.videoId;
+          const thumb =
+            item.thumbnail ||
+            item.snippet?.thumbnails?.medium?.url ||
+            item.snippet?.thumbnails?.default?.url;
 
-        return (
-          <div key={vid + "_" + i} style={{ marginBottom: "24px" }}>
+          return (
             <div
-              onClick={() => handlePlay(item)}
-              style={{ textDecoration: "none", color: "#fff", cursor: "pointer" }}
+              key={id}
+              onClick={() => handleSelect(item)}
+              style={{
+                cursor: "pointer",
+                background: "#111",
+                padding: "8px",
+                borderRadius: "8px"
+              }}
             >
               <img
                 src={thumb}
-                alt={sn.title ?? "Video thumbnail"}
-                style={thumbStyle}
+                alt=""
+                style={{
+                  width: "100%",
+                  aspectRatio: "16 / 9",
+                  objectFit: "cover",
+                  borderRadius: "6px",
+                  marginBottom: "8px"
+                }}
               />
 
-              <div style={titleStyle}>{sn.title ?? "Untitled"}</div>
-              <div style={channelStyle}>{sn.channelTitle ?? "Unknown Channel"}</div>
-            </div>
+              <div style={{ fontSize: "15px", fontWeight: 600 }}>
+                {item.title || item.snippet?.title}
+              </div>
 
-            <div
-              style={{
-                ...descStyle,
-                maxHeight: isExpanded ? "none" : "3.6em",
-                overflow: "hidden",
-                transition: "max-height 0.2s ease"
-              }}
-            >
-              {sn.description ?? ""}
+              <div style={{ fontSize: "13px", opacity: 0.7 }}>
+                {item.channelTitle || item.snippet?.channelTitle}
+              </div>
             </div>
-
-            <button
-              onClick={() => setExpandedIndex(isExpanded ? null : i)}
-              style={{
-                marginTop: "6px",
-                background: "none",
-                border: "none",
-                color: "#3ea6ff",
-                fontSize: "14px",
-                cursor: "pointer",
-                padding: 0
-              }}
-            >
-              {isExpanded ? "Show less" : "Show more"}
-            </button>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 }
-
-export default React.memo(Home);
