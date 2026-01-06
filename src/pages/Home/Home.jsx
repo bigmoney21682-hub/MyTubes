@@ -19,7 +19,9 @@ import normalizeId from "../../utils/normalizeId.js";
 
 import { PlayerContext } from "../../player/PlayerContext.jsx";
 import PlayerShell from "../../player/PlayerShell.jsx";
-import VideoActions from "../../components/VideoActions.jsx";
+
+// ❌ Temporarily removed to isolate black‑screen crash
+// import VideoActions from "../../components/VideoActions.jsx";
 
 import NowPlaying from "./NowPlaying.jsx";
 
@@ -171,7 +173,8 @@ export default function Home() {
               {isExpanded ? "Show less" : "Show more"}
             </button>
 
-            <VideoActions videoId={vid} videoSnippet={sn} />
+            {/* ❌ Temporarily disabled to isolate crash */}
+            {/* <VideoActions videoId={vid} videoSnippet={sn} /> */}
           </div>
         );
       })}
