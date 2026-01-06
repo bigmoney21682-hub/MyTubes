@@ -17,7 +17,7 @@ import Footer from "../layout/Footer.jsx";
 import MiniPlayer from "../player/MiniPlayer.jsx";
 
 import Home from "../pages/Home/Home.jsx";
-import Playlists from "../pages/Playlists/Playlists.jsx";
+import Playlists from "../pages/Playlists.jsx";
 import PlaylistDetail from "../pages/Playlists/PlaylistDetail.jsx";
 import Watch from "../pages/Watch/Watch.jsx";
 
