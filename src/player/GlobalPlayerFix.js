@@ -3,9 +3,10 @@
  * Path: src/player/GlobalPlayerFix.js
  * Description:
  *   Safe wrapper around the YouTube Iframe API.
- *   - Waits for #yt-player to exist
+ *   - Retries until #yt-player exists
  *   - Waits for Iframe API ready
  *   - Only calls loadVideoById after onReady
+ *   - Survives early API load + late React render
  */
 
 console.log("[PLAYER] GlobalPlayerFix loaded");
@@ -20,6 +21,7 @@ const GlobalPlayer = {
   player: null,
   apiReady: false,
   pendingId: null,
+  retryTimer: null,
 
   ensureContainer() {
     const el = document.getElementById("yt-player");
@@ -28,6 +30,23 @@ const GlobalPlayer = {
       return false;
     }
     return true;
+  },
+
+  /**
+   * Retry init until the container exists.
+   * This solves the boot race where the API loads
+   * before React renders PlayerShell.
+   */
+  waitForContainerAndInit() {
+    if (this.ensureContainer()) {
+      dbg("waitForContainerAndInit → container found, initializing");
+      this.init();
+      return;
+    }
+
+    dbg("waitForContainerAndInit → retrying in 50ms");
+    clearTimeout(this.retryTimer);
+    this.retryTimer = setTimeout(() => this.waitForContainerAndInit(), 50);
   },
 
   init() {
@@ -44,7 +63,8 @@ const GlobalPlayer = {
     }
 
     if (!this.ensureContainer()) {
-      dbg("init() → container missing, aborting");
+      dbg("init() → container missing, retrying");
+      this.waitForContainerAndInit();
       return;
     }
 
@@ -61,11 +81,12 @@ const GlobalPlayer = {
         events: {
           onReady: (e) => {
             dbg("onReady");
-            // If we had a pending video, load it now
+
             if (this.pendingId) {
               const id = this.pendingId;
               this.pendingId = null;
               dbg("onReady → loading pendingId", { id });
+
               try {
                 e.target.loadVideoById(id);
               } catch (err) {
@@ -73,9 +94,11 @@ const GlobalPlayer = {
               }
             }
           },
+
           onStateChange: (e) => {
             dbg("onStateChange", { state: e.data });
           },
+
           onError: (e) => {
             dbg("onError", { error: e.data });
           }
@@ -89,10 +112,8 @@ const GlobalPlayer = {
   loadVideo(id) {
     dbg("loadVideo()", { id });
 
-    // Always remember the latest requested id
     this.pendingId = id;
 
-    // If player exists, try to load immediately
     if (this.player && typeof this.player.loadVideoById === "function") {
       try {
         this.player.loadVideoById(id);
@@ -102,7 +123,6 @@ const GlobalPlayer = {
       return;
     }
 
-    // Otherwise, try to init — onReady will pick up pendingId
     dbg("Player missing or not ready → calling init()");
     this.init();
   }
@@ -110,8 +130,13 @@ const GlobalPlayer = {
 
 window.GlobalPlayer = GlobalPlayer;
 
+/**
+ * YouTube Iframe API callback.
+ * May fire BEFORE React renders PlayerShell.
+ * So we always retry until the container exists.
+ */
 window.onYouTubeIframeAPIReady = () => {
   dbg("Iframe API Ready");
   GlobalPlayer.apiReady = true;
-  GlobalPlayer.init();
+  GlobalPlayer.waitForContainerAndInit();
 };
