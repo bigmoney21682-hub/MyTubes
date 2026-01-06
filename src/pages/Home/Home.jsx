@@ -20,14 +20,10 @@ import normalizeId from "../../utils/normalizeId.js";
 import { PlayerContext } from "../../player/PlayerContext.jsx";
 import PlayerShell from "../../player/PlayerShell.jsx";
 
-// ❌ Temporarily removed to isolate black‑screen crash
 // import VideoActions from "../../components/VideoActions.jsx";
 
 import NowPlaying from "./NowPlaying.jsx";
 
-/* ------------------------------------------------------------
-   Shared card styles (unchanged)
-------------------------------------------------------------- */
 const thumbStyle = {
   width: "100%",
   aspectRatio: "16 / 9",
@@ -54,7 +50,7 @@ const descStyle = {
   lineHeight: 1.4
 };
 
-export default function Home() {
+function Home() {
   const [videos, setVideos] = useState([]);
   const [expandedIndex, setExpandedIndex] = useState(null);
 
@@ -113,13 +109,9 @@ export default function Home() {
 
   return (
     <div style={{ padding: "16px", color: "#fff" }}>
-      {/* Now Playing metadata */}
       <NowPlaying />
-
-      {/* 🔥 Actual iframe player container */}
       <PlayerShell />
 
-      {/* Trending section */}
       <h2 style={{ marginBottom: "12px", marginTop: "12px" }}>Trending</h2>
 
       {videos.map((item, i) => {
@@ -172,12 +164,11 @@ export default function Home() {
             >
               {isExpanded ? "Show less" : "Show more"}
             </button>
-
-            {/* ❌ Temporarily disabled to isolate crash */}
-            {/* <VideoActions videoId={vid} videoSnippet={sn} /> */}
           </div>
         );
       })}
     </div>
   );
 }
+
+export default React.memo(Home);
