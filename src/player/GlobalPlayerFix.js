@@ -7,7 +7,7 @@
  *   - Waits for Iframe API ready
  *   - Only calls loadVideoById after onReady
  *   - Survives early API load + late React render
- *   - Fixes iOS Safari DOM‑mount timing issues
+ *   - FIX: Removed ALL resizing (setSize) to restore iOS playback stability
  */
 
 console.log("[PLAYER] GlobalPlayerFix loaded");
@@ -74,7 +74,7 @@ const GlobalPlayer = {
     }
 
     try {
-      const container = await this.waitForContainer();
+      await this.waitForContainer();
       dbg("init() → container ready, creating player");
 
       this.player = new YT.Player("yt-player", {
