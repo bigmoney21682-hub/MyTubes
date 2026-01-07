@@ -1,13 +1,15 @@
 /**
  * File: App.jsx
+ * Path: src/app/App.jsx
  * Description:
- *   True layout controller.
+ *   True layout controller for the entire app.
  *   - PlayerArea pinned under header
- *   - MiniPlayer OR FullPlayer visible (never both)
+ *   - MiniPlayer only visible when collapsed
+ *   - FullPlayer replaces the player area (not fullscreen)
  *   - Content scrolls underneath
  */
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { Routes, Route } from "react-router-dom";
 
 import Header from "../components/Header.jsx";
@@ -16,6 +18,8 @@ import Footer from "../layout/Footer.jsx";
 import MiniPlayer from "../player/MiniPlayer.jsx";
 import FullPlayer from "../player/FullPlayer.jsx";
 
+import { PlayerContext } from "../player/PlayerContext.jsx";
+
 import Home from "../pages/Home/Home.jsx";
 import Playlists from "../pages/Playlists.jsx";
 import Search from "../pages/Search.jsx";
@@ -23,8 +27,25 @@ import Search from "../pages/Search.jsx";
 export default function App() {
   const [expanded, setExpanded] = useState(false);
 
+  // ⭐ When a video loads → expand the player automatically
+  const { currentId } = useContext(PlayerContext);
+
+  useEffect(() => {
+    if (currentId) {
+      setExpanded(true);
+    }
+  }, [currentId]);
+
   return (
-    <div style={{ width: "100%", height: "100%", background: "#000", color: "#fff" }}>
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        background: "#000",
+        color: "#fff",
+        overflowX: "hidden"
+      }}
+    >
       <Header />
 
       {/* ⭐ PLAYER AREA (pinned under header) */}
@@ -33,7 +54,7 @@ export default function App() {
           width: "100%",
           height: 220,
           position: "sticky",
-          top: 60,          // ⭐ directly under header
+          top: 60, // header height
           zIndex: 1000,
           background: "#000"
         }}
@@ -59,7 +80,7 @@ export default function App() {
         <div
           style={{
             position: "sticky",
-            top: 280,       // 60 header + 220 player
+            top: 280, // 60 header + 220 player
             zIndex: 999
           }}
         >
