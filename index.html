@@ -13,12 +13,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <link rel="manifest" href="/MyTube-Piped-Frontend/manifest.json" />
+    <link rel="manifest" href="/MyTubes/manifest.json" />
 
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black" />
     <meta name="apple-mobile-web-app-title" content="MyTube" />
-    <link rel="apple-touch-icon" href="/MyTube-Piped-Frontend/favicon.png" />
+    <link rel="apple-touch-icon" href="/MyTubes/favicon.png" />
 
     <meta
       http-equiv="Content-Security-Policy"
@@ -28,7 +28,7 @@
     <script async src="https://www.youtube.com/iframe_api"></script>
 
     <title>MyTube</title>
-    <link rel="icon" type="image/png" href="/MyTube-Piped-Frontend/favicon.png" />
+    <link rel="icon" type="image/png" href="/MyTubes/favicon.png" />
   </head>
 
   <body>
@@ -39,7 +39,7 @@
     <!-- 🔥 Service Worker Registration (GitHub Pages compatible) -->
     <script>
       if ("serviceWorker" in navigator) {
-        navigator.serviceWorker.register("/MyTube-Piped-Frontend/sw.js")
+        navigator.serviceWorker.register("/MyTubes/sw.js")
           .catch(err => console.log("SW registration failed:", err));
       }
     </script>
