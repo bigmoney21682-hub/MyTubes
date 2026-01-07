@@ -1,127 +1,74 @@
 /**
- * File: App.jsx
- * Path: src/app/App.jsx
+ * File: Footer.jsx
+ * Path: src/layout/Footer.jsx
  * Description:
- *   Master layout controller for MyTube.
- *
- *   FIXED:
- *   - Player no longer covers top of pages
- *   - MiniPlayer no longer covers top of pages
- *   - Sticky offsets now correct
- *   - Header always stays above player
- *   - Layout matches YouTube Mobile
+ *   Global fixed footer for MyTube.
+ *   - Always visible above content
+ *   - Never overlaps MiniPlayer or Player
+ *   - Matches YouTube Mobile bottom bar behavior
  */
 
-import React, { useState, useEffect, useContext } from "react";
-import { Routes, Route } from "react-router-dom";
+import React from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 
-import Header from "../components/Header.jsx";
-import Footer from "../layout/Footer.jsx";
+export default function Footer() {
+  const navigate = useNavigate();
+  const location = useLocation();
 
-import MiniPlayer from "../player/MiniPlayer.jsx";
-import FullPlayer from "../player/FullPlayer.jsx";
-
-import { PlayerContext } from "../player/PlayerContext.jsx";
-
-import Home from "../pages/Home/Home.jsx";
-import Playlists from "../pages/Playlists.jsx";
-import Playlist from "../pages/Playlist.jsx";
-import Search from "../pages/Search.jsx";
-
-export default function App() {
-  const [expanded, setExpanded] = useState(false);
-  const { currentId } = useContext(PlayerContext);
-
-  // Auto-expand when a video starts
-  useEffect(() => {
-    if (currentId) setExpanded(true);
-  }, [currentId]);
+  const tabs = [
+    { id: "home", label: "Home", path: "/" },
+    { id: "search", label: "Search", path: "/search" },
+    { id: "playlists", label: "Playlists", path: "/playlists" }
+  ];
 
   return (
-    <div
+    <footer
       style={{
-        width: "100%",
-        minHeight: "100vh",
-        background: "#000",
-        color: "#fff",
-        overflowX: "hidden"
+        position: "fixed",
+        bottom: 0,
+        left: 0,
+        right: 0,
+
+        height: "56px",
+        background: "#0d0d0d",
+        borderTop: "1px solid #1a1a1a",
+
+        display: "flex",
+        justifyContent: "space-around",
+        alignItems: "center",
+
+        padding: "6px 0",
+
+        /* ⭐ Must be below MiniPlayer (1500) but above content */
+        zIndex: 1200,
+
+        /* Slight lift for visual polish */
+        transform: "translateY(-6px)"
       }}
     >
-      {/* HEADER (fixed at top) */}
-      <Header />
+      {tabs.map((tab) => {
+        const active = location.pathname === tab.path;
 
-      {/* PLAYER AREA (sticky under header) */}
-      <div
-        style={{
-          width: "100%",
-          height: 220,
-          position: "sticky",
-          top: 60,             // header height
-          zIndex: 1000,
-          background: "#000",
-          overflow: "hidden"
-        }}
-      >
-        {/* IFRAME ALWAYS MOUNTED */}
-        <div
-          id="yt-player"
-          style={{
-            width: "100%",
-            height: "100%",
-            position: "absolute",
-            inset: 0,
-            background: "#000",
-            zIndex: 1
-          }}
-        />
-
-        {/* FULLPLAYER OVERLAY */}
-        {expanded && (
-          <div
+        return (
+          <button
+            key={tab.id}
+            onClick={() => navigate(tab.path)}
             style={{
-              position: "absolute",
-              inset: 0,
-              zIndex: 2
+              background: active ? "#1a1f27" : "#111",
+              color: "#fff",
+              border: "none",
+              borderRadius: "9999px",
+              padding: "6px 12px",
+              fontSize: "13px",
+              fontWeight: 500,
+              cursor: "pointer",
+              transition: "background 0.15s ease, transform 0.1s ease"
             }}
           >
-            <FullPlayer onClose={() => setExpanded(false)} />
-          </div>
-        )}
-      </div>
-
-      {/* MINIPLAYER (sticky lane BELOW player area) */}
-      {currentId && !expanded && (
-        <div
-          style={{
-            position: "sticky",
-            top: 280,            // 60 header + 220 player
-            zIndex: 1500,
-            background: "#000",
-            display: "block",
-            height: "auto"
-          }}
-        >
-          <MiniPlayer onExpand={() => setExpanded(true)} />
-        </div>
-      )}
-
-      {/* CONTENT AREA */}
-      <div
-        style={{
-          paddingBottom: 56,
-          position: "relative",
-          zIndex: 1
-        }}
-      >
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/search" element={<Search />} />
-          <Route path="/playlists" element={<Playlists />} />
-          <Route path="/playlist/:id" element={<Playlist />} />
-        </Routes>
-      </div>
-
-      <Footer />
-    </div>
+            {tab.label}
+          </button>
+        );
+      })}
+    </footer>
   );
 }
