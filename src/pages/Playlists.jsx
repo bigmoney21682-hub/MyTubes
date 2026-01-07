@@ -1,6 +1,9 @@
 /**
  * File: Playlists.jsx
  * Path: src/pages/Playlists.jsx
+ * Description:
+ *   Corrected to avoid overlap with sticky Header + Player + MiniPlayer.
+ *   Adds proper top offset so content begins below the player stack.
  */
 
 import React from "react";
@@ -29,7 +32,13 @@ export default function Playlists() {
   }
 
   return (
-    <div style={{ paddingTop: "60px", padding: "16px", color: "#fff" }}>
+    <div
+      style={{
+        paddingTop: "300px",   // ⭐ FIXED: content starts below sticky player stack
+        padding: "16px",
+        color: "#fff"
+      }}
+    >
       <div
         style={{
           display: "flex",
