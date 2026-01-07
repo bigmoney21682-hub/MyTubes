@@ -1,12 +1,10 @@
 /**
  * File: App.jsx
  * Description:
- *   Top-level layout:
- *   - Header
- *   - GlobalPlayerFix iframe (inside Home)
- *   - MiniPlayer (pinned under player)
- *   - Content area
- *   - Footer
+ *   True layout controller.
+ *   - PlayerArea is pinned at the top
+ *   - MiniPlayer OR FullPlayer is shown (never both)
+ *   - Home/Search/Playlists scroll underneath
  */
 
 import React, { useState } from "react";
@@ -14,6 +12,7 @@ import { Routes, Route } from "react-router-dom";
 
 import Header from "../components/Header.jsx";
 import Footer from "../layout/Footer.jsx";
+
 import MiniPlayer from "../player/MiniPlayer.jsx";
 import FullPlayer from "../player/FullPlayer.jsx";
 
@@ -28,20 +27,31 @@ export default function App() {
     <div style={{ width: "100%", height: "100%", background: "#000", color: "#fff" }}>
       <Header />
 
-      {/* ⭐ FullPlayer replaces the player area, not full screen */}
-      <FullPlayer
-        isOpen={expanded}
-        onClose={() => setExpanded(false)}
-      />
+      {/* ⭐ PLAYER AREA (pinned) */}
+      <div style={{ width: "100%", height: 220, position: "relative", zIndex: 10 }}>
+        {!expanded && (
+          <div
+            id="yt-player"
+            style={{
+              width: "100%",
+              height: "100%",
+              background: "#000"
+            }}
+          />
+        )}
 
-      {/* ⭐ MiniPlayer sits directly under the player */}
-      <MiniPlayer
-        onExpand={() => setExpanded(true)}
-        onCollapse={() => setExpanded(false)}
-      />
+        {expanded && (
+          <FullPlayer onClose={() => setExpanded(false)} />
+        )}
+      </div>
 
-      {/* ⭐ Content area scrolls normally */}
-      <div style={{ paddingTop: "12px", paddingBottom: "56px" }}>
+      {/* ⭐ MINI PLAYER (only when collapsed) */}
+      {!expanded && (
+        <MiniPlayer onExpand={() => setExpanded(true)} />
+      )}
+
+      {/* ⭐ CONTENT AREA */}
+      <div style={{ paddingTop: 12, paddingBottom: 56 }}>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/search" element={<Search />} />
