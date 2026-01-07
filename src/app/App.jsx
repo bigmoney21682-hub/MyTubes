@@ -2,13 +2,13 @@
  * File: App.jsx
  * Path: src/app/App.jsx
  * Description:
- *   Master layout controller for MyTubes.
+ *   Master layout controller for MyTube.
  *
  *   FIXED:
  *   - Player no longer covers top of pages
  *   - MiniPlayer no longer covers top of pages
  *   - Sticky offsets now correct
- *   - Content begins below sticky stack
+ *   - Header always stays above player
  *   - Layout matches YouTube Mobile
  */
 
@@ -25,6 +25,7 @@ import { PlayerContext } from "../player/PlayerContext.jsx";
 
 import Home from "../pages/Home/Home.jsx";
 import Playlists from "../pages/Playlists.jsx";
+import Playlist from "../pages/Playlist.jsx";
 import Search from "../pages/Search.jsx";
 
 export default function App() {
@@ -46,7 +47,7 @@ export default function App() {
         overflowX: "hidden"
       }}
     >
-      {/* HEADER */}
+      {/* HEADER (fixed at top) */}
       <Header />
 
       {/* PLAYER AREA (sticky under header) */}
@@ -107,7 +108,6 @@ export default function App() {
       {/* CONTENT AREA */}
       <div
         style={{
-          paddingTop: 12,
           paddingBottom: 56,
           position: "relative",
           zIndex: 1
@@ -117,6 +117,7 @@ export default function App() {
           <Route path="/" element={<Home />} />
           <Route path="/search" element={<Search />} />
           <Route path="/playlists" element={<Playlists />} />
+          <Route path="/playlist/:id" element={<Playlist />} />
         </Routes>
       </div>
 
