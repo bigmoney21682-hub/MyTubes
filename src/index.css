@@ -3,17 +3,11 @@
  * Path: src/index.css
  * Description:
  *   Global styles, layout variables, and resets.
- *   Clean, modern, mobile‑optimized layout with:
- *   - Fixed header spacing
- *   - Lifted footer
- *   - Pinned Watch player
- *   - Smaller, cleaner oval popup buttons
- *   - Smooth page transitions
- *   - Thin scrollbars
- *   - No tap highlight
- *   - Global button press animation
- *   - Text clamping
- *   - Divider utility
+ *   FIXED:
+ *   - Removed Safari sticky poisoning (height:100%)
+ *   - Restored proper scroll container
+ *   - Restored correct sticky behavior
+ *   - Prevented MiniPlayer/Player from overlaying header
  */
 
 /* ------------------------------------------------------------
@@ -36,13 +30,19 @@ html, body {
   font-family: system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
-  height: 100%;
+
+  /* ⭐ CRITICAL FIX:
+     Safari sticky positioning breaks when html/body = height:100%.
+     This restores proper scroll behavior. */
+  height: auto;
+  min-height: 100vh;
+
   overflow-x: hidden;
 }
 
 * {
   box-sizing: border-box;
-  -webkit-tap-highlight-color: transparent; /* iOS polish */
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* ------------------------------------------------------------
@@ -70,10 +70,15 @@ body {
 
 /* ------------------------------------------------------------
    Layout shell padding
+   (Header + Footer spacing)
 ------------------------------------------------------------- */
 #root {
   padding-top: var(--header-height);
   padding-bottom: var(--footer-height);
+
+  /* ⭐ Ensure root does NOT become a scroll container */
+  overflow: visible;
+  min-height: 100vh;
 }
 
 /* ------------------------------------------------------------
@@ -109,7 +114,6 @@ button:active {
 .text-muted { opacity: 0.7; }
 .rounded { border-radius: 8px; }
 
-/* Text clamping */
 .clamp-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -117,7 +121,6 @@ button:active {
   overflow: hidden;
 }
 
-/* Divider */
 .divider {
   height: 1px;
   background: #1a1a1a;
@@ -152,7 +155,7 @@ button:active {
 }
 
 /* ------------------------------------------------------------
-   Popup buttons (cleaner, smaller, oval)
+   Popup buttons
 ------------------------------------------------------------- */
 .popup-btn {
   width: 100%;
@@ -177,7 +180,7 @@ button:active {
 }
 
 /* ------------------------------------------------------------
-   Footer (fixed, lifted slightly, cleaner spacing)
+   Footer (fixed)
 ------------------------------------------------------------- */
 footer {
   position: fixed;
@@ -196,10 +199,9 @@ footer {
   padding: 6px 0;
   z-index: 9998;
 
-  transform: translateY(-6px); /* lift */
+  transform: translateY(-6px);
 }
 
-/* Footer buttons */
 .footer-btn {
   background: #1a1f27;
   color: #fff;
