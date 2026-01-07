@@ -5,10 +5,10 @@
  *   Master layout controller for MyTubes.
  *
  *   FIXED:
- *   - MiniPlayer no longer overlays header
- *   - MiniPlayer no longer scrolls over header
- *   - Player no longer scrolls over header
- *   - Sticky offsets now respected
+ *   - Player no longer covers top of pages
+ *   - MiniPlayer no longer covers top of pages
+ *   - Sticky offsets now correct
+ *   - Content begins below sticky stack
  *   - Layout matches YouTube Mobile
  */
 
@@ -40,7 +40,7 @@ export default function App() {
     <div
       style={{
         width: "100%",
-        minHeight: "100vh",   // ⭐ correct root height
+        minHeight: "100vh",
         background: "#000",
         color: "#fff",
         overflowX: "hidden"
@@ -109,7 +109,7 @@ export default function App() {
         style={{
           paddingTop: 12,
           paddingBottom: 56,
-          position: "relative", // ⭐ ensures proper scroll stacking
+          position: "relative",
           zIndex: 1
         }}
       >
