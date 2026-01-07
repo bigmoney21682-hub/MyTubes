@@ -19,8 +19,8 @@
   "short_name": "MyTube",
   "description": "A fast, lightweight YouTube PWA with background play.",
 
-  "start_url": "/MyTube-Piped-Frontend/",
-  "scope": "/MyTube-Piped-Frontend/",
+  "start_url": "/MyTubes/",
+  "scope": "/MyTubes/",
   "display": "standalone",
   "orientation": "portrait",
 
@@ -29,12 +29,12 @@
 
   "icons": [
     {
-      "src": "/MyTube-Piped-Frontend/favicon.png",
+      "src": "/MyTubes/favicon.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "/MyTube-Piped-Frontend/favicon.png",
+      "src": "/MyTubes/favicon.png",
       "sizes": "512x512",
       "type": "image/png"
     }
