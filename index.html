@@ -7,8 +7,8 @@
     - Correct base path for GitHub Pages (/MyTubes/)
     - Correct manifest + icons
     - Correct YouTube iframe API
-    - Correct Vite module entry (Vite will rewrite this on build)
-    - Safe CSP for YouTube embeds
+    - Correct Vite module entry (rewritten on build)
+    - CSP updated with worker-src to allow service worker
   ------------------------------------------------------------
 -->
 
@@ -27,7 +27,7 @@
     <meta name="apple-mobile-web-app-title" content="MyTube" />
     <link rel="apple-touch-icon" href="/MyTubes/favicon.png" />
 
-    <!-- CSP (allows YouTube embeds + inline scripts for Vite) -->
+    <!-- CSP (allows YouTube embeds + inline scripts + service worker) -->
     <meta
       http-equiv="Content-Security-Policy"
       content="
@@ -40,6 +40,7 @@
           https://www.youtube.com/s/;
         frame-src https://www.youtube.com https://www.youtube-nocookie.com https://www.youtube.com/s/;
         child-src https://www.youtube.com https://www.youtube-nocookie.com https://www.youtube.com/s/;
+        worker-src 'self' blob:;
       "
     />
 
@@ -56,7 +57,7 @@
 
     <!--
       ⭐ IMPORTANT:
-      This is the correct dev entry.
+      This is the correct Vite dev entry.
       Vite will rewrite this to /MyTubes/assets/index-xxxxx.js during build.
     -->
     <script type="module" src="/src/main.jsx"></script>
