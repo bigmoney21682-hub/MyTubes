@@ -7,5 +7,5 @@ import react from "@vitejs/plugin-react";
 
 export default defineConfig({
   plugins: [react()],
-  base: "/MyTube-Piped-Frontend/", // REQUIRED for GitHub Pages
+  base: "/MyTubes/", // REQUIRED for GitHub Pages
 });
