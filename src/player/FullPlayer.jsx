@@ -2,15 +2,16 @@
  * File: FullPlayer.jsx
  * Path: src/player/FullPlayer.jsx
  * Description:
- *   Expanded player that replaces the 220px iframe area.
- *   - NOT full screen
- *   - Same height as the collapsed player (220px)
- *   - Shows title, thumbnail, and controls
- *   - Does NOT overlay content
+ *   Expanded player UI that overlays the 220px iframe area.
+ *   - NOT fullscreen
+ *   - Uses PlayerContext for meta + isPlaying
+ *   - Play/Pause controls real YouTube iframe via GlobalPlayer
+ *   - Collapse returns to MiniPlayer
  */
 
 import React, { useContext } from "react";
 import { PlayerContext } from "./PlayerContext.jsx";
+import { GlobalPlayer } from "./GlobalPlayerFix.js";
 
 export default function FullPlayer({ onClose }) {
   const { currentId, currentMeta, isPlaying, setIsPlaying } =
@@ -21,11 +22,23 @@ export default function FullPlayer({ onClose }) {
   const title = currentMeta?.title || "Now playing";
   const thumbnail = currentMeta?.thumbnail || "";
 
+  function handleTogglePlay() {
+    if (!GlobalPlayer.player) return;
+
+    if (isPlaying) {
+      GlobalPlayer.player.pauseVideo();
+    } else {
+      GlobalPlayer.player.playVideo();
+    }
+
+    setIsPlaying(!isPlaying);
+  }
+
   return (
     <div
       style={{
         width: "100%",
-        height: 220,               // ⭐ EXACT HEIGHT
+        height: 220,
         background: "#000",
         position: "relative",
         overflow: "hidden",
@@ -51,7 +64,8 @@ export default function FullPlayer({ onClose }) {
         style={{
           position: "absolute",
           inset: 0,
-          background: "linear-gradient(to top, rgba(0,0,0,0.7), rgba(0,0,0,0.2))"
+          background:
+            "linear-gradient(to top, rgba(0,0,0,0.7), rgba(0,0,0,0.2))"
         }}
       />
 
@@ -67,7 +81,7 @@ export default function FullPlayer({ onClose }) {
           color: "#fff"
         }}
       >
-        {/* Top row: collapse button */}
+        {/* Top row: collapse */}
         <div style={{ display: "flex", justifyContent: "flex-end" }}>
           <button
             onClick={onClose}
@@ -78,7 +92,8 @@ export default function FullPlayer({ onClose }) {
               background: "#333",
               color: "#fff",
               fontSize: 12,
-              fontWeight: 600
+              fontWeight: 600,
+              cursor: "pointer"
             }}
           >
             Collapse
@@ -99,9 +114,8 @@ export default function FullPlayer({ onClose }) {
 
         {/* Bottom controls */}
         <div style={{ display: "flex", gap: 10 }}>
-          {/* Play/Pause */}
           <button
-            onClick={() => setIsPlaying(!isPlaying)}
+            onClick={handleTogglePlay}
             style={{
               padding: "6px 12px",
               borderRadius: 6,
@@ -110,7 +124,8 @@ export default function FullPlayer({ onClose }) {
                 "linear-gradient(90deg, #ff8c00, #ff4500, #ff0000)",
               color: "#fff",
               fontSize: 12,
-              fontWeight: 600
+              fontWeight: 600,
+              cursor: "pointer"
             }}
           >
             {isPlaying ? "Pause" : "Play"}
