@@ -1,9 +1,14 @@
 <!--
   ------------------------------------------------------------
-  File: index.html 
+  File: index.html
   Path: /index.html
-  Description: stale build
-    Root HTML entry for MyTube PWA (Vite).
+  Description:
+    Root HTML entry for the MyTubes PWA.
+    - Correct base path for GitHub Pages (/MyTubes/)
+    - Correct manifest + icons
+    - Correct YouTube iframe API
+    - Correct Vite module entry (Vite will rewrite this on build)
+    - Safe CSP for YouTube embeds
   ------------------------------------------------------------
 -->
 
@@ -13,33 +18,56 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
+    <!-- PWA Manifest -->
     <link rel="manifest" href="/MyTubes/manifest.json" />
 
+    <!-- iOS PWA -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black" />
     <meta name="apple-mobile-web-app-title" content="MyTube" />
     <link rel="apple-touch-icon" href="/MyTubes/favicon.png" />
 
+    <!-- CSP (allows YouTube embeds + inline scripts for Vite) -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src * 'unsafe-inline' 'unsafe-eval' blob: data:; img-src * data: blob:; media-src *; script-src * 'unsafe-inline' 'unsafe-eval' https://www.youtube.com https://www.youtube-nocookie.com https://www.youtube.com/s/; frame-src https://www.youtube.com https://www.youtube-nocookie.com https://www.youtube.com/s/; child-src https://www.youtube.com https://www.youtube-nocookie.com https://www.youtube.com/s/;"
+      content="
+        default-src * 'unsafe-inline' 'unsafe-eval' blob: data:;
+        img-src * data: blob:;
+        media-src *;
+        script-src * 'unsafe-inline' 'unsafe-eval'
+          https://www.youtube.com
+          https://www.youtube-nocookie.com
+          https://www.youtube.com/s/;
+        frame-src https://www.youtube.com https://www.youtube-nocookie.com https://www.youtube.com/s/;
+        child-src https://www.youtube.com https://www.youtube-nocookie.com https://www.youtube.com/s/;
+      "
     />
 
+    <!-- YouTube Player API -->
     <script async src="https://www.youtube.com/iframe_api"></script>
 
     <title>MyTube</title>
     <link rel="icon" type="image/png" href="/MyTubes/favicon.png" />
   </head>
 
-  <body>
+  <body style="background:#000; margin:0; padding:0;">
+    <!-- React mounts here -->
     <div id="root"></div>
 
-    <script type="module" src="/src/main.jsx"></script>
+    <!--
+      ⭐ IMPORTANT:
+      Vite will rewrite this path during build.
+      DO NOT point to /src/main.jsx in production.
+      DO NOT hardcode hashed bundle names.
+      This is the correct dev entry; Vite replaces it in dist/.
+    -->
+    <script type="module" src="/MyTubes/src/main.jsx"></script>
 
-    <!-- 🔥 Service Worker Registration (GitHub Pages compatible) -->
+    <!-- GitHub Pages–compatible Service Worker -->
     <script>
       if ("serviceWorker" in navigator) {
-        navigator.serviceWorker.register("/MyTubes/sw.js")
+        navigator.serviceWorker
+          .register("/MyTubes/sw.js")
           .catch(err => console.log("SW registration failed:", err));
       }
     </script>
