@@ -2,6 +2,9 @@
  * ------------------------------------------------------------
  * File: Playlist.jsx
  * Path: src/pages/Playlist.jsx
+ * Description:
+ *   Corrected to avoid overlap with sticky Header + Player + MiniPlayer.
+ *   Adds proper top offset so content begins below the player stack.
  * ------------------------------------------------------------
  */
 
@@ -23,14 +26,14 @@ export default function Playlist() {
 
   if (!playlist) {
     return (
-      <div style={{ paddingTop: "60px", padding: "16px", color: "#fff" }}>
+      <div style={{ paddingTop: "300px", padding: "16px", color: "#fff" }}>
         <h2>Playlist not found</h2>
       </div>
     );
   }
 
   return (
-    <div style={{ paddingTop: "60px", padding: "16px", color: "#fff" }}>
+    <div style={{ paddingTop: "300px", padding: "16px", color: "#fff" }}>
       <h2 style={{ fontSize: "20px", marginBottom: "16px" }}>
         {playlist.name}
       </h2>
