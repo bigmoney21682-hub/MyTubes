@@ -1,23 +1,7 @@
 {
-  "_comment": [
-    "------------------------------------------------------------",
-    "  File: manifest.json",
-    "  Path: public/manifest.json",
-    "  Description:",
-    "    PWA manifest for MyTube.",
-    "    Enables:",
-    "      - Standalone PWA mode",
-    "      - iOS home-screen installation",
-    "      - Correct GitHub Pages base path",
-    "      - YouTube iframe permissions",
-    "      - Background playback support",
-    "      - App identity (name, icons, theme)",
-    "------------------------------------------------------------"
-  ],
-
   "name": "MyTube",
   "short_name": "MyTube",
-  "description": "A fast, lightweight YouTube PWA with background play.",
+  "description": "A fast, lightweight YouTube PWA with playlists, autonext, and background audio.",
 
   "start_url": "/MyTubes/",
   "scope": "/MyTubes/",
@@ -37,18 +21,12 @@
       "src": "/MyTubes/favicon.png",
       "sizes": "512x512",
       "type": "image/png"
+    },
+    {
+      "src": "/MyTubes/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
     }
-  ],
-
-  "permissions": {
-    "iframe": {
-      "allowed": [
-        "https://www.youtube.com",
-        "https://www.youtube-nocookie.com"
-      ]
-    }
-  },
-
-  "categories": ["entertainment", "video", "media"],
-  "prefer_related_applications": false
+  ]
 }
