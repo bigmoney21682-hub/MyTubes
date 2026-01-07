@@ -7,7 +7,7 @@
  *   - Content scrolls underneath
  */
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { Routes, Route } from "react-router-dom";
 
 import Header from "../components/Header.jsx";
@@ -16,12 +16,20 @@ import Footer from "../layout/Footer.jsx";
 import MiniPlayer from "../player/MiniPlayer.jsx";
 import FullPlayer from "../player/FullPlayer.jsx";
 
+import { PlayerContext } from "../player/PlayerContext.jsx";
+
 import Home from "../pages/Home/Home.jsx";
 import Playlists from "../pages/Playlists.jsx";
 import Search from "../pages/Search.jsx";
 
 export default function App() {
   const [expanded, setExpanded] = useState(false);
+  const { currentId } = useContext(PlayerContext);
+
+  // ⭐ Auto-expand when a video starts
+  useEffect(() => {
+    if (currentId) setExpanded(true);
+  }, [currentId]);
 
   return (
     <div style={{ width: "100%", height: "100%", background: "#000", color: "#fff" }}>
@@ -33,33 +41,38 @@ export default function App() {
           width: "100%",
           height: 220,
           position: "sticky",
-          top: 60,          // ⭐ directly under header
+          top: 60,
           zIndex: 1000,
           background: "#000"
         }}
       >
-        {!expanded && (
-          <div
-            id="yt-player"
-            style={{
-              width: "100%",
-              height: "100%",
-              background: "#000"
-            }}
-          />
-        )}
+        {/* ⭐ IFRAME ALWAYS MOUNTED */}
+        <div
+          id="yt-player"
+          style={{
+            width: "100%",
+            height: "100%",
+            background: "#000",
+            position: "absolute",
+            inset: 0,
+            zIndex: 1
+          }}
+        />
 
+        {/* ⭐ FULLPLAYER OVERLAYS IFRAME */}
         {expanded && (
-          <FullPlayer onClose={() => setExpanded(false)} />
+          <div style={{ position: "absolute", inset: 0, zIndex: 2 }}>
+            <FullPlayer onClose={() => setExpanded(false)} />
+          </div>
         )}
       </div>
 
-      {/* ⭐ MINI PLAYER (only when collapsed, pinned under header) */}
+      {/* ⭐ MINI PLAYER (only when collapsed) */}
       {!expanded && (
         <div
           style={{
             position: "sticky",
-            top: 280,       // 60 header + 220 player
+            top: 280,
             zIndex: 999
           }}
         >
