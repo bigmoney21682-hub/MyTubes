@@ -1,7 +1,7 @@
 /**
  * File: MiniPlayer.jsx
  * Path: src/player/MiniPlayer.jsx
- * Description:
+ * Description: stale build
  *   Compact bar under the header when player is collapsed.
  *   - Shows current title + thumbnail
  *   - Play/Pause controls real YouTube iframe via GlobalPlayer
