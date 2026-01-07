@@ -23,10 +23,7 @@ export default function MiniPlayer({ onExpand }) {
         padding: "8px 12px",
         display: "flex",
         alignItems: "center",
-        gap: "12px",
-        position: "sticky",
-        top: 220,
-        zIndex: 9
+        gap: "12px"
       }}
     >
       <img
