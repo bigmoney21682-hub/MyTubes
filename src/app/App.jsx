@@ -1,17 +1,13 @@
 /**
  * File: App.jsx
- * Path: src/app/App.jsx
  * Description:
- *   Layout controller.
- *   - Header at top
- *   - Player area (iframe or FullPlayer)
- *   - MiniPlayer only when collapsed
- *   - Content below
- *   - Footer at bottom
- *   - No sticky/pinning for now (all scroll together)
+ *   True layout controller.
+ *   - PlayerArea pinned under header
+ *   - MiniPlayer OR FullPlayer visible (never both)
+ *   - Content scrolls underneath
  */
 
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState } from "react";
 import { Routes, Route } from "react-router-dom";
 
 import Header from "../components/Header.jsx";
@@ -20,40 +16,25 @@ import Footer from "../layout/Footer.jsx";
 import MiniPlayer from "../player/MiniPlayer.jsx";
 import FullPlayer from "../player/FullPlayer.jsx";
 
-import { PlayerContext } from "../player/PlayerContext.jsx";
-
 import Home from "../pages/Home/Home.jsx";
 import Playlists from "../pages/Playlists.jsx";
 import Search from "../pages/Search.jsx";
 
 export default function App() {
   const [expanded, setExpanded] = useState(false);
-  const { currentId } = useContext(PlayerContext);
-
-  // Auto-expand when a video starts
-  useEffect(() => {
-    if (currentId) {
-      setExpanded(true);
-    }
-  }, [currentId]);
 
   return (
-    <div
-      style={{
-        width: "100%",
-        minHeight: "100%",
-        background: "#000",
-        color: "#fff",
-        overflowX: "hidden"
-      }}
-    >
+    <div style={{ width: "100%", height: "100%", background: "#000", color: "#fff" }}>
       <Header />
 
-      {/* Player area (no sticky for now) */}
+      {/* ⭐ PLAYER AREA (pinned under header) */}
       <div
         style={{
           width: "100%",
           height: 220,
+          position: "sticky",
+          top: 60,          // ⭐ directly under header
+          zIndex: 1000,
           background: "#000"
         }}
       >
@@ -73,13 +54,21 @@ export default function App() {
         )}
       </div>
 
-      {/* MiniPlayer only when collapsed */}
+      {/* ⭐ MINI PLAYER (only when collapsed, pinned under header) */}
       {!expanded && (
-        <MiniPlayer onExpand={() => setExpanded(true)} />
+        <div
+          style={{
+            position: "sticky",
+            top: 280,       // 60 header + 220 player
+            zIndex: 999
+          }}
+        >
+          <MiniPlayer onExpand={() => setExpanded(true)} />
+        </div>
       )}
 
-      {/* Content area */}
-      <div style={{ padding: "12px 12px 56px" }}>
+      {/* ⭐ CONTENT AREA */}
+      <div style={{ paddingTop: 12, paddingBottom: 56 }}>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/search" element={<Search />} />
