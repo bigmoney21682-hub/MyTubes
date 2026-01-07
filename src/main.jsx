@@ -48,7 +48,7 @@ import "./index.css";
 const root = ReactDOM.createRoot(document.getElementById("root"));
 
 root.render(
-  <BrowserRouter basename="/MyTube-Piped-Frontend">
+  <BrowserRouter basename="/MyTubes">
     {/* ⭐ Playlist + Player providers wrap the entire app */}
     <PlaylistProvider>
       <PlayerProvider>
