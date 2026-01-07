@@ -2,9 +2,9 @@
  * File: App.jsx
  * Description:
  *   True layout controller.
- *   - PlayerArea is pinned at the top
- *   - MiniPlayer OR FullPlayer is shown (never both)
- *   - Home/Search/Playlists scroll underneath
+ *   - PlayerArea pinned under header
+ *   - MiniPlayer OR FullPlayer visible (never both)
+ *   - Content scrolls underneath
  */
 
 import React, { useState } from "react";
@@ -27,8 +27,17 @@ export default function App() {
     <div style={{ width: "100%", height: "100%", background: "#000", color: "#fff" }}>
       <Header />
 
-      {/* ⭐ PLAYER AREA (pinned) */}
-      <div style={{ width: "100%", height: 220, position: "relative", zIndex: 10 }}>
+      {/* ⭐ PLAYER AREA (pinned under header) */}
+      <div
+        style={{
+          width: "100%",
+          height: 220,
+          position: "sticky",
+          top: 60,          // ⭐ directly under header
+          zIndex: 1000,
+          background: "#000"
+        }}
+      >
         {!expanded && (
           <div
             id="yt-player"
@@ -45,9 +54,17 @@ export default function App() {
         )}
       </div>
 
-      {/* ⭐ MINI PLAYER (only when collapsed) */}
+      {/* ⭐ MINI PLAYER (only when collapsed, pinned under header) */}
       {!expanded && (
-        <MiniPlayer onExpand={() => setExpanded(true)} />
+        <div
+          style={{
+            position: "sticky",
+            top: 280,       // 60 header + 220 player
+            zIndex: 999
+          }}
+        >
+          <MiniPlayer onExpand={() => setExpanded(true)} />
+        </div>
       )}
 
       {/* ⭐ CONTENT AREA */}
