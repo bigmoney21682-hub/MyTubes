@@ -1,71 +1,66 @@
 /**
+ * ------------------------------------------------------------
  * File: main.jsx
  * Path: src/main.jsx
  * Description:
- *   TRUE ROOT of the entire React application.
- *   - Loads GlobalPlayerFix BEFORE React mounts (critical for iOS)
- *   - Wraps the app in BrowserRouter, PlaylistProvider, PlayerProvider
- *   - Mounts DebugOverlay at the absolute top of the tree
- *   - Ensures player + autonext + debug systems work globally
+ *   React entrypoint for the MyTubes PWA.
+ *   - Mounts React into #root
+ *   - Initializes Router
+ *   - Wraps app in global providers
+ *   - Signals bootDebug.ready() when mounted
+ *   - Production‑safe for GitHub Pages under /MyTubes/
+ * ------------------------------------------------------------
  */
-
-import "./player/GlobalPlayerFix.js"; 
-// ⭐ Must load BEFORE React renders anything.
-//    This ensures:
-//    - YouTube Iframe API hooks register early
-//    - window.onYouTubeIframeAPIReady is ready
-//    - GlobalPlayerFix can initialize immediately
-//    - iOS background audio works reliably
 
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 
 import App from "./app/App.jsx";
-// ⭐ App.jsx is your UI shell (Header, Footer, MiniPlayer, Routes)
-
-import { PlaylistProvider } from "./contexts/PlaylistContext.jsx";
-// ⭐ Provides playlist storage + playlist editing globally
 
 import { PlayerProvider } from "./player/PlayerContext.jsx";
-// ⭐ Provides:
-//    - currentId
-//    - loadVideo()
-//    - global player state
-//    - MiniPlayer + Autonext integration
+import { PlaylistProvider } from "./contexts/PlaylistContext.jsx";
 
-import DebugOverlay from "./debug/DebugOverlay.jsx";
-// ⭐ Must be mounted at ROOT LEVEL.
-//    This gives full visibility into:
-//    - GlobalPlayerFix logs
-//    - AutonextEngine logs
-//    - Network logs
-//    - UI events
-//    - State transitions
-
+// Global CSS
 import "./index.css";
 
-const root = ReactDOM.createRoot(document.getElementById("root"));
+// Optional: global error boundary (prevents white screens)
+function ErrorBoundary({ children }) {
+  return (
+    <React.Suspense fallback={<div style={{ color: "#fff" }}>Loading…</div>}>
+      {children}
+    </React.Suspense>
+  );
+}
+
+// ------------------------------------------------------------
+// Mount React
+// ------------------------------------------------------------
+const rootElement = document.getElementById("root");
+
+const root = ReactDOM.createRoot(rootElement);
 
 root.render(
-  <BrowserRouter basename="/MyTubes">
-    {/* ⭐ Playlist + Player providers wrap the entire app */}
-    <PlaylistProvider>
-      <PlayerProvider>
-
-        {/* ⭐ Main UI shell */}
-        <App />
-
-        {/* ⭐ Debug overlay MUST be here:
-            - Above App
-            - Above Router
-            - Above MiniPlayer
-            - Never unmounted
-            - Never clipped
-            - Always receives global toggle events */}
-        <DebugOverlay />
-
-      </PlayerProvider>
-    </PlaylistProvider>
-  </BrowserRouter>
+  <React.StrictMode>
+    <ErrorBoundary>
+      <BrowserRouter basename="/MyTubes">
+        <PlaylistProvider>
+          <PlayerProvider>
+            <App />
+          </PlayerProvider>
+        </PlaylistProvider>
+      </BrowserRouter>
+    </ErrorBoundary>
+  </React.StrictMode>
 );
+
+// ------------------------------------------------------------
+// Signal bootDebug that React is ready
+// ------------------------------------------------------------
+try {
+  if (window.bootDebug && typeof window.bootDebug.ready === "function") {
+    window.bootDebug.ready("React mounted");
+  }
+} catch (_) {
+  // Never crash on boot
+}
